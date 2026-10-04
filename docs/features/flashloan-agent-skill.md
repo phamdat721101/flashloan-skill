@@ -14,6 +14,7 @@ DeFi operators who control an Arbitrum executor contract and a dedicated wallet,
 - An installable `$flashloan-agent` prompt skill and package CLI that copies its own skill definition to the Codex skill directory.
 - A local daily-loss ledger and cross-process execution lock for the autonomous execution path.
 - Extension interfaces for additional chains, protocols, and scanner/data providers.
+- A key-free Arbitrum scanner that indexes Aave v3, Morpho Blue, Balancer v2, and Uniswap v4 events from a configured start block, persists reorg-aware checkpoints, and emits versioned JSONL scan envelopes.
 
 ## Non-goals
 
@@ -33,12 +34,18 @@ Copy the proven execution boundary into a typed orchestrator and make scanners f
 ## System boundaries
 
 - Reads on-chain data and quotes through registered chain, protocol, and data-provider connectors.
+- The scanner is public-RPC-only and never builds a wallet client or sends a transaction. It emits protocol-specific intents, not executor calldata.
 - Simulates exact executor calldata before every broadcast; only a configured wallet and verified executor permit autonomous execution.
 - Broadcasts are Arbitrum-only in v1. Other chains require a registered connector and verified executor adapter.
 
 ## Data models
 
 - `SkillConfig`, `Opportunity`, `AllocationPlan`, `SimulationResult`, `ExecutionDecision`, and `ExecutionReceipt` are defined in `src/types.ts` and mirrored in `schemas/`.
+- `ScannerConfig`, `ScanEnvelope`, `ScanOpportunity`, and `ScanIntent` are defined in `src/scan/` and mirrored by `scan-config.schema.json` and `scan-envelope.schema.json`. Amounts and block numbers are strings to preserve integer precision in JSON.
+
+## Scanner contract
+
+`scan --config scanner.json --once` requires chain 42161, an HTTP(S) public RPC, a decimal `startBlock`, and protocol contract addresses. It polls finalized blocks only, validates its checkpoint hash before advancing, persists its discovered borrower universe, and records diagnostics instead of silently dropping RPC failures. Aave and Morpho candidates include live health factors; Balancer candidates describe Vault flash-liquidity; Uniswap v4 candidates describe `PoolManager.unlock` settlement requirements. Neither Balancer's callback flash loan nor v4 transient deltas are modeled as generic executor calldata.
 
 ## Tracer-bullet path
 

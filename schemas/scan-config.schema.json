@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Arbitrum Scanner Config",
+  "type": "object",
+  "required": ["chainId", "rpcUrl", "startBlock", "protocols"],
+  "properties": {
+    "chainId": { "const": 42161 },
+    "rpcUrl": { "type": "string", "format": "uri" },
+    "startBlock": { "type": "string", "pattern": "^[0-9]+$" },
+    "finalityBlocks": { "type": "integer", "minimum": 1, "default": 20 },
+    "logChunkSize": { "type": "integer", "minimum": 1, "default": 2000 },
+    "pollIntervalMs": { "type": "integer", "minimum": 1, "default": 5000 },
+    "assetAllowlist": { "type": "array", "items": { "type": "string", "pattern": "^0x[0-9a-fA-F]{40}$" } },
+    "protocols": {
+      "type": "object",
+      "properties": {
+        "aaveV3": { "$ref": "#/$defs/addressConfig" },
+        "morphoBlue": { "$ref": "#/$defs/addressConfig" },
+        "balancerV2": { "$ref": "#/$defs/addressConfig" },
+        "uniswapV4": { "type": "object", "required": ["poolManager"], "properties": { "poolManager": { "$ref": "#/$defs/address" }, "quoter": { "$ref": "#/$defs/address" }, "allowHooks": { "type": "boolean", "default": false } } }
+      }
+    }
+  },
+  "$defs": {
+    "address": { "type": "string", "pattern": "^0x[0-9a-fA-F]{40}$" },
+    "addressConfig": { "type": "object", "properties": { "pool": { "$ref": "#/$defs/address" }, "blue": { "$ref": "#/$defs/address" }, "vault": { "$ref": "#/$defs/address" } }, "minProperties": 1 }
+  }
+}

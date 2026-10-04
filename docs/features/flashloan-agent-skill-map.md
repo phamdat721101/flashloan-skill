@@ -4,10 +4,10 @@
 {
   "featureId": "flashloan-agent-skill",
   "taskType": "feature",
-  "status": "Done",
+  "status": "Implemented — pending live E2E and client acceptance",
   "input": {
-    "entrypoint": "src/cli.ts run <opportunities.json>",
-    "payload": "SkillConfig plus schema-valid executor-ready Opportunity records"
+    "entrypoint": "src/cli.ts scan --config <scanner-config.json> --once",
+    "payload": "secret-free ScannerConfig plus public Arbitrum RPC"
   },
   "processing": {
     "apiHops": ["Arbitrum JSON-RPC: chain ID, bytecode, exact call simulation, gas estimate, transaction receipt"],
@@ -15,22 +15,22 @@
     "services": ["Arbitrum executor contract", "registered opportunity providers"]
   },
   "output": {
-    "state": "ExecutionDecision[] with optional ExecutionReceipt",
-    "transitions": ["configured -> discovered -> allocated -> simulated -> risk-approved -> broadcast -> settled", "any failure -> rejected with diagnostic"]
+    "state": "ScanEnvelope JSONL with ScanOpportunity[] and diagnostics",
+    "transitions": ["configured -> finalized-block-indexed -> live-state-validated -> intent-emitted", "any RPC failure -> classified diagnostic"]
   },
   "seams": [
-    { "id": "config-to-connector", "description": "Environment parsing must prevent malformed secrets and endpoints reaching a connector." },
-    { "id": "rpc-to-executor", "description": "RPC chain and deployed executor bytecode must agree before execution." },
-    { "id": "provider-to-orchestrator", "description": "Expired and foreign-chain quotes must not become allocations." },
-    { "id": "allocation-to-risk", "description": "Multi-route allocations must sum exactly to 10,000 basis points." },
-    { "id": "simulation-to-broadcast", "description": "The final raw-call simulation must pass immediately before signing." }
+    { "id": "config-to-scanner", "description": "Scanner configuration is secret-free and constrains the RPC, chain, bootstrap, and protocol addresses." },
+    { "id": "checkpoint-to-logs", "description": "A changed checkpoint block hash rewinds the finality window before new logs are trusted." },
+    { "id": "logs-to-state", "description": "Aave and Morpho event candidates are checked against current on-chain state." },
+    { "id": "pool-to-intent", "description": "Balancer flash callbacks and Uniswap v4 unlock deltas remain distinct tagged intents." },
+    { "id": "scanner-to-output", "description": "Only atomic checkpoint updates and schema-valid JSONL output occur; no wallet client or broadcast is reachable." }
   ],
   "edgeProofs": [
-    { "edgeId": "EDGE-01", "seamId": "config-to-connector", "command": "npm test", "logMarker": "EDGE-01", "sourceFiles": ["src/config.ts"] },
-    { "edgeId": "EDGE-02", "seamId": "rpc-to-executor", "command": "npm test", "logMarker": "EDGE-02", "sourceFiles": ["src/arbitrum.ts"] },
-    { "edgeId": "EDGE-03", "seamId": "provider-to-orchestrator", "command": "npm test", "logMarker": "EDGE-03", "sourceFiles": ["src/orchestrator.ts"] },
-    { "edgeId": "EDGE-04", "seamId": "allocation-to-risk", "command": "npm test", "logMarker": "EDGE-04", "sourceFiles": ["src/risk.ts"] },
-    { "edgeId": "EDGE-05", "seamId": "simulation-to-broadcast", "command": "npm test", "logMarker": "EDGE-05", "sourceFiles": ["src/arbitrum.ts"] }
+    { "edgeId": "EDGE-01", "seamId": "config-to-scanner", "command": "npm test", "logMarker": "EDGE-01", "sourceFiles": ["src/scan/config.ts"] },
+    { "edgeId": "EDGE-02", "seamId": "checkpoint-to-logs", "command": "npm test", "logMarker": "EDGE-02", "sourceFiles": ["src/scan/store.ts"] },
+    { "edgeId": "EDGE-03", "seamId": "logs-to-state", "command": "npm test", "logMarker": "EDGE-03", "sourceFiles": ["src/scan/scanner.ts"] },
+    { "edgeId": "EDGE-04", "seamId": "pool-to-intent", "command": "npm test", "logMarker": "EDGE-04", "sourceFiles": ["src/scan/scanner.ts"] },
+    { "edgeId": "EDGE-05", "seamId": "scanner-to-output", "command": "npm test", "logMarker": "EDGE-05", "sourceFiles": ["src/cli.ts"] }
   ]
 }
 ```

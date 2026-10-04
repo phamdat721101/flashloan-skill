@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Arbitrum Scan Envelope",
+  "type": "object",
+  "required": ["schemaVersion", "runId", "chainId", "observedBlock", "opportunities", "diagnostics"],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "runId": { "type": "string", "minLength": 1 },
+    "chainId": { "const": 42161 },
+    "observedBlock": { "type": "object", "required": ["number", "hash", "timestamp"], "properties": { "number": { "type": "string", "pattern": "^[0-9]+$" }, "hash": { "type": "string", "pattern": "^0x[0-9a-fA-F]{64}$" }, "timestamp": { "type": "string", "format": "date-time" } } },
+    "opportunities": { "type": "array", "items": { "$ref": "#/$defs/opportunity" } },
+    "diagnostics": { "type": "array", "items": { "$ref": "#/$defs/diagnostic" } }
+  },
+  "$defs": {
+    "opportunity": {
+      "type": "object",
+      "required": ["id", "protocol", "kind", "status", "observedBlock", "observedAt", "expiresAt", "target", "metrics", "executionIntent"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "protocol": { "enum": ["aave-v3", "morpho-blue", "balancer-v2", "uniswap-v4"] },
+        "kind": { "enum": ["liquidation-watch", "flash-liquidity", "pool-liquidity"] },
+        "status": { "enum": ["observed", "validated", "actionable"] },
+        "observedBlock": { "type": "string", "pattern": "^[0-9]+$" },
+        "observedAt": { "type": "string", "format": "date-time" },
+        "expiresAt": { "type": "string", "format": "date-time" },
+        "target": { "type": "object", "additionalProperties": { "type": "string" } },
+        "metrics": { "type": "object", "additionalProperties": { "type": "string" } },
+        "executionIntent": { "type": "object", "required": ["kind", "contract", "metadata"], "properties": { "kind": { "enum": ["aave-v3-liquidation", "morpho-blue-liquidation", "balancer-v2-flash-loan", "uniswap-v4-unlock"] }, "contract": { "type": "string", "pattern": "^0x[0-9a-fA-F]{40}$" }, "metadata": { "type": "object" } } }
+      }
+    },
+    "diagnostic": { "type": "object", "required": ["stage", "code", "message", "retryable"], "properties": { "protocol": { "enum": ["aave-v3", "morpho-blue", "balancer-v2", "uniswap-v4"] }, "stage": { "enum": ["config", "checkpoint", "logs", "state", "output"] }, "code": { "enum": ["RPC_TRANSIENT", "RPC_PERMANENT", "INVALID_DATA", "REORG_DETECTED"] }, "message": { "type": "string" }, "retryable": { "type": "boolean" } } }
+  }
+}
