@@ -103,18 +103,33 @@ export class ArbitrumScanner {
 
   private expiry(): string { return new Date(Date.now() + 60_000).toISOString(); }
 
+  private async aaveAccountData(pool: Address, borrowers: Address[], multicall3?: Address, healthBatchSize = 200): Promise<Array<readonly [bigint, bigint, bigint, bigint, bigint, bigint] | undefined>> {
+    if (!multicall3) return Promise.all(borrowers.map(async (borrower) => this.client.readContract({ address: pool, abi: AAVE_ABI, functionName: 'getUserAccountData', args: [borrower] })));
+    const values: Array<readonly [bigint, bigint, bigint, bigint, bigint, bigint] | undefined> = [];
+    for (let index = 0; index < borrowers.length; index += healthBatchSize) {
+      const batch = borrowers.slice(index, index + healthBatchSize);
+      const results = await this.client.multicall({ multicallAddress: multicall3, allowFailure: true, contracts: batch.map((borrower) => ({ address: pool, abi: AAVE_ABI, functionName: 'getUserAccountData', args: [borrower] })) });
+      values.push(...results.map((result) => result.status === 'success' ? result.result : undefined));
+    }
+    return values;
+  }
+
   private async scanAave(fromBlock: bigint, toBlock: bigint, out: ScanOpportunity[], diagnostics: ScanDiagnostic[]): Promise<void> {
     const config = this.config.protocols.aaveV3;
     if (!config) return;
     try {
       const logs = await this.client.getLogs({ address: config.pool, event: AAVE_ABI[0], fromBlock, toBlock });
       logs.map((log) => log.args.onBehalfOf).filter(Boolean).forEach((borrower) => this.aaveBorrowers.add(borrower as Address));
-      for (const borrower of this.aaveBorrowers) {
-        const data = await this.client.readContract({ address: config.pool, abi: AAVE_ABI, functionName: 'getUserAccountData', args: [borrower] });
+      const borrowers = [...this.aaveBorrowers];
+      const accounts = await this.aaveAccountData(config.pool, borrowers, config.multicall3, config.healthBatchSize);
+      for (const [index, borrower] of borrowers.entries()) {
+        const data = accounts[index];
+        if (!data) continue;
         const healthFactor = Number((data[5] * 1_000_000n) / WAD) / 1_000_000;
         if (data[1] === 0n || healthFactor > (config.warningHealthFactor ?? 1.08)) continue;
         const block = logs.find((log) => log.args.onBehalfOf?.toLowerCase() === borrower.toLowerCase())?.blockNumber ?? toBlock;
-        out.push({ id: id('aave-v3', block, [borrower]), protocol: 'aave-v3', kind: 'liquidation-watch', status: healthFactor < 1 ? 'actionable' : 'validated', observedBlock: block.toString(), observedAt: new Date().toISOString(), expiresAt: this.expiry(), target: { borrower, pool: config.pool }, metrics: { healthFactor: healthFactor.toFixed(8), totalDebtBase: data[1].toString(), totalCollateralBase: data[0].toString() }, executionIntent: { kind: 'aave-v3-liquidation', contract: config.pool, metadata: { borrower } } });
+        const reserves = logs.filter((log) => log.args.onBehalfOf?.toLowerCase() === borrower.toLowerCase()).map((log) => log.args.reserve).filter(Boolean) as Address[];
+        out.push({ id: id('aave-v3', block, [borrower]), protocol: 'aave-v3', kind: 'liquidation-watch', status: healthFactor < 1 ? 'actionable' : 'validated', observedBlock: block.toString(), observedAt: new Date().toISOString(), expiresAt: this.expiry(), target: { borrower, pool: config.pool }, metrics: { healthFactor: healthFactor.toFixed(8), totalDebtBase: data[1].toString(), totalCollateralBase: data[0].toString() }, executionIntent: { kind: 'aave-v3-liquidation', contract: config.pool, metadata: { borrower } }, candidate: { protocol: 'aave-v3', borrower, pool: config.pool, reserves, healthFactorWad: data[5].toString(), totalDebtBase: data[1].toString(), totalCollateralBase: data[0].toString() } });
       }
     } catch (error) { diagnostics.push(diagnostic('aave-v3', 'logs', error)); }
   }
@@ -143,7 +158,7 @@ export class ArbitrumScanner {
         const collateralValue = (position[2] * oraclePrice) / 1_000_000_000_000_000_000_000_000_000_000_000_000n;
         const healthFactor = borrowedAssets === 0n ? 0 : Number((collateralValue * params[4] * 1_000_000n) / borrowedAssets / WAD) / 1_000_000;
         if (healthFactor > (config.warningHealthFactor ?? 1.05)) continue;
-        out.push({ id: id('morpho-blue', toBlock, [marketId, borrower]), protocol: 'morpho-blue', kind: 'liquidation-watch', status: healthFactor < 1 ? 'actionable' : 'validated', observedBlock: toBlock.toString(), observedAt: new Date().toISOString(), expiresAt: this.expiry(), target: { borrower, marketId, blue: config.blue }, metrics: { borrowShares: position[1].toString(), collateral: position[2].toString(), borrowedAssets: borrowedAssets.toString(), healthFactor: healthFactor.toFixed(8) }, executionIntent: { kind: 'morpho-blue-liquidation', contract: config.blue, metadata: { borrower, marketId } } });
+        out.push({ id: id('morpho-blue', toBlock, [marketId, borrower]), protocol: 'morpho-blue', kind: 'liquidation-watch', status: healthFactor < 1 ? 'actionable' : 'validated', observedBlock: toBlock.toString(), observedAt: new Date().toISOString(), expiresAt: this.expiry(), target: { borrower, marketId, blue: config.blue }, metrics: { borrowShares: position[1].toString(), collateral: position[2].toString(), borrowedAssets: borrowedAssets.toString(), healthFactor: healthFactor.toFixed(8) }, executionIntent: { kind: 'morpho-blue-liquidation', contract: config.blue, metadata: { borrower, marketId } }, candidate: { protocol: 'morpho-blue', borrower, blue: config.blue, marketId, loanToken: params[0], collateralToken: params[1], oracle: params[2], irm: params[3], lltv: params[4].toString(), borrowShares: position[1].toString(), borrowedAssets: borrowedAssets.toString(), collateral: position[2].toString() } });
       }
     } catch (error) { diagnostics.push(diagnostic('morpho-blue', 'logs', error)); }
   }
@@ -158,7 +173,7 @@ export class ArbitrumScanner {
         if (!poolId) continue;
         const [tokens, balances] = await this.client.readContract({ address: config.vault, abi: BALANCER_ABI, functionName: 'getPoolTokens', args: [poolId] });
         if (!isAllowed(this.config.assetAllowlist, tokens)) continue;
-        out.push({ id: id('balancer-v2', log.blockNumber!, [poolId]), protocol: 'balancer-v2', kind: 'flash-liquidity', status: 'validated', observedBlock: log.blockNumber!.toString(), observedAt: new Date().toISOString(), expiresAt: this.expiry(), target: { vault: config.vault, poolId, poolAddress: log.args.poolAddress! }, metrics: { tokens: tokens.join(','), balances: balances.map((item) => item.toString()).join(',') }, executionIntent: { kind: 'balancer-v2-flash-loan', contract: config.vault, metadata: { poolId, tokens: [...tokens], callbackRequired: true } } });
+        out.push({ id: id('balancer-v2', log.blockNumber!, [poolId]), protocol: 'balancer-v2', kind: 'flash-liquidity', status: 'validated', observedBlock: log.blockNumber!.toString(), observedAt: new Date().toISOString(), expiresAt: this.expiry(), target: { vault: config.vault, poolId, poolAddress: log.args.poolAddress! }, metrics: { tokens: tokens.join(','), balances: balances.map((item) => item.toString()).join(',') }, executionIntent: { kind: 'balancer-v2-flash-loan', contract: config.vault, metadata: { poolId, tokens: [...tokens], callbackRequired: true } }, candidate: { protocol: 'balancer-v2', vault: config.vault, poolId, callbackRequired: true, broadcastEligible: false } });
       }
     } catch (error) { diagnostics.push(diagnostic('balancer-v2', 'logs', error)); }
   }
@@ -172,7 +187,7 @@ export class ArbitrumScanner {
         const { id: poolId, currency0, currency1, hooks } = log.args;
         if (!poolId || !currency0 || !currency1 || !hooks || !isAllowed(this.config.assetAllowlist, [currency0, currency1])) continue;
         if (!config.allowHooks && hooks.toLowerCase() !== ZERO_ADDRESS) continue;
-        out.push({ id: id('uniswap-v4', log.blockNumber!, [poolId]), protocol: 'uniswap-v4', kind: 'pool-liquidity', status: 'observed', observedBlock: log.blockNumber!.toString(), observedAt: new Date().toISOString(), expiresAt: this.expiry(), target: { poolManager: config.poolManager, poolId, currency0, currency1, hooks }, metrics: { fee: String(log.args.fee), tickSpacing: String(log.args.tickSpacing), quote: 'requires-quoter-route' }, executionIntent: { kind: 'uniswap-v4-unlock', contract: config.poolManager, metadata: { poolId, currency0, currency1, hooks, settleAllDeltas: true } } });
+        out.push({ id: id('uniswap-v4', log.blockNumber!, [poolId]), protocol: 'uniswap-v4', kind: 'pool-liquidity', status: 'observed', observedBlock: log.blockNumber!.toString(), observedAt: new Date().toISOString(), expiresAt: this.expiry(), target: { poolManager: config.poolManager, poolId, currency0, currency1, hooks }, metrics: { fee: String(log.args.fee), tickSpacing: String(log.args.tickSpacing), quote: 'requires-quoter-route' }, executionIntent: { kind: 'uniswap-v4-unlock', contract: config.poolManager, metadata: { poolId, currency0, currency1, hooks, settleAllDeltas: true } }, candidate: { protocol: 'uniswap-v4', poolManager: config.poolManager, poolId, currency0, currency1, hooks, callbackRequired: true, broadcastEligible: false } });
       }
     } catch (error) { diagnostics.push(diagnostic('uniswap-v4', 'logs', error)); }
   }

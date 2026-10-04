@@ -14,7 +14,7 @@
   "$defs": {
     "opportunity": {
       "type": "object",
-      "required": ["id", "protocol", "kind", "status", "observedBlock", "observedAt", "expiresAt", "target", "metrics", "executionIntent"],
+      "required": ["id", "protocol", "kind", "status", "observedBlock", "observedAt", "expiresAt", "target", "metrics", "executionIntent", "candidate"],
       "properties": {
         "id": { "type": "string", "minLength": 1 },
         "protocol": { "enum": ["aave-v3", "morpho-blue", "balancer-v2", "uniswap-v4"] },
@@ -25,9 +25,18 @@
         "expiresAt": { "type": "string", "format": "date-time" },
         "target": { "type": "object", "additionalProperties": { "type": "string" } },
         "metrics": { "type": "object", "additionalProperties": { "type": "string" } },
-        "executionIntent": { "type": "object", "required": ["kind", "contract", "metadata"], "properties": { "kind": { "enum": ["aave-v3-liquidation", "morpho-blue-liquidation", "balancer-v2-flash-loan", "uniswap-v4-unlock"] }, "contract": { "type": "string", "pattern": "^0x[0-9a-fA-F]{40}$" }, "metadata": { "type": "object" } } }
+        "executionIntent": { "type": "object", "required": ["kind", "contract", "metadata"], "properties": { "kind": { "enum": ["aave-v3-liquidation", "morpho-blue-liquidation", "balancer-v2-flash-loan", "uniswap-v4-unlock"] }, "contract": { "type": "string", "pattern": "^0x[0-9a-fA-F]{40}$" }, "metadata": { "type": "object" } } },
+        "candidate": {
+          "oneOf": [
+            { "type": "object", "required": ["protocol", "borrower", "pool", "reserves", "healthFactorWad", "totalDebtBase", "totalCollateralBase"], "properties": { "protocol": { "const": "aave-v3" }, "borrower": { "$ref": "#/$defs/address" }, "pool": { "$ref": "#/$defs/address" }, "reserves": { "type": "array", "items": { "$ref": "#/$defs/address" } }, "healthFactorWad": { "type": "string", "pattern": "^[0-9]+$" }, "totalDebtBase": { "type": "string", "pattern": "^[0-9]+$" }, "totalCollateralBase": { "type": "string", "pattern": "^[0-9]+$" } } },
+            { "type": "object", "required": ["protocol", "borrower", "blue", "marketId", "loanToken", "collateralToken", "oracle", "irm", "lltv", "borrowShares", "borrowedAssets", "collateral"], "properties": { "protocol": { "const": "morpho-blue" }, "borrower": { "$ref": "#/$defs/address" }, "blue": { "$ref": "#/$defs/address" }, "marketId": { "type": "string", "pattern": "^0x[0-9a-fA-F]{64}$" }, "loanToken": { "$ref": "#/$defs/address" }, "collateralToken": { "$ref": "#/$defs/address" }, "oracle": { "$ref": "#/$defs/address" }, "irm": { "$ref": "#/$defs/address" }, "lltv": { "type": "string", "pattern": "^[0-9]+$" }, "borrowShares": { "type": "string", "pattern": "^[0-9]+$" }, "borrowedAssets": { "type": "string", "pattern": "^[0-9]+$" }, "collateral": { "type": "string", "pattern": "^[0-9]+$" } } },
+            { "type": "object", "required": ["protocol", "vault", "poolId", "callbackRequired", "broadcastEligible"], "properties": { "protocol": { "const": "balancer-v2" }, "vault": { "$ref": "#/$defs/address" }, "poolId": { "type": "string", "pattern": "^0x[0-9a-fA-F]{64}$" }, "callbackRequired": { "const": true }, "broadcastEligible": { "const": false } } },
+            { "type": "object", "required": ["protocol", "poolManager", "poolId", "currency0", "currency1", "hooks", "callbackRequired", "broadcastEligible"], "properties": { "protocol": { "const": "uniswap-v4" }, "poolManager": { "$ref": "#/$defs/address" }, "poolId": { "type": "string", "pattern": "^0x[0-9a-fA-F]{64}$" }, "currency0": { "$ref": "#/$defs/address" }, "currency1": { "$ref": "#/$defs/address" }, "hooks": { "$ref": "#/$defs/address" }, "callbackRequired": { "const": true }, "broadcastEligible": { "const": false } } }
+          ]
+        }
       }
     },
+    "address": { "type": "string", "pattern": "^0x[0-9a-fA-F]{40}$" },
     "diagnostic": { "type": "object", "required": ["stage", "code", "message", "retryable"], "properties": { "protocol": { "enum": ["aave-v3", "morpho-blue", "balancer-v2", "uniswap-v4"] }, "stage": { "enum": ["config", "checkpoint", "logs", "state", "output"] }, "code": { "enum": ["RPC_TRANSIENT", "RPC_PERMANENT", "INVALID_DATA", "REORG_DETECTED"] }, "message": { "type": "string" }, "retryable": { "type": "boolean" } } }
   }
 }

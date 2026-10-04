@@ -15,7 +15,7 @@ export interface ScannerConfig {
   pollIntervalMs?: number;
   assetAllowlist?: Address[];
   protocols: {
-    aaveV3?: { pool: Address; warningHealthFactor?: number };
+    aaveV3?: { pool: Address; multicall3?: Address; healthBatchSize?: number; warningHealthFactor?: number };
     morphoBlue?: { blue: Address; warningHealthFactor?: number };
     balancerV2?: { vault: Address };
     uniswapV4?: { poolManager: Address; quoter?: Address; allowHooks?: boolean };
@@ -42,6 +42,13 @@ export interface ScanIntent {
   metadata: Record<string, string | string[] | boolean>;
 }
 
+/** Typed scanner output for solvers; legacy target/metrics remain display-only compatibility fields. */
+export type ScanCandidate =
+  | { protocol: 'aave-v3'; borrower: Address; pool: Address; reserves: Address[]; healthFactorWad: string; totalDebtBase: string; totalCollateralBase: string }
+  | { protocol: 'morpho-blue'; borrower: Address; blue: Address; marketId: `0x${string}`; loanToken: Address; collateralToken: Address; oracle: Address; irm: Address; lltv: string; borrowShares: string; borrowedAssets: string; collateral: string }
+  | { protocol: 'balancer-v2'; vault: Address; poolId: `0x${string}`; callbackRequired: true; broadcastEligible: false }
+  | { protocol: 'uniswap-v4'; poolManager: Address; poolId: `0x${string}`; currency0: Address; currency1: Address; hooks: Address; callbackRequired: true; broadcastEligible: false };
+
 export interface ScanOpportunity {
   id: string;
   protocol: ScanProtocol;
@@ -53,6 +60,7 @@ export interface ScanOpportunity {
   target: Record<string, string>;
   metrics: Record<string, string>;
   executionIntent: ScanIntent;
+  candidate: ScanCandidate;
 }
 
 export interface ScanEnvelope {

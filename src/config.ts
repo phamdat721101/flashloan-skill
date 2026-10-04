@@ -1,5 +1,4 @@
 import type { Address, Hex, RiskPolicy, SkillConfig } from './types.js';
-import { FLASH_EXECUTOR_ADDRESS } from './contracts/flash-executor.js';
 
 const DEFAULT_RISK: RiskPolicy = {
   borrowTiersUsd: [],
@@ -30,6 +29,15 @@ function positive(value: string | undefined, fallback: number, name: string): nu
   return parsed;
 }
 
+function optionalUrl(value: string | undefined, name: string): string | undefined {
+  if (!value) return undefined;
+  try {
+    const url = new URL(value);
+    if (url.protocol !== 'https:') throw new Error('not https');
+    return url.toString();
+  } catch { throw new Error(`${name} must be an HTTPS URL`); }
+}
+
 function tiers(value: string | undefined): number[] {
   if (!value) return DEFAULT_RISK.borrowTiersUsd;
   const parsed = value.split(',').map((item) => Number(item.trim()));
@@ -49,7 +57,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): SkillConfig {
   return {
     chainId,
     rpcUrl,
-    executorAddress: optionalAddress(env.FLASH_EXECUTOR_ADDRESS ?? FLASH_EXECUTOR_ADDRESS, 'FLASH_EXECUTOR_ADDRESS'),
+    executorAddress: optionalAddress(env.FLASH_EXECUTOR_ADDRESS, 'FLASH_EXECUTOR_ADDRESS'),
+    privateRelayUrl: optionalUrl(env.PRIVATE_RELAY_URL, 'PRIVATE_RELAY_URL'),
     treasuryAddress: optionalAddress(env.TREASURY_ADDRESS, 'TREASURY_ADDRESS'),
     operatorPrivateKey: optionalPrivateKey(env.OPERATOR_PRIVATE_KEY),
     risk: {
@@ -65,5 +74,5 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): SkillConfig {
 }
 
 export function canBroadcast(config: SkillConfig): boolean {
-  return Boolean(config.operatorPrivateKey && config.executorAddress);
+  return Boolean(config.operatorPrivateKey && config.executorAddress && config.privateRelayUrl);
 }

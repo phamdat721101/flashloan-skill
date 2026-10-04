@@ -26,6 +26,7 @@ function plan(tier: number): AllocationPlan {
 const config: SkillConfig = {
   chainId: 42161,
   rpcUrl: 'https://rpc.example',
+  privateRelayUrl: 'https://relay.example',
   executorAddress: address,
   operatorPrivateKey: key,
   risk: { borrowTiersUsd: [100_000, 200_000, 500_000], maxGasUsd: 2_000, maxDailyLossUsd: 10_000, maxPriceImpactBps: 200, minNetProfitUsd: 1, maxProposalBlockAge: 1, rpcConcurrency: 2 }

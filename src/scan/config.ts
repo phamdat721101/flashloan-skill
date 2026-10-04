@@ -40,7 +40,7 @@ export async function loadScannerConfig(filePath: string): Promise<ScannerConfig
     pollIntervalMs: positiveInteger(value.pollIntervalMs, 'pollIntervalMs', 5_000),
     assetAllowlist,
     protocols: {
-      aaveV3: aave ? { pool: address(aave.pool, 'protocols.aaveV3.pool'), warningHealthFactor: typeof aave.warningHealthFactor === 'number' ? aave.warningHealthFactor : 1.08 } : undefined,
+      aaveV3: aave ? { pool: address(aave.pool, 'protocols.aaveV3.pool'), multicall3: aave.multicall3 ? address(aave.multicall3, 'protocols.aaveV3.multicall3') : undefined, healthBatchSize: positiveInteger(aave.healthBatchSize, 'protocols.aaveV3.healthBatchSize', 200), warningHealthFactor: typeof aave.warningHealthFactor === 'number' ? aave.warningHealthFactor : 1.08 } : undefined,
       morphoBlue: morpho ? { blue: address(morpho.blue, 'protocols.morphoBlue.blue'), warningHealthFactor: typeof morpho.warningHealthFactor === 'number' ? morpho.warningHealthFactor : 1.05 } : undefined,
       balancerV2: balancer ? { vault: address(balancer.vault, 'protocols.balancerV2.vault') } : undefined,
       uniswapV4: v4 ? { poolManager: address(v4.poolManager, 'protocols.uniswapV4.poolManager'), quoter: v4.quoter ? address(v4.quoter, 'protocols.uniswapV4.quoter') : undefined, allowHooks: v4.allowHooks === true } : undefined

@@ -43,7 +43,7 @@ export class ArbitrumExecutorAdapter implements ExecutorAdapter {
     if (!Number.isFinite(nativeTokenUsd) || nativeTokenUsd <= 0) throw new Error('nativeTokenUsd must be positive');
     this.account = privateKeyToAccount(config.operatorPrivateKey);
     this.publicClient = createPublicClient({ chain: arbitrum, transport: http(config.rpcUrl) });
-    this.walletClient = createWalletClient({ account: this.account, chain: arbitrum, transport: http(config.rpcUrl) });
+    this.walletClient = createWalletClient({ account: this.account, chain: arbitrum, transport: http(config.privateRelayUrl ?? config.rpcUrl) });
   }
 
   async verify(config: SkillConfig): Promise<void> {
@@ -77,6 +77,7 @@ export class ArbitrumExecutorAdapter implements ExecutorAdapter {
   async broadcast(plan: AllocationPlan): Promise<ExecutionReceipt> {
     // EDGE-05: a failed final preflight prevents the irreversible broadcast mutation.
     validateExecutorPlan(plan, this.config);
+    if (!this.config.privateRelayUrl) throw new Error('private relay is required for broadcast');
     const latestBlock = await this.publicClient.getBlockNumber();
     validateBroadcastEvidence(plan, latestBlock, this.config.risk.maxProposalBlockAge);
     const preflight = await this.simulate(plan);

@@ -25,6 +25,26 @@ test('EDGE-03 validates an Aave borrower with current state rather than only its
   assert.deepEqual(diagnostics, []);
 });
 
+test('batches Aave health checks through configured Multicall3 instead of per-account reads', async () => {
+  const config = scannerConfig();
+  config.protocols.aaveV3 = { pool: address, multicall3: otherAddress, healthBatchSize: 200 };
+  const scanner = new ArbitrumScanner(config);
+  let multicallCalls = 0;
+  (scanner as unknown as { client: unknown }).client = {
+    getLogs: async () => [{ args: { onBehalfOf: otherAddress, reserve: address }, blockNumber: 10n }],
+    multicall: async (request: { multicallAddress: string; contracts: unknown[] }) => {
+      multicallCalls++;
+      assert.equal(request.multicallAddress, otherAddress);
+      assert.equal(request.contracts.length, 1);
+      return [{ status: 'success', result: [300n, 200n, 0n, 0n, 0n, (WAD * 9n) / 10n] }];
+    }
+  };
+  const opportunities: unknown[] = [];
+  await (scanner as unknown as { scanAave: (from: bigint, to: bigint, out: unknown[], diagnostics: unknown[]) => Promise<void> }).scanAave(1n, 10n, opportunities, []);
+  assert.equal(multicallCalls, 1);
+  assert.equal(opportunities.length, 1);
+});
+
 test('EDGE-04 rejects hooked Uniswap v4 pools unless configuration explicitly permits hooks', async () => {
   const scanner = new ArbitrumScanner(scannerConfig());
   (scanner as unknown as { client: unknown }).client = {

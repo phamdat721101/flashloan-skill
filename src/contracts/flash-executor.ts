@@ -10,12 +10,14 @@ export const FLASH_EXECUTOR_ADDRESS = '0x093e98a6e2e278426adc7161b61bb2132e0ad19
 
 export type ExecutorCapability =
   | 'aave-v3-liquidation'
+  | 'aave-v3-liquidation-split'
   | 'morpho-blue-liquidation'
   | 'uniswap-v4-arbitrage'
   | 'dex-pair-arbitrage';
 
 const CAPABILITY_SIGNATURES: Record<ExecutorCapability, string> = {
   'aave-v3-liquidation': 'executeFlashLiquidation((address,uint256,address,address,uint24,uint256))',
+  'aave-v3-liquidation-split': 'executeFlashLiquidationSplit((address,uint256,address,address,uint256,(address,address,uint256,uint256,bytes)[]))',
   'morpho-blue-liquidation': 'executeMorphoMarketLiquidation((address,uint256,(address,address,address,address,uint256),address,uint256,uint256,uint8,uint24,uint256))',
   'uniswap-v4-arbitrage': 'executeV4SwapArbitrage((address,uint256,address,(address,address,uint24,int24,address),bool,uint8,uint24,uint256))',
   'dex-pair-arbitrage': 'executeDexPairArbitrage((address,uint256,address,uint8,uint8,uint24,uint256))'
@@ -27,6 +29,18 @@ export const FLASH_EXECUTOR_SELECTORS: Record<ExecutorCapability, Hex> = Object.
 
 export const FLASH_EXECUTOR_ABI = [
   { type: 'function', name: 'owner', stateMutability: 'view', inputs: [], outputs: [{ name: '', type: 'address' }] },
+  { type: 'function', name: 'executeFlashLiquidation', stateMutability: 'nonpayable', inputs: [{ name: 'params', type: 'tuple', components: [
+    { name: 'debtToken', type: 'address' }, { name: 'debtAmount', type: 'uint256' }, { name: 'collateralToken', type: 'address' }, { name: 'insolventUser', type: 'address' }, { name: 'dexPoolFee', type: 'uint24' }, { name: 'minProfit', type: 'uint256' }
+  ] }], outputs: [] },
+  { type: 'function', name: 'executeFlashLiquidationSplit', stateMutability: 'nonpayable', inputs: [{ name: 'params', type: 'tuple', components: [
+    { name: 'debtToken', type: 'address' }, { name: 'debtAmount', type: 'uint256' }, { name: 'collateralToken', type: 'address' }, { name: 'insolventUser', type: 'address' }, { name: 'minProfit', type: 'uint256' },
+    { name: 'routes', type: 'tuple[]', components: [{ name: 'router', type: 'address' }, { name: 'approveTarget', type: 'address' }, { name: 'amountIn', type: 'uint256' }, { name: 'minAmountOut', type: 'uint256' }, { name: 'callData', type: 'bytes' }] }
+  ] }], outputs: [] },
+  { type: 'function', name: 'executeMorphoMarketLiquidation', stateMutability: 'nonpayable', inputs: [{ name: 'params', type: 'tuple', components: [
+    { name: 'flashToken', type: 'address' }, { name: 'flashAmount', type: 'uint256' },
+    { name: 'marketParams', type: 'tuple', components: [{ name: 'loanToken', type: 'address' }, { name: 'collateralToken', type: 'address' }, { name: 'oracle', type: 'address' }, { name: 'irm', type: 'address' }, { name: 'lltv', type: 'uint256' }] },
+    { name: 'borrower', type: 'address' }, { name: 'seizedAssets', type: 'uint256' }, { name: 'repaidShares', type: 'uint256' }, { name: 'sellVenue', type: 'uint8' }, { name: 'dexPoolFee', type: 'uint24' }, { name: 'minProfit', type: 'uint256' }
+  ] }], outputs: [] },
   { type: 'event', name: 'LiquidationExecuted', inputs: [
     { indexed: true, name: 'insolventUser', type: 'address' },
     { indexed: true, name: 'debtToken', type: 'address' },

@@ -14,25 +14,28 @@
     { "package_or_module": "src/arbitrum.ts", "symbol": "ArbitrumExecutorAdapter", "file_location": "src/arbitrum.ts" },
     { "package_or_module": "src/scan/config.ts", "symbol": "loadScannerConfig", "file_location": "src/scan/config.ts" },
     { "package_or_module": "src/scan/scanner.ts", "symbol": "ArbitrumScanner", "file_location": "src/scan/scanner.ts" },
+    { "package_or_module": "src/dynamic.ts", "symbol": "buildDynamicPlan", "file_location": "src/dynamic.ts" },
+    { "package_or_module": "src/route-solver.ts", "symbol": "ConfiguredRouteSolver", "file_location": "src/route-solver.ts" },
+    { "package_or_module": "src/nim-memory.ts", "symbol": "NimRuntimeMemory", "file_location": "src/nim-memory.ts" },
     { "package_or_module": "src/loss-ledger.ts", "symbol": "DailyLossLedger", "file_location": "src/loss-ledger.ts" },
     { "package_or_module": "src/execution-lock.ts", "symbol": "ExecutionLock", "file_location": "src/execution-lock.ts" }
   ],
   "architecture": {
-    "pattern": "connector registry plus a public-RPC scanner with an exact-simulation execution gate",
-    "isolation_boundaries": "the scanner emits non-executable protocol intents; providers discover executor-ready opportunities; the executor alone signs and broadcasts",
+    "pattern": "connector registry plus public-RPC typed scanner, dynamic quote bridge, and private exact-simulation execution gate",
+    "isolation_boundaries": "the scanner emits typed candidates and non-executable intents; the dynamic bridge requires route evidence and fork-proven capability; the executor alone signs and broadcasts through a private relay",
     "execution_flow": [
       "validate environment configuration and risk policy",
       "index finalized protocol events and validate live scanner candidates without a wallet",
-      "discover executor-ready opportunities from registered data providers",
+      "transform typed candidates plus block-bound quotes into executor-ready opportunities",
       "build and simulate every permitted allocation tier",
       "select the highest-net allowed plan",
-      "repeat exact preflight and broadcast through the verified executor"
+      "repeat exact preflight and broadcast through the verified executor and private relay"
     ]
   },
   "data_contracts": {
-    "inputs": { "config": "SkillConfig or ScannerConfig", "opportunities": "Opportunity[]" },
-    "outputs": { "scan": "ScanEnvelope", "decision": "ExecutionDecision[]", "receipt": "ExecutionReceipt" },
-    "error_states": ["invalid configuration", "unsupported chain", "checkpoint reorg", "classified RPC failure", "missing bytecode", "failed simulation", "risk rejection"]
+    "inputs": { "config": "SkillConfig, ScannerConfig, or DynamicSolverConfig", "opportunities": "Opportunity[]", "candidate": "DynamicCandidate", "route": "RouteQuote[]" },
+    "outputs": { "scan": "ScanEnvelope", "proposal": "AllocationPlan", "decision": "ExecutionDecision[]", "receipt": "ExecutionReceipt" },
+    "error_states": ["invalid configuration", "unsupported chain", "checkpoint reorg", "classified RPC failure", "missing bytecode", "unproven capability", "stale route", "failed simulation", "risk rejection"]
   },
   "test_criteria": [
     "configuration defaults and validation are covered",
@@ -40,6 +43,7 @@
     "an invalid split allocation cannot broadcast",
     "the final executor adapter preflights immediately before send",
     "scan mode rejects execution flags and never constructs a wallet client",
-    "scan output distinguishes Balancer callback loans from Uniswap v4 unlock delta settlement"
+    "scan output distinguishes Balancer callback loans from Uniswap v4 unlock delta settlement",
+    "dynamic close-factor, capability, quote-freshness, and memory-redaction behavior are covered"
   ]
 }

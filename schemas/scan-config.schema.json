@@ -14,7 +14,7 @@
     "protocols": {
       "type": "object",
       "properties": {
-        "aaveV3": { "$ref": "#/$defs/addressConfig" },
+        "aaveV3": { "type": "object", "required": ["pool"], "properties": { "pool": { "$ref": "#/$defs/address" }, "multicall3": { "$ref": "#/$defs/address" }, "healthBatchSize": { "type": "integer", "minimum": 1, "default": 200 }, "warningHealthFactor": { "type": "number", "exclusiveMinimum": 0 } } },
         "morphoBlue": { "$ref": "#/$defs/addressConfig" },
         "balancerV2": { "$ref": "#/$defs/addressConfig" },
         "uniswapV4": { "type": "object", "required": ["poolManager"], "properties": { "poolManager": { "$ref": "#/$defs/address" }, "quoter": { "$ref": "#/$defs/address" }, "allowHooks": { "type": "boolean", "default": false } } }

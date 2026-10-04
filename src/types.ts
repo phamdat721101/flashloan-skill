@@ -15,10 +15,21 @@ export interface RiskPolicy {
 export interface SkillConfig {
   chainId: number;
   rpcUrl: string;
+  /** A private transaction endpoint. Required for autonomous broadcast. */
+  privateRelayUrl?: string;
   executorAddress?: Address;
   treasuryAddress?: Address;
   operatorPrivateKey?: Hex;
   risk: RiskPolicy;
+}
+
+/** Immutable, block-bound evidence required to send a dynamically-built plan. */
+export interface ProposalEvidence {
+  sourceBlock: bigint;
+  quoteBlock: bigint;
+  expiresAt: string;
+  capability: NonNullable<AllocationPlan['capability']>;
+  broadcastEligible: boolean;
 }
 
 export interface TransactionRequest {
@@ -47,7 +58,7 @@ export interface AllocationPlan {
   /** Source and quote evidence are required for new autonomous proposals. */
   sourceBlock?: bigint;
   quoteBlock?: bigint;
-  capability?: 'aave-v3-liquidation' | 'morpho-blue-liquidation' | 'uniswap-v4-arbitrage' | 'dex-pair-arbitrage';
+  capability?: 'aave-v3-liquidation' | 'aave-v3-liquidation-split' | 'morpho-blue-liquidation' | 'uniswap-v4-arbitrage' | 'dex-pair-arbitrage';
   profitTokenUsd?: number;
   profitTokenDecimals?: number;
   expiresAt?: string;

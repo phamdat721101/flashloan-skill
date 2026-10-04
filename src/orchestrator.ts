@@ -64,7 +64,7 @@ export class FlashloanOrchestrator {
       return { decisions, diagnostics };
     }
     if (!canBroadcast(config)) {
-      diagnostics.push('broadcast skipped: OPERATOR_PRIVATE_KEY and FLASH_EXECUTOR_ADDRESS are both required');
+      diagnostics.push('broadcast skipped: OPERATOR_PRIVATE_KEY, FLASH_EXECUTOR_ADDRESS, and PRIVATE_RELAY_URL are all required');
       return { decisions, diagnostics };
     }
     const receipt = await this.executor.broadcast(winner.plan);

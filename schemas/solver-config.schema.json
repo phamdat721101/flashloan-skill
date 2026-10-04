@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Dynamic Flashloan Solver Config",
+  "type": "object",
+  "required": ["executorAddress", "minNetProfitUsd", "maxPriceImpactBps", "maxProposalBlockAge", "capabilities"],
+  "properties": {
+    "executorAddress": { "type": "string", "pattern": "^0x[0-9a-fA-F]{40}$" },
+    "minNetProfitUsd": { "type": "number", "exclusiveMinimum": 0 },
+    "maxPriceImpactBps": { "type": "number", "exclusiveMinimum": 0, "maximum": 10000 },
+    "maxProposalBlockAge": { "type": "number", "exclusiveMinimum": 0 },
+    "capabilities": {
+      "type": "object",
+      "properties": {
+        "aave-v3-liquidation": { "$ref": "#/$defs/capability" },
+        "aave-v3-liquidation-split": { "$ref": "#/$defs/capability" },
+        "morpho-blue-liquidation": { "$ref": "#/$defs/capability" },
+        "uniswap-v4-arbitrage": { "$ref": "#/$defs/capability" },
+        "dex-pair-arbitrage": { "$ref": "#/$defs/capability" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "$defs": {
+    "capability": { "type": "object", "required": ["enabled", "forkVerified"], "properties": { "enabled": { "type": "boolean" }, "forkVerified": { "type": "boolean" } }, "additionalProperties": false }
+  },
+  "additionalProperties": false
+}
