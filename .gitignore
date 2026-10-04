@@ -1,0 +1,17 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+.nim/
+.flashloan-agent/
+.gstack/
+coverage/
+*.tgz
+*.pem
+*.key
+*.p12
+*.pfx
+*.keystore
+.npmrc
+.DS_Store

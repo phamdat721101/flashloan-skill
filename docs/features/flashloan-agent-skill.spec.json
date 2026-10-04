@@ -1,0 +1,40 @@
+{
+  "spec_id": "SPEC-2026-1004",
+  "feature_name": "Arbitrum Flashloan Agent Skill",
+  "source_evidence": [
+    {
+      "source_uri": "src/orchestrator.ts",
+      "entity_id": "FlashloanOrchestrator",
+      "hash": "local-implementation"
+    }
+  ],
+  "dependencies": [
+    { "package_or_module": "src/config.ts", "symbol": "loadConfig", "file_location": "src/config.ts" },
+    { "package_or_module": "src/orchestrator.ts", "symbol": "FlashloanOrchestrator", "file_location": "src/orchestrator.ts" },
+    { "package_or_module": "src/arbitrum.ts", "symbol": "ArbitrumExecutorAdapter", "file_location": "src/arbitrum.ts" },
+    { "package_or_module": "src/loss-ledger.ts", "symbol": "DailyLossLedger", "file_location": "src/loss-ledger.ts" },
+    { "package_or_module": "src/execution-lock.ts", "symbol": "ExecutionLock", "file_location": "src/execution-lock.ts" }
+  ],
+  "architecture": {
+    "pattern": "connector registry with an exact-simulation execution gate",
+    "isolation_boundaries": "providers discover opportunities; the orchestrator selects allocations; the executor alone signs and broadcasts",
+    "execution_flow": [
+      "validate environment configuration and risk policy",
+      "discover opportunities from registered data providers",
+      "build and simulate every permitted allocation tier",
+      "select the highest-net allowed plan",
+      "repeat exact preflight and broadcast through the verified executor"
+    ]
+  },
+  "data_contracts": {
+    "inputs": { "config": "SkillConfig", "opportunities": "Opportunity[]" },
+    "outputs": { "decision": "ExecutionDecision[]", "receipt": "ExecutionReceipt" },
+    "error_states": ["invalid configuration", "unsupported chain", "missing bytecode", "failed simulation", "risk rejection"]
+  },
+  "test_criteria": [
+    "configuration defaults and validation are covered",
+    "every tier is simulated before selection",
+    "an invalid split allocation cannot broadcast",
+    "the final executor adapter preflights immediately before send"
+  ]
+}

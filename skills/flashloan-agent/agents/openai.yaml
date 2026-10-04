@@ -1,0 +1,7 @@
+interface:
+  display_name: "Flashloan Agent"
+  short_description: "Validate, simulate, and execute flashloan routes"
+  default_prompt: "Use $flashloan-agent to validate my flashloan configuration and simulate the current opportunity file without exposing secrets."
+
+policy:
+  allow_implicit_invocation: false

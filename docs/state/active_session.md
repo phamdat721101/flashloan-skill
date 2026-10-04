@@ -1,0 +1,117 @@
+# Active session
+
+Read the final `## Session` entry as the current handoff state. This file is append-only.
+
+## Session 2026-10-04T02:21:40.089Z
+
+### Current goal
+
+Set up the agent-ready workspace harness.
+
+### Latest output or blocker
+
+Harness setup completed; review `CONSTITUTION.md` before feature work.
+
+### Attempted solutions
+
+- Assessed repository manifests and created only missing harness artifacts.
+
+### Next steps
+
+- Human reviews and confirms the constitution.
+- Create a feature brief with `nim-skill workspace feature <name>`.
+
+## Session 2026-10-04T02:33:48.902Z
+
+### Current goal
+
+verify flashloan-agent-skill
+
+### Latest output or blocker
+
+Feature: flashloan-agent-skill
+Flow: src/cli.ts run <opportunities.json> -> ExecutionDecision[] with optional ExecutionReceipt
+Edges: EDGE-01, EDGE-02, EDGE-03, EDGE-04, EDGE-05
+
+### Attempted solutions
+
+- None recorded.
+
+### Next steps
+
+Feature verified; continue with normal delivery check or release workflow.
+
+
+## Session 2026-10-04T02:36:06.525Z
+
+### Current goal
+
+verify flashloan-agent-skill
+
+### Latest output or blocker
+
+Feature: flashloan-agent-skill
+Flow: src/cli.ts run <opportunities.json> -> ExecutionDecision[] with optional ExecutionReceipt
+Edges: EDGE-01, EDGE-02, EDGE-03, EDGE-04, EDGE-05
+
+### Attempted solutions
+
+- None recorded.
+
+### Next steps
+
+Feature verified; continue with normal delivery check or release workflow.
+
+## Session 2026-10-04T02:44:29.376Z
+
+### Current goal
+
+analyze upgrade from TypeScript runtime to installable prompt-driven agent skill
+
+### Latest output or blocker
+
+identified missing SKILL.md, host metadata, package installer, scanner adapters, durable loss ledger, and live-operation command contract
+
+### Attempted solutions
+
+- None recorded.
+
+### Next steps
+
+implement the installable skill wrapper and the scanner-to-opportunity adapters
+
+## Session 2026-10-04T02:54:08.980Z
+
+### Current goal
+
+implement self-contained installable flashloan agent skill
+
+### Latest output or blocker
+
+added flashloan-agent skill package, tested installer, daily-loss ledger, execution lock, and prompt contract without bd-team runtime dependencies
+
+### Attempted solutions
+
+- None recorded.
+
+### Next steps
+
+register the packaged skill in the target Codex host and add native chain scanner providers before live use
+
+## Session 2026-10-04T03:12:42.484Z
+
+### Current goal
+
+publish concise agent skill README and initial repository commit
+
+### Latest output or blocker
+
+README and credential/build ignore rules are ready; staging is blocked because this session cannot create .git/index.lock
+
+### Attempted solutions
+
+- None recorded.
+
+### Next steps
+
+run git add ., commit, set origin to github.com/phamdat721101/flashloan-skill.git, and push main from a shell with .git write access
