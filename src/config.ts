@@ -1,11 +1,14 @@
 import type { Address, Hex, RiskPolicy, SkillConfig } from './types.js';
+import { FLASH_EXECUTOR_ADDRESS } from './contracts/flash-executor.js';
 
 const DEFAULT_RISK: RiskPolicy = {
-  borrowTiersUsd: [100_000, 200_000, 500_000],
+  borrowTiersUsd: [],
   maxGasUsd: 2_000,
   maxDailyLossUsd: 10_000,
   maxPriceImpactBps: 200,
-  minNetProfitUsd: 1
+  minNetProfitUsd: 1,
+  maxProposalBlockAge: 1,
+  rpcConcurrency: 4
 };
 
 function optionalAddress(value: string | undefined, name: string): Address | undefined {
@@ -46,7 +49,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): SkillConfig {
   return {
     chainId,
     rpcUrl,
-    executorAddress: optionalAddress(env.FLASH_EXECUTOR_ADDRESS, 'FLASH_EXECUTOR_ADDRESS'),
+    executorAddress: optionalAddress(env.FLASH_EXECUTOR_ADDRESS ?? FLASH_EXECUTOR_ADDRESS, 'FLASH_EXECUTOR_ADDRESS'),
     treasuryAddress: optionalAddress(env.TREASURY_ADDRESS, 'TREASURY_ADDRESS'),
     operatorPrivateKey: optionalPrivateKey(env.OPERATOR_PRIVATE_KEY),
     risk: {
@@ -54,7 +57,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): SkillConfig {
       maxGasUsd: positive(env.MAX_GAS_USD, DEFAULT_RISK.maxGasUsd, 'MAX_GAS_USD'),
       maxDailyLossUsd: positive(env.MAX_DAILY_LOSS_USD, DEFAULT_RISK.maxDailyLossUsd, 'MAX_DAILY_LOSS_USD'),
       maxPriceImpactBps: positive(env.MAX_PRICE_IMPACT_BPS, DEFAULT_RISK.maxPriceImpactBps, 'MAX_PRICE_IMPACT_BPS'),
-      minNetProfitUsd: positive(env.MIN_NET_PROFIT_USD, DEFAULT_RISK.minNetProfitUsd, 'MIN_NET_PROFIT_USD')
+      minNetProfitUsd: positive(env.MIN_NET_PROFIT_USD, DEFAULT_RISK.minNetProfitUsd, 'MIN_NET_PROFIT_USD'),
+      maxProposalBlockAge: positive(env.MAX_PROPOSAL_BLOCK_AGE, DEFAULT_RISK.maxProposalBlockAge, 'MAX_PROPOSAL_BLOCK_AGE'),
+      rpcConcurrency: positive(env.RPC_CONCURRENCY, DEFAULT_RISK.rpcConcurrency, 'RPC_CONCURRENCY')
     }
   };
 }

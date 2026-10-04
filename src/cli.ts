@@ -27,7 +27,7 @@ if (command === 'validate-config') {
     if (!watch) break;
     await new Promise((resolve) => setTimeout(resolve, scannerConfig.pollIntervalMs));
   } while (true);
-} else if (command === 'run' && opportunityFile) {
+} else if ((command === 'simulate' || command === 'execute-auto' || command === 'run') && opportunityFile) {
   const config = loadConfig();
   const nativeTokenUsd = Number(process.env.NATIVE_TOKEN_USD);
   if (!Number.isFinite(nativeTokenUsd) || nativeTokenUsd <= 0) throw new Error('NATIVE_TOKEN_USD is required for live risk accounting');
@@ -35,8 +35,8 @@ if (command === 'validate-config') {
   const stateDir = process.env.FLASHLOAN_STATE_DIR ?? '.flashloan-agent';
   const ledger = new DailyLossLedger(`${stateDir}/daily-loss.json`);
   const lock = new ExecutionLock(`${stateDir}/execution.lock`);
-  const result = await lock.runExclusive(() => new FlashloanOrchestrator([new JsonOpportunityProvider(opportunityFile)], adapter, ledger).run(config));
+  const result = await lock.runExclusive(() => new FlashloanOrchestrator([new JsonOpportunityProvider(opportunityFile)], adapter, ledger).run(config, { broadcast: command !== 'simulate' }));
   console.log(JSON.stringify(result, (_, value) => typeof value === 'bigint' ? value.toString() : value));
 } else {
-  throw new Error('usage: validate-config | scan --config <scanner-config.json> [--once|--watch] | run <opportunities.json>');
+  throw new Error('usage: validate-config | scan --config <scanner-config.json> [--once|--watch] | simulate <opportunities.json> | execute-auto <opportunities.json>');
 }

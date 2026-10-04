@@ -16,7 +16,7 @@ Restart the agent session, then use:
 Use $flashloan-agent to scan Aave, Morpho, Balancer, and Uniswap v4 using my scanner configuration without exposing secrets.
 ```
 
-For a configured executor and dedicated wallet, ask the agent to execute a schema-valid opportunity file. The runtime verifies the chain and executor, simulates immediately before broadcast, enforces configured risk limits, persists realized losses, and prevents concurrent sends.
+For a configured executor and dedicated wallet, ask the agent to simulate or autonomously execute a schema-valid opportunity file. The runtime verifies chain, executor bytecode, owner signer, capability selector, proposal freshness, and final simulation before broadcast; it persists realized P&L and halts if P&L cannot be valued.
 
 ## Configuration
 
@@ -26,7 +26,7 @@ Copy `.env.example` to `.env`. Keep `OPERATOR_PRIVATE_KEY` only in your local en
 node dist/cli.js validate-config
 ```
 
-The runtime accepts exact executor-ready opportunities matching `schemas/opportunity.schema.json`.
+The runtime accepts exact executor-ready opportunities matching `schemas/opportunity.schema.json`. `FLASH_EXECUTOR_ADDRESS` defaults to the reviewed local snapshot; `OPERATOR_PRIVATE_KEY` stays environment-only.
 
 ## Read-only real-time scanning
 

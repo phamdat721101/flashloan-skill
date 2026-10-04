@@ -32,3 +32,15 @@ test('does not permit concurrent execution leases', async () => {
     await rm(directory, { recursive: true, force: true });
   }
 });
+
+test('persists a safety halt when receipt P&L cannot be valued', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'flashloan-ledger-'));
+  try {
+    const ledger = new DailyLossLedger(join(directory, 'daily-loss.json'));
+    await ledger.halt('receipt profit cannot be valued', new Date('2026-10-04T12:00:00Z'));
+    assert.equal(await ledger.isHalted(new Date('2026-10-04T14:00:00Z')), true);
+    assert.equal(await ledger.isHalted(new Date('2026-10-05T00:00:00Z')), false);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});

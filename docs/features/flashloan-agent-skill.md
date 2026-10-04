@@ -2,7 +2,7 @@
 
 ## Client outcome
 
-An operator can submit scanner-produced, executor-ready opportunities to one runtime that evaluates the approved borrow tiers, proves the selected transaction by exact simulation, and autonomously sends only a risk-compliant Arbitrum transaction.
+An operator can submit executor-ready opportunities to one runtime that builds protocol-owned candidates, binds them to source and quote evidence, proves exact calldata twice, and autonomously sends only a risk-compliant Arbitrum transaction.
 
 ## Audience
 
@@ -12,7 +12,7 @@ DeFi operators who control an Arbitrum executor contract and a dedicated wallet,
 
 - Arbitrum raw-call execution, typed configuration, risk gating, allocation selection, JSON opportunity ingestion, schemas, and unit tests.
 - An installable `$flashloan-agent` prompt skill and package CLI that copies its own skill definition to the Codex skill directory.
-- A local daily-loss ledger and cross-process execution lock for the autonomous execution path.
+- A local daily-loss ledger, unknown-P&L halt, and cross-process execution lock for the autonomous execution path.
 - Extension interfaces for additional chains, protocols, and scanner/data providers.
 - A key-free Arbitrum scanner that indexes Aave v3, Morpho Blue, Balancer v2, and Uniswap v4 events from a configured start block, persists reorg-aware checkpoints, and emits versioned JSONL scan envelopes.
 
@@ -35,12 +35,12 @@ Copy the proven execution boundary into a typed orchestrator and make scanners f
 
 - Reads on-chain data and quotes through registered chain, protocol, and data-provider connectors.
 - The scanner is public-RPC-only and never builds a wallet client or sends a transaction. It emits protocol-specific intents, not executor calldata.
-- Simulates exact executor calldata before every broadcast; only a configured wallet and verified executor permit autonomous execution.
+- Simulates exact executor calldata before every broadcast; only a configured local wallet that matches executor `owner()` permits autonomous execution.
 - Broadcasts are Arbitrum-only in v1. Other chains require a registered connector and verified executor adapter.
 
 ## Data models
 
-- `SkillConfig`, `Opportunity`, `AllocationPlan`, `SimulationResult`, `ExecutionDecision`, and `ExecutionReceipt` are defined in `src/types.ts` and mirrored in `schemas/`.
+- `AllocationPlan` carries capability, source/quote blocks, expiry, and optional P&L valuation metadata. `SimulationResult` and `ExecutionReceipt` include typed outcomes; unknown receipt P&L persists a safety halt.
 - `ScannerConfig`, `ScanEnvelope`, `ScanOpportunity`, and `ScanIntent` are defined in `src/scan/` and mirrored by `scan-config.schema.json` and `scan-envelope.schema.json`. Amounts and block numbers are strings to preserve integer precision in JSON.
 
 ## Scanner contract
@@ -49,30 +49,30 @@ Copy the proven execution boundary into a typed orchestrator and make scanners f
 
 ## Tracer-bullet path
 
-1. Load validated configuration, collect candidates, build allocation plans, simulate the exact transaction, apply risk gates, broadcast, then audit the receipt.
+1. Load configuration, collect candidates, build dynamic plans, simulate, apply risk gates, re-check freshness and exact calldata, broadcast, then value the receipt or halt.
 
 ## Acceptance criteria
 
 - No secret value is logged or serialized.
-- An executor call is sent only after bytecode and chain verification and an immediately preceding exact simulation.
-- The $100k, $200k, and $500k borrow tiers, $2k gas cap, $10k daily-loss stop, and 200-bps price-impact cap are enforced unless overridden by configuration.
+- An executor call is sent only after bytecode, chain, capability selector, and owner verification plus an immediately preceding exact simulation.
+- Dynamic builders are the default. Legacy borrow tiers are opt-in through `BORROW_TIERS_USD`; gas, daily-loss, price-impact, block-freshness, and RPC-concurrency limits are configurable.
 
 ## Risks
 
-- Quotes, gas, and state can change between discovery and inclusion. The raw-call executor repeats preflight immediately before send.
+- Quotes, gas, and state can change between discovery and inclusion. The executor rejects expired/block-stale proposals and repeats preflight immediately before send.
 - A correct EVM simulation does not guarantee post-inclusion profit. Daily-loss, gas, price-impact, and minimum-profit gates bound the action.
 - A connector may report an unsupported route. An unregistered chain or missing executor bytecode blocks the run.
 
 ## Rollout and rollback
 
-Start with fixture opportunities and read-only simulation. Enable an operator wallet only after a verified executor address is configured. Roll back by removing `OPERATOR_PRIVATE_KEY` or `FLASH_EXECUTOR_ADDRESS`; the orchestrator then records decisions but cannot broadcast.
+Start with fixture opportunities and read-only simulation. Enable an operator wallet only after owner verification. Roll back by removing `OPERATOR_PRIVATE_KEY`; the orchestrator then records decisions but cannot broadcast. An unknown-P&L halt also blocks later autonomous sends.
 
 ## Environment contract
 
-`OPERATOR_PRIVATE_KEY` is a local secret and must never be copied into JSON, logs, or source control. `ARBITRUM_RPC_URL` must be an HTTPS endpoint. `FLASH_EXECUTOR_ADDRESS` must identify deployed bytecode on chain 42161. The runtime needs `NATIVE_TOKEN_USD` only for live gas-cost accounting.
+`OPERATOR_PRIVATE_KEY` is a local secret and must never be copied into JSON, logs, or source control. `ARBITRUM_RPC_URL` must be an HTTPS endpoint. `FLASH_EXECUTOR_ADDRESS` defaults to the reviewed local snapshot and must identify bytecode owned by the local signer on chain 42161. The runtime needs `NATIVE_TOKEN_USD` for gas-cost and receipt P&L accounting.
 
 ## Post-delivery evidence
 
-- `npm test` passes four fixture tests for configuration, allocation, simulation selection, and execution blocking.
+- `npm test` covers dynamic allocation selection, stale/capability rejection, simulation-only behavior, unknown-P&L halting, and typed execution outcomes.
 - `npm run typecheck` passes.
-- A production E2E must use a dedicated wallet and a verified executor, capture only transaction hashes and receipts, and never expose the private key.
+- Optional `E2E_ARBITRUM_RPC_URL` validates the reviewed executor bytecode and owner ABI without signing. A funded dedicated-wallet broadcast remains a manual production acceptance step.

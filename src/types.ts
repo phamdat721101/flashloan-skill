@@ -2,11 +2,14 @@ export type Address = `0x${string}`;
 export type Hex = `0x${string}`;
 
 export interface RiskPolicy {
+  /** Deprecated compatibility input. New strategy builders size in native token units. */
   borrowTiersUsd: number[];
   maxGasUsd: number;
   maxDailyLossUsd: number;
   maxPriceImpactBps: number;
   minNetProfitUsd: number;
+  maxProposalBlockAge: number;
+  rpcConcurrency: number;
 }
 
 export interface SkillConfig {
@@ -41,6 +44,22 @@ export interface AllocationPlan {
   quotedNetProfitUsd: number;
   legs: AllocationLeg[];
   transaction: TransactionRequest;
+  /** Source and quote evidence are required for new autonomous proposals. */
+  sourceBlock?: bigint;
+  quoteBlock?: bigint;
+  capability?: 'aave-v3-liquidation' | 'morpho-blue-liquidation' | 'uniswap-v4-arbitrage' | 'dex-pair-arbitrage';
+  profitTokenUsd?: number;
+  profitTokenDecimals?: number;
+  expiresAt?: string;
+}
+
+export type ExecutionStage = 'discover' | 'build' | 'simulate' | 'preflight' | 'broadcast' | 'receipt';
+
+export interface ExecutionOutcome {
+  stage: ExecutionStage;
+  code: string;
+  retryable: boolean;
+  message: string;
 }
 
 export interface SimulationResult {
@@ -49,6 +68,7 @@ export interface SimulationResult {
   gasCostUsd?: number;
   expectedNetProfitUsd?: number;
   reason?: string;
+  outcome?: ExecutionOutcome;
 }
 
 export interface Opportunity {
@@ -58,6 +78,8 @@ export interface Opportunity {
   strategy: string;
   expiresAt: string;
   buildAllocation(borrowTierUsd: number): Promise<AllocationPlan | undefined>;
+  /** Preferred dynamic builder. It owns protocol-specific repay and route bounds. */
+  buildAllocations?(config: SkillConfig): Promise<AllocationPlan[]>;
 }
 
 export interface ExecutionDecision {
@@ -72,6 +94,8 @@ export interface ExecutionReceipt {
   blockNumber: bigint;
   gasUsed: bigint;
   realizedProfitUsd?: number;
+  realizedPnlStatus: 'known' | 'unknown';
+  outcome?: ExecutionOutcome;
 }
 
 export interface RunResult {

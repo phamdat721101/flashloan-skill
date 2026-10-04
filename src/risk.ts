@@ -5,6 +5,7 @@ export function evaluateRisk(
   simulation: SimulationResult,
   risk: RiskPolicy,
   dailyRealizedLossUsd: number,
+  executionHalted = false,
   now = new Date()
 ): ExecutionDecision {
   const reasons: string[] = [];
@@ -14,9 +15,10 @@ export function evaluateRisk(
   if ((simulation.gasCostUsd ?? Number.POSITIVE_INFINITY) > risk.maxGasUsd) reasons.push('gas cost exceeds limit');
   if ((simulation.expectedNetProfitUsd ?? Number.NEGATIVE_INFINITY) < risk.minNetProfitUsd) reasons.push('net profit is below floor');
   if (dailyRealizedLossUsd >= risk.maxDailyLossUsd) reasons.push('daily loss stop is active');
+  if (executionHalted) reasons.push('execution is halted pending realized P&L review');
   const allocated = plan.legs.reduce((total, leg) => total + leg.allocationBps, 0);
   // EDGE-04: split allocations are rejected unless they preserve the full 10,000-bps boundary.
   if (allocated !== 10_000) reasons.push('allocation legs must total 10,000 bps');
-  if (!risk.borrowTiersUsd.includes(plan.borrowTierUsd)) reasons.push('borrow tier is not allowed');
+  if (plan.borrowTierUsd > 0 && risk.borrowTiersUsd.length > 0 && !risk.borrowTiersUsd.includes(plan.borrowTierUsd)) reasons.push('borrow tier is not allowed');
   return { planId: plan.id, allowed: reasons.length === 0, reasons, simulation };
 }

@@ -2,11 +2,12 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "ExecutionReceipt",
   "type": "object",
-  "required": ["transactionHash", "blockNumber", "gasUsed"],
+  "required": ["transactionHash", "blockNumber", "gasUsed", "realizedPnlStatus"],
   "properties": {
     "transactionHash": { "type": "string", "pattern": "^0x[0-9a-fA-F]+$" },
     "blockNumber": { "type": ["string", "integer"] },
     "gasUsed": { "type": ["string", "integer"] },
-    "realizedProfitUsd": { "type": "number" }
+    "realizedProfitUsd": { "type": "number" },
+    "realizedPnlStatus": { "enum": ["known", "unknown"] }
   }
 }

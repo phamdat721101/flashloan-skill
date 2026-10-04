@@ -9,6 +9,11 @@ interface JsonPlan {
   quotedNetProfitUsd: number;
   legs: Array<{ venue: string; path: Address[]; allocationBps: number; minAmountOut: string }>;
   transaction: { to: Address; data: Hex; value?: string };
+  sourceBlock?: string;
+  quoteBlock?: string;
+  capability?: AllocationPlan['capability'];
+  profitTokenUsd?: number;
+  profitTokenDecimals?: number;
 }
 
 interface JsonOpportunity {
@@ -38,6 +43,9 @@ export class JsonOpportunityProvider implements OpportunityProvider {
           opportunityId: candidate.id,
           chainId: candidate.chainId,
           strategy: candidate.strategy,
+          expiresAt: candidate.expiresAt,
+          sourceBlock: plan.sourceBlock ? BigInt(plan.sourceBlock) : undefined,
+          quoteBlock: plan.quoteBlock ? BigInt(plan.quoteBlock) : undefined,
           legs: plan.legs.map((leg) => ({ ...leg, minAmountOut: BigInt(leg.minAmountOut) })),
           transaction: { ...plan.transaction, value: plan.transaction.value ? BigInt(plan.transaction.value) : undefined }
         };

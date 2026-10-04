@@ -13,10 +13,10 @@ Interpret the request as one of these operations:
 
 - **status/configure**: run `node dist/cli.js validate-config`; report whether a wallet and executor are configured, without printing a secret.
 - **scan**: run `node dist/cli.js scan --config <scanner-config.json> --once` for a key-free, public-RPC scan. The result is a `ScanEnvelope` JSON line, not executor calldata. Use `--watch` only when the user asks to keep monitoring. Never add `--live` or `--execute` to scan.
-- **simulate**: accepts only schema-valid, executor-ready opportunity JSON through the existing `run` path and therefore requires the configured executor and operator account used by its exact preflight.
-- **execute**: only after the user explicitly asks to execute and the environment supplies `OPERATOR_PRIVATE_KEY`, `FLASH_EXECUTOR_ADDRESS`, and `NATIVE_TOKEN_USD`. Run `node dist/cli.js run <opportunities.json>` and report the decision and receipt.
+- **simulate**: accepts only schema-valid, executor-ready opportunity JSON. Run `node dist/cli.js simulate <opportunities.json>`; it never sends a transaction.
+- **execute**: only after the user explicitly asks for autonomous execution and the environment supplies `OPERATOR_PRIVATE_KEY` and `NATIVE_TOKEN_USD`. Run `node dist/cli.js execute-auto <opportunities.json>` and report the decision and receipt. The reviewed executor snapshot is the default address; an environment address may override it.
 
-The runtime evaluates the configured borrow tiers, verifies executor bytecode and chain ID, requires every split to total 10,000 bps, enforces gas/price-impact/daily-loss limits, and repeats the exact simulation immediately before broadcast.
+The runtime verifies executor bytecode, chain ID, ABI selector, and `owner()` signer; requires every split to total 10,000 bps; enforces gas/price-impact/daily-loss limits; rejects stale proposals; and repeats the exact simulation immediately before broadcast. Unknown receipt P&L halts future autonomous sends until reviewed.
 
 ## Constraints
 
