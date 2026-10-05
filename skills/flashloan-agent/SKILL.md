@@ -5,13 +5,14 @@ description: "Operate the installed Arbitrum flashloan runtime from a user promp
 
 # Flashloan Agent
 
-Use the installed `flashloan-agent` package. It is self-contained: never read, import, or run code from `bd-team/scripts`.
+Use the installed `flashloan-agent` package. It is self-contained: never read, import, or run code from `bd-team/scripts`. Build the Rust workspace with the pinned toolchain before using the live route engine.
 
 ## Prompt workflow
 
 Interpret the request as one of these operations:
 
-- **status/configure**: run `node dist/cli.js validate-config`; report whether a wallet, executor, and private relay are configured, without printing a secret.
+- **live-route replay**: run `cargo run --locked --release -p flashloan-daemon -- validate-config <engine.json>` or `... replay <engine.json> <live-events.jsonl>`. This is wallet-free and emits JSONL only. It requires matching canonical and sequencer state; any desync, stale state, or unknown route capability is a blocked decision, never permission to send.
+- **status/configure**: run `node dist/cli.js validate-config`; report whether a legacy wallet, executor, and private relay are configured, without printing a secret.
 - **scan**: run `node dist/cli.js scan --config <scanner-config.json> --once` for a key-free, public-RPC scan. The result is a `ScanEnvelope` JSON line, not executor calldata. Use `--watch` only when the user asks to keep monitoring. Never add `--live` or `--execute` to scan.
 - **solve**: run `node dist/cli.js solve <solver-input.json> --config <solver-config.json>` to build only block-bound, capability-proven Aave/Morpho proposals. Report blocked candidates as decisions, not as failures to bypass.
 - **simulate**: accepts only schema-valid, executor-ready opportunity JSON. Run `node dist/cli.js simulate <opportunities.json>`; it never sends a transaction.
@@ -29,4 +30,4 @@ The runtime verifies executor bytecode, chain ID, ABI selector, and `owner()` si
 
 ## Installation
 
-From the package root, run `npm install`, `npm run build`, then `flashloan-agent install`. The installer copies this skill to the Codex skills directory. Invoke it as `$flashloan-agent` in a prompt.
+From the package root, run `npm install`, `npm run build`, `cargo build --locked --release -p flashloan-daemon`, then `flashloan-agent install`. The installer copies this skill to the Codex skills directory. Invoke it as `$flashloan-agent` in a prompt.

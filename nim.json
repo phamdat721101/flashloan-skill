@@ -35,7 +35,7 @@
     }
   },
   "workspace": {
-    "stack": ["typescript", "web3"],
+    "stack": ["typescript", "rust", "web3"],
     "livenessFile": "docs/state/active_session.md",
     "mode": "warn",
     "deliver": {

@@ -53,6 +53,26 @@ Copy the proven execution boundary into a typed orchestrator and make scanners f
 
 `solve <solver-input.json> --config <solver-config.json>` is the sole bridge from dynamic candidates to executable calldata. Aave sizing uses the current health-factor close-factor boundary; Morpho includes current market parameters and repayment/seizure quantities. Quotes carry router/approval targets, fee, input/output minimums, impact, calldata, and quote block. The bridge rejects unknown candidates, stale/expired evidence, unproven capabilities, route impact over the policy, empty split-route calldata, and insufficient profit. It writes sanitized events to `.nim/memory.jsonl` and only one deduplicated reusable failure pattern to `.nim/lessons.jsonl` per process.
 
+## Rust/Alloy live-route engine
+
+`cargo run --locked --release -p flashloan-daemon -- replay <engine.json> <events.jsonl>` is the new deterministic scanner and routing boundary. It is wallet-free: it consumes a feed adapter's normalized JSONL, maintains only in-memory live pool state, and emits versioned JSONL candidates. It never treats a persisted checkpoint or prior replay as executable state.
+
+`engine.json` is strict `schemaVersion: "2.0"` JSON. It requires chain `42161`, explicit V2/V3/V4 factory descriptors, `risk.maxHops` from 2 through 6, `maxStateAgeMs`, decimal-string USD E8 liquidity/canary limits, `execution.minProfitWei`, and an executor address/runtime code hash/current selector. Its relay section permits only `rpc-send-raw-transaction` with an environment-variable name for the URL; it does not serialize endpoint credentials or private keys.
+
+The replay input accepts these camel-case JSONL records:
+
+```json
+{"eventType":"head","head":{"source":"canonical|sequencer","sequence":1,"blockNumber":123,"blockHash":"0x...","parentHash":"0x...","observedAtMs":0}}
+{"eventType":"poolUpsert","pool":{"id":"...","venue":"uniswap-v2|uniswap-v3|uniswap-v4","venueId":1,"token0":"0x...","token1":"0x...","state":{"kind":"v2|v3|v4-discovery-only"}}}
+{"eventType":"scan","anchorToken":"0x...","amountIn":"1000000","nowMs":0}
+```
+
+Both head sources are mandatory. Equal canonical/sequencer hashes are `CANONICAL_LIVE`; one sequencer child of the canonical hash is `TENTATIVE_LIVE`; a sequence regression, hash mismatch, parent mismatch, or stale latest observation becomes `RESYNC_REQUIRED`/`STALE_LIVE_STATE` and emits no candidate. V2 uses checked U256 constant-product arithmetic. V3 executes only when the adapter supplies the full current tick interval; any quote that crosses the supplied limit is rejected. V4 pools are discovered but cannot quote.
+
+Affected pools are searched as bounded, simple 2–6-hop cycles. All route amounts are decimal strings. Two-hop candidates are encoded into the existing `executeDexPairArbitrage` ABI layout using Alloy primitives and carry `executorCalldata`; longer candidates are kept for analysis with `EXECUTOR_CAPABILITY_UNAVAILABLE`, because the reviewed executor ABI cannot safely represent arbitrary multi-hop calls. The Rust daemon currently builds calldata but does not sign, simulate, or submit; the existing manifest-gated TypeScript execution path remains the only broadcast boundary until an Alloy relay/simulation adapter and fork proof are added.
+
+Rust evidence is `cargo test --workspace --locked`: core tests cover U256 V2 pricing, live-head reconciliation, V3 bounds, configuration/relay rejection, route executability, and ABI word layout. The daemon replay integration test covers two ingress heads, pool JSON decoding, an affected two-hop opportunity, and calldata emission. The separate opt-in fork and live-read-only E2E requirements below remain mandatory before moving submission ownership from the existing adapter.
+
 ## Unified scheduler, private relay, and executor-v2 implementation specification
 
 ### Outcome and non-negotiable invariants
@@ -180,7 +200,7 @@ The E2E suite is opt-in and must make no mainnet state change. `E2E_ARBITRUM_RPC
 - A fake HTTPS relay test records the exact configured relay method and signed payload shape, returns accepted/rejected/timeout responses, and proves the public RPC transport receives no send request in all three cases.
 - A receipt valuation test decodes v2’s event, subtracts actual receipt gas, records known P&L, and persists a halt when event data or USD valuation is absent.
 
-Completion requires `npm test`, `npm run typecheck`, `nim-skill search compile --title "Flashloan scheduler delivery spec" --spec docs/features/flashloan-agent-skill.spec.json --root .`, `nim-skill deliver verify --map docs/features/flashloan-agent-skill-map.md`, and the opt-in fork suite with all five structured edge markers. A real relay submission is a manual, separately authorized acceptance step, not an automated test.
+Completion requires `npm test`, `npm run typecheck`, `cargo test --workspace --locked`, `nim-skill search compile --title "Flashloan scheduler delivery spec" --spec docs/features/flashloan-agent-skill.spec.json --root .`, `nim-skill deliver verify --map docs/features/flashloan-agent-skill-map.md`, and the opt-in fork suite with all five structured edge markers. A real relay submission is a manual, separately authorized acceptance step, not an automated test.
 
 ## Tracer-bullet path
 

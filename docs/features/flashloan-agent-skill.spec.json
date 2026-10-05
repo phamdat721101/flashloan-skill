@@ -20,7 +20,9 @@
     { "package_or_module": "src/route-solver.ts", "symbol": "ConfiguredRouteSolver", "file_location": "src/route-solver.ts" },
     { "package_or_module": "src/nim-memory.ts", "symbol": "NimRuntimeMemory", "file_location": "src/nim-memory.ts" },
     { "package_or_module": "src/loss-ledger.ts", "symbol": "DailyLossLedger", "file_location": "src/loss-ledger.ts" },
-    { "package_or_module": "src/execution-lock.ts", "symbol": "ExecutionLock", "file_location": "src/execution-lock.ts" }
+    { "package_or_module": "src/execution-lock.ts", "symbol": "ExecutionLock", "file_location": "src/execution-lock.ts" },
+    { "package_or_module": "crates/flashloan-core/src/lib.rs", "symbol": "find_affected_cycles", "file_location": "crates/flashloan-core/src/lib.rs" },
+    { "package_or_module": "crates/flashloan-daemon/src/main.rs", "symbol": "main", "file_location": "crates/flashloan-daemon/src/main.rs" }
   ],
   "architecture": {
     "pattern": "connector registry plus one global winner scheduler, public-RPC typed liquidation scanner, head-pinned DEX bridge, and exact-simulation relay execution gate",

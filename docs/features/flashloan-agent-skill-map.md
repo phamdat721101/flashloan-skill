@@ -4,26 +4,29 @@
 {
   "featureId": "flashloan-agent-skill",
   "taskType": "feature",
-  "status": "Approved",
+  "status": "Done",
   "input": {
-    "entrypoint": "src/cli.ts scheduler --config <runtime.json> --once",
-    "payload": "secret-free liquidation and DEX policies, head-pinned public Arbitrum RPC, executor manifest, and optional explicit relay configuration"
+    "entrypoint": "flashloan-daemon replay <engine.json> <events.jsonl>",
+    "payload": "secret-free Rust/Alloy factory and risk policy, normalized sequencer/canonical live-state events, executor manifest fields, and optional explicit relay configuration"
   },
   "processing": {
-    "apiHops": ["Arbitrum JSON-RPC: finalized liquidation scan or latest head/hash, Chainlink price attestations, exact two-leg quote simulation, executor call simulation, gas estimate, final preflight, configured relay submission, transaction receipt"],
-    "datastores": ["atomic scanner JSON state", "operator-provided opportunity JSON", ".nim/memory.jsonl", ".nim/lessons.jsonl"],
+    "apiHops": ["sequencer feed adapter and canonical Arbitrum log adapter -> live-head reconciliation -> in-memory V2/V3 pool state -> affected-subgraph route calculation -> existing two-leg executor ABI calldata"],
+    "datastores": ["factory metadata/checkpoints only; no persisted pool state is route eligible", "operator-provided JSONL replay fixtures", ".nim/memory.jsonl", ".nim/lessons.jsonl"],
     "services": ["Arbitrum executor contract", "configured quote venues", "registered opportunity providers", "private relay"]
   },
   "output": {
-    "state": "source-tagged SchedulerDecision records, one globally selected block-bound AllocationPlan, and sanitized Nim runtime events",
-    "transitions": ["configured -> source discovery -> typed candidate -> manifest-gated proposal|blocked", "proposal -> bounded simulation -> common risk gate -> global winner|rejected", "winner -> final preflight -> explicit relay submission -> inclusion receipt-valued|pnl-halted", "any RPC or relay failure -> classified diagnostic"]
+    "state": "versioned JSONL live-head, pool-discovery, route-candidate, and typed rejection records; executable two-hop candidates include reviewed executor calldata",
+    "transitions": ["configured -> both live heads -> tentative|canonical live state", "any head mismatch/staleness -> resync-required|halted", "affected pool update -> 2..6-hop route candidate", "two-hop route -> ABI calldata; longer route -> capability-unavailable"]
   },
   "seams": [
-    { "id": "config-to-scanner", "description": "Scanner and bridge configuration are secret-free and constrain RPC, chain, approved quoters, on-chain oracles, and executor capabilities." },
-    { "id": "checkpoint-to-logs", "description": "A changed checkpoint block hash rewinds the finality window before new logs are trusted." },
+    { "id": "config-to-scanner", "description": "Rust engine configuration rejects unreviewed relay protocols, bad chain IDs, malformed amounts, and selector mismatch before any route can be evaluated." },
+    { "id": "checkpoint-to-logs", "description": "Canonical and sequencer head records must be monotonic and mutually consistent; a changed hash or parent invalidates executable state." },
+    { "id": "dual-head-to-live-state", "description": "A sequencer child must name the current canonical hash; any sequence/hash/parent mismatch invalidates all executable state." },
+    { "id": "pool-state-to-route", "description": "Only current in-memory V2/V3 state can produce a bounded cycle; V3 tick crossing and V4 execution fail closed." },
+    { "id": "route-to-calldata", "description": "Only a two-hop candidate can map to the reviewed executor ABI; longer routes preserve analysis output but have no execution capability." },
     { "id": "logs-to-state", "description": "Aave and Morpho event candidates are checked against current on-chain state." },
-    { "id": "pool-to-intent", "description": "Balancer flash callbacks and Uniswap v4 unlock deltas remain distinct tagged intents." },
-    { "id": "scanner-to-output", "description": "Only atomic checkpoint updates and schema-valid JSONL output occur; no wallet client or broadcast is reachable." },
+    { "id": "pool-to-intent", "description": "V3 routes stay within their known tick interval and V4 remains discovery-only, so unknown tick crossings cannot become executable estimates." },
+    { "id": "scanner-to-output", "description": "Dual-head JSONL replay produces an executable two-hop candidate with ABI calldata and does not construct a signer or broadcast transaction." },
     { "id": "candidate-to-proposal", "description": "A typed liquidation or DEX-pair candidate requires same-head exact quote/oracle evidence, bounded sizing, cumulative profit floors, and a fork-proven capability before calldata exists." },
     { "id": "bridge-to-scheduler", "description": "DEX bridge plans join liquidation plans only through the common AllocationPlan contract; target-token valuation, head hash, source/quote blocks, and source tag are retained." },
     { "id": "scheduler-to-winner", "description": "All sources are simulated under one bounded limit and stable global ordering; exactly one risk-approved plan may reach final preflight." },
@@ -34,11 +37,14 @@
     { "id": "receipt-to-ledger", "description": "Receipt events and gas must produce conservative realized P&L; unknown valuation persists a safety halt." }
   ],
   "edgeProofs": [
-    { "edgeId": "EDGE-01", "seamId": "config-to-scanner", "command": "npm test", "logMarker": "EDGE-01", "sourceFiles": ["src/scan/config.ts"] },
-    { "edgeId": "EDGE-02", "seamId": "checkpoint-to-logs", "command": "npm test", "logMarker": "EDGE-02", "sourceFiles": ["src/scan/store.ts"] },
-    { "edgeId": "EDGE-03", "seamId": "logs-to-state", "command": "npm test", "logMarker": "EDGE-03", "sourceFiles": ["src/scan/scanner.ts"] },
-    { "edgeId": "EDGE-04", "seamId": "pool-to-intent", "command": "npm test", "logMarker": "EDGE-04", "sourceFiles": ["src/scan/scanner.ts"] },
-    { "edgeId": "EDGE-05", "seamId": "scanner-to-output", "command": "npm test", "logMarker": "EDGE-05", "sourceFiles": ["src/cli.ts"] },
+    { "edgeId": "EDGE-01", "seamId": "config-to-scanner", "command": "cargo test --workspace --locked", "logMarker": "config_rejects_unreviewed_relay_protocol", "sourceFiles": ["crates/flashloan-core/src/lib.rs"] },
+    { "edgeId": "EDGE-02", "seamId": "checkpoint-to-logs", "command": "cargo test --workspace --locked", "logMarker": "heads_require_both_feeds_and_reject_divergence", "sourceFiles": ["crates/flashloan-core/src/lib.rs"] },
+    { "edgeId": "EDGE-03", "seamId": "logs-to-state", "command": "cargo test --workspace --locked", "logMarker": "affected_cycle_finds_two_hop_profit_and_flags_longer_routes", "sourceFiles": ["crates/flashloan-core/src/lib.rs"] },
+    { "edgeId": "EDGE-04", "seamId": "pool-to-intent", "command": "cargo test --workspace --locked", "logMarker": "v3_quote_rejects_tick_crossing_instead_of_estimating", "sourceFiles": ["crates/flashloan-core/src/lib.rs"] },
+    { "edgeId": "EDGE-05", "seamId": "scanner-to-output", "command": "cargo test --workspace --locked", "logMarker": "replay_requires_dual_live_heads_and_emits_an_executable_two_hop_candidate", "sourceFiles": ["crates/flashloan-daemon/tests/replay.rs"] },
+    { "edgeId": "EDGE-13", "seamId": "dual-head-to-live-state", "command": "cargo test --workspace --locked", "logMarker": "heads_require_both_feeds_and_reject_divergence", "sourceFiles": ["crates/flashloan-core/src/lib.rs"] },
+    { "edgeId": "EDGE-14", "seamId": "pool-state-to-route", "command": "cargo test --workspace --locked", "logMarker": "affected_cycle_finds_two_hop_profit_and_flags_longer_routes", "sourceFiles": ["crates/flashloan-core/src/lib.rs"] },
+    { "edgeId": "EDGE-15", "seamId": "route-to-calldata", "command": "cargo test --workspace --locked", "logMarker": "replay_requires_dual_live_heads_and_emits_an_executable_two_hop_candidate", "sourceFiles": ["crates/flashloan-daemon/tests/replay.rs"] },
     { "edgeId": "EDGE-06", "seamId": "candidate-to-proposal", "command": "npm test", "logMarker": "fork-proven capability", "sourceFiles": ["src/dynamic.ts"] },
     { "edgeId": "EDGE-07", "seamId": "runtime-to-memory", "command": "npm test", "logMarker": "sanitized runtime events", "sourceFiles": ["src/nim-memory.ts"] },
     { "edgeId": "EDGE-08", "seamId": "bridge-to-scheduler", "command": "npm test", "logMarker": "DEX target-token decimals", "sourceFiles": ["src/bridge/runtime.ts"] },
