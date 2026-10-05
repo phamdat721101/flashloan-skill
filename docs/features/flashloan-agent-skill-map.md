@@ -4,19 +4,19 @@
 {
   "featureId": "flashloan-agent-skill",
   "taskType": "feature",
-  "status": "In progress — DEX-pair bridge implementation requires fork proof",
+  "status": "Approved",
   "input": {
-    "entrypoint": "src/cli.ts bridge --config <bridge-config.json> --once",
-    "payload": "secret-free bridge policy, head-pinned public Arbitrum RPC, Chainlink price attestations, and exact DEX quote evidence"
+    "entrypoint": "src/cli.ts scheduler --config <runtime.json> --once",
+    "payload": "secret-free liquidation and DEX policies, head-pinned public Arbitrum RPC, executor manifest, and optional explicit relay configuration"
   },
   "processing": {
-    "apiHops": ["Arbitrum JSON-RPC: head block/hash, Chainlink price attestations, exact two-leg quote simulation, executor call simulation, gas estimate, final preflight, transaction receipt"],
+    "apiHops": ["Arbitrum JSON-RPC: finalized liquidation scan or latest head/hash, Chainlink price attestations, exact two-leg quote simulation, executor call simulation, gas estimate, final preflight, configured relay submission, transaction receipt"],
     "datastores": ["atomic scanner JSON state", "operator-provided opportunity JSON", ".nim/memory.jsonl", ".nim/lessons.jsonl"],
     "services": ["Arbitrum executor contract", "configured quote venues", "registered opportunity providers", "private relay"]
   },
   "output": {
-    "state": "head-pinned DEX BridgeDecision records, plus block-bound AllocationPlan proposals and sanitized Nim runtime events",
-    "transitions": ["configured -> finalized-block-indexed -> live-state-validated -> typed-candidate-emitted", "candidate + route evidence -> capability-gated proposal|blocked", "proposal -> simulated -> risk-approved -> final-preflight -> private-relay receipt-valued|pnl-halted", "any RPC failure -> classified diagnostic"]
+    "state": "source-tagged SchedulerDecision records, one globally selected block-bound AllocationPlan, and sanitized Nim runtime events",
+    "transitions": ["configured -> source discovery -> typed candidate -> manifest-gated proposal|blocked", "proposal -> bounded simulation -> common risk gate -> global winner|rejected", "winner -> final preflight -> explicit relay submission -> inclusion receipt-valued|pnl-halted", "any RPC or relay failure -> classified diagnostic"]
   },
   "seams": [
     { "id": "config-to-scanner", "description": "Scanner and bridge configuration are secret-free and constrain RPC, chain, approved quoters, on-chain oracles, and executor capabilities." },
@@ -25,6 +25,10 @@
     { "id": "pool-to-intent", "description": "Balancer flash callbacks and Uniswap v4 unlock deltas remain distinct tagged intents." },
     { "id": "scanner-to-output", "description": "Only atomic checkpoint updates and schema-valid JSONL output occur; no wallet client or broadcast is reachable." },
     { "id": "candidate-to-proposal", "description": "A typed liquidation or DEX-pair candidate requires same-head exact quote/oracle evidence, bounded sizing, cumulative profit floors, and a fork-proven capability before calldata exists." },
+    { "id": "bridge-to-scheduler", "description": "DEX bridge plans join liquidation plans only through the common AllocationPlan contract; target-token valuation, head hash, source/quote blocks, and source tag are retained." },
+    { "id": "scheduler-to-winner", "description": "All sources are simulated under one bounded limit and stable global ordering; exactly one risk-approved plan may reach final preflight." },
+    { "id": "manifest-to-executor", "description": "Chain ID, bytecode hash, ABI version, owner, selector, and fork proof bind each plan to a versioned v1 or v2 executor." },
+    { "id": "preflight-to-relay", "description": "A typed relay adapter receives one freshly preflighted signed transaction and has no public-RPC fallback." },
     { "id": "runtime-to-memory", "description": "Every solver outcome is sanitized before Nim memory append; only deduplicated reusable failure codes become lessons." },
     { "id": "proposal-to-send", "description": "Exact calldata must match a reviewed executor capability, signer owner, quote block freshness, final simulation, and risk limits before autonomous send." },
     { "id": "receipt-to-ledger", "description": "Receipt events and gas must produce conservative realized P&L; unknown valuation persists a safety halt." }
@@ -36,7 +40,12 @@
     { "edgeId": "EDGE-04", "seamId": "pool-to-intent", "command": "npm test", "logMarker": "EDGE-04", "sourceFiles": ["src/scan/scanner.ts"] },
     { "edgeId": "EDGE-05", "seamId": "scanner-to-output", "command": "npm test", "logMarker": "EDGE-05", "sourceFiles": ["src/cli.ts"] },
     { "edgeId": "EDGE-06", "seamId": "candidate-to-proposal", "command": "npm test", "logMarker": "fork-proven capability", "sourceFiles": ["src/dynamic.ts"] },
-    { "edgeId": "EDGE-07", "seamId": "runtime-to-memory", "command": "npm test", "logMarker": "sanitized runtime events", "sourceFiles": ["src/nim-memory.ts"] }
+    { "edgeId": "EDGE-07", "seamId": "runtime-to-memory", "command": "npm test", "logMarker": "sanitized runtime events", "sourceFiles": ["src/nim-memory.ts"] },
+    { "edgeId": "EDGE-08", "seamId": "bridge-to-scheduler", "command": "npm test", "logMarker": "DEX target-token decimals", "sourceFiles": ["src/bridge/runtime.ts"] },
+    { "edgeId": "EDGE-09", "seamId": "scheduler-to-winner", "command": "npm test", "logMarker": "global winner", "sourceFiles": ["src/orchestrator.ts"] },
+    { "edgeId": "EDGE-10", "seamId": "manifest-to-executor", "command": "npm test", "logMarker": "executor manifest", "sourceFiles": ["src/arbitrum.ts"] },
+    { "edgeId": "EDGE-11", "seamId": "preflight-to-relay", "command": "npm test", "logMarker": "no public fallback", "sourceFiles": ["src/arbitrum.ts"] },
+    { "edgeId": "EDGE-12", "seamId": "receipt-to-ledger", "command": "npm test", "logMarker": "receipt valued", "sourceFiles": ["src/arbitrum.ts"] }
   ]
 }
 ```
