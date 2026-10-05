@@ -41,6 +41,9 @@ export const FLASH_EXECUTOR_ABI = [
     { name: 'marketParams', type: 'tuple', components: [{ name: 'loanToken', type: 'address' }, { name: 'collateralToken', type: 'address' }, { name: 'oracle', type: 'address' }, { name: 'irm', type: 'address' }, { name: 'lltv', type: 'uint256' }] },
     { name: 'borrower', type: 'address' }, { name: 'seizedAssets', type: 'uint256' }, { name: 'repaidShares', type: 'uint256' }, { name: 'sellVenue', type: 'uint8' }, { name: 'dexPoolFee', type: 'uint24' }, { name: 'minProfit', type: 'uint256' }
   ] }], outputs: [] },
+  { type: 'function', name: 'executeDexPairArbitrage', stateMutability: 'nonpayable', inputs: [{ name: 'params', type: 'tuple', components: [
+    { name: 'flashToken', type: 'address' }, { name: 'flashAmount', type: 'uint256' }, { name: 'targetToken', type: 'address' }, { name: 'buyVenue', type: 'uint8' }, { name: 'sellVenue', type: 'uint8' }, { name: 'uniFee', type: 'uint24' }, { name: 'minProfit', type: 'uint256' }
+  ] }], outputs: [] },
   { type: 'event', name: 'LiquidationExecuted', inputs: [
     { indexed: true, name: 'insolventUser', type: 'address' },
     { indexed: true, name: 'debtToken', type: 'address' },

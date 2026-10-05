@@ -2,6 +2,8 @@ import { createHash, randomUUID } from 'node:crypto';
 import { encodeFunctionData } from 'viem';
 import { FLASH_EXECUTOR_ABI, type ExecutorCapability } from './contracts/flash-executor.js';
 import type { Address, AllocationLeg, AllocationPlan, Hex, Opportunity, ProposalEvidence, SkillConfig } from './types.js';
+import { DEX_VENUE_ID, type DexPairCandidate } from './bridge/dex-pair.js';
+import { parseDecimal, usdFloorToTokenWei } from './fixed-point.js';
 
 export type DynamicProtocol = 'aave-v3' | 'morpho-blue' | 'balancer-v2' | 'uniswap-v4';
 
@@ -44,7 +46,7 @@ export interface ObservationCandidate extends CandidateBase {
   reason: 'callback-capability-unverified';
 }
 
-export type DynamicCandidate = AaveLiquidationCandidate | MorphoLiquidationCandidate | ObservationCandidate;
+export type DynamicCandidate = AaveLiquidationCandidate | MorphoLiquidationCandidate | ObservationCandidate | DexPairCandidate;
 
 export interface RouteQuote {
   venue: string;
@@ -62,7 +64,9 @@ export interface RouteQuote {
 
 export interface DynamicSolverConfig {
   executorAddress: Address;
-  minNetProfitUsd: number;
+  minNetProfitUsd: string;
+  /** Optional native-token floor; the encoded executor floor uses the stricter value. */
+  minProfitWei?: string;
   maxPriceImpactBps: number;
   maxProposalBlockAge: number;
   /** A route is only broadcastable once this is proven by a fork test. */
@@ -92,7 +96,10 @@ export function parseDynamicSolverConfig(value: unknown): DynamicSolverConfig {
       const status = entry as Record<string, unknown>;
       return [[name, { enabled: status.enabled === true, forkVerified: status.forkVerified === true }]];
     })) as DynamicSolverConfig['capabilities'] : {};
-  return { executorAddress: address(input.executorAddress, 'executorAddress'), minNetProfitUsd: positiveNumber(input.minNetProfitUsd, 'minNetProfitUsd'), maxPriceImpactBps: positiveNumber(input.maxPriceImpactBps, 'maxPriceImpactBps'), maxProposalBlockAge: positiveNumber(input.maxProposalBlockAge, 'maxProposalBlockAge'), capabilities };
+  if (typeof input.minNetProfitUsd !== 'string') throw new Error('minNetProfitUsd must be a decimal string');
+  parseDecimal(input.minNetProfitUsd, 8, 'minNetProfitUsd');
+  if (input.minProfitWei !== undefined && (typeof input.minProfitWei !== 'string' || !/^\d+$/.test(input.minProfitWei))) throw new Error('minProfitWei must be an integer string');
+  return { executorAddress: address(input.executorAddress, 'executorAddress'), minNetProfitUsd: input.minNetProfitUsd, minProfitWei: input.minProfitWei as string | undefined, maxPriceImpactBps: positiveNumber(input.maxPriceImpactBps, 'maxPriceImpactBps'), maxProposalBlockAge: positiveNumber(input.maxProposalBlockAge, 'maxProposalBlockAge'), capabilities };
 }
 
 /** Verifies discriminated candidate identity before it reaches the calldata bridge. */
@@ -105,6 +112,9 @@ export function validateDynamicCandidate(candidate: DynamicCandidate): void {
   } else if (candidate.protocol === 'morpho-blue') {
     address(candidate.borrower, 'borrower'); address(candidate.blue, 'blue'); address(candidate.flashToken, 'flashToken'); address(candidate.collateralToken, 'collateralToken');
     if (!/^0x[\da-fA-F]{64}$/.test(candidate.marketId) || !/^\d+$/.test(candidate.flashAmount) || !/^\d+$/.test(candidate.repaidShares) || !/^\d+$/.test(candidate.seizedAssets)) throw new Error('Morpho candidate sizing is invalid');
+  } else if (candidate.protocol === 'dex-pair-arbitrage') {
+    address(candidate.flashToken, 'flashToken'); address(candidate.targetToken, 'targetToken');
+    if (!/^\d+$/.test(candidate.flashAmountWei) || !/^\d+$/.test(candidate.firstLegOutWei) || !/^\d+$/.test(candidate.finalOutWei) || !Number.isInteger(candidate.uniFee) || candidate.uniFee < 0 || candidate.uniFee > 1_000_000 || candidate.buyVenue === candidate.sellVenue) throw new Error('DEX pair candidate sizing is invalid');
   } else address(candidate.contract, 'contract');
 }
 
@@ -134,6 +144,7 @@ function capabilityFor(candidate: DynamicCandidate, split: boolean): ExecutorCap
   if (candidate.protocol === 'aave-v3') return split ? 'aave-v3-liquidation-split' : 'aave-v3-liquidation';
   if (candidate.protocol === 'morpho-blue') return 'morpho-blue-liquidation';
   if (candidate.protocol === 'uniswap-v4') return 'uniswap-v4-arbitrage';
+  if (candidate.protocol === 'dex-pair-arbitrage') return 'dex-pair-arbitrage';
   return undefined;
 }
 
@@ -146,15 +157,19 @@ export function buildDynamicPlan(
   candidate: DynamicCandidate,
   quotes: RouteQuote[],
   config: DynamicSolverConfig,
-  quotedNetProfitUsd: number,
-  profitTokenUsd: number,
+  quotedNetProfitUsd: number | string,
+  profitTokenUsd: number | string,
   profitTokenDecimals: number
 ): AllocationPlan | undefined {
   validateDynamicCandidate(candidate);
   validExpiry(candidate.expiresAt);
   if (candidate.protocol === 'balancer-v2' || candidate.protocol === 'uniswap-v4') return undefined;
-  if (!Number.isFinite(quotedNetProfitUsd) || quotedNetProfitUsd < config.minNetProfitUsd) return undefined;
-  if (!Number.isFinite(profitTokenUsd) || profitTokenUsd <= 0 || !Number.isInteger(profitTokenDecimals) || profitTokenDecimals < 0) throw new Error('profit valuation is invalid');
+  const quotedNetProfitText = typeof quotedNetProfitUsd === 'number' ? quotedNetProfitUsd.toFixed(8) : quotedNetProfitUsd;
+  const profitTokenUsdText = typeof profitTokenUsd === 'number' ? profitTokenUsd.toFixed(8) : profitTokenUsd;
+  if (!Number.isInteger(profitTokenDecimals) || profitTokenDecimals < 0) throw new Error('profit valuation is invalid');
+  const usdFloorE8 = parseDecimal(config.minNetProfitUsd, 8, 'minNetProfitUsd');
+  const quotedNetProfitE8 = parseDecimal(quotedNetProfitText, 8, 'quotedNetProfitUsd');
+  if (quotedNetProfitE8 < usdFloorE8) return undefined;
   if (quotes.length === 0 || quotes.some((quote) => quote.priceImpactBps > config.maxPriceImpactBps || quote.amountIn <= 0n || quote.minAmountOut <= 0n || !Number.isInteger(quote.fee) || quote.fee < 0)) return undefined;
   const sourceBlock = BigInt(candidate.observedBlock);
   const quoteBlock = quotes.reduce((latest, quote) => quote.quoteBlock > latest ? quote.quoteBlock : latest, 0n);
@@ -163,19 +178,21 @@ export function buildDynamicPlan(
   if (!capability) return undefined;
   const allowed = config.capabilities[capability];
   if (!allowed?.enabled || !allowed.forkVerified) return undefined;
-  const repayAmount = candidate.protocol === 'aave-v3'
-    ? maxAaveRepay(candidate)
-    : BigInt((candidate as MorphoLiquidationCandidate).flashAmount);
-  const minProfit = BigInt(Math.ceil(config.minNetProfitUsd / profitTokenUsd * 10 ** profitTokenDecimals));
+  const profitTokenUsdE8 = parseDecimal(profitTokenUsdText, 8, 'profitTokenUsd');
+  const usdMinProfit = usdFloorToTokenWei(usdFloorE8, profitTokenUsdE8, profitTokenDecimals);
+  const minProfit = config.minProfitWei === undefined ? usdMinProfit : (BigInt(config.minProfitWei) > usdMinProfit ? BigInt(config.minProfitWei) : usdMinProfit);
   let data: Hex;
   if (candidate.protocol === 'aave-v3' && quotes.length === 1) {
-    data = encodeFunctionData({ abi: FLASH_EXECUTOR_ABI, functionName: 'executeFlashLiquidation', args: [{ debtToken: candidate.debtToken, debtAmount: repayAmount, collateralToken: candidate.collateralToken, insolventUser: candidate.borrower, dexPoolFee: quotes[0].fee, minProfit }] }) as Hex;
+    data = encodeFunctionData({ abi: FLASH_EXECUTOR_ABI, functionName: 'executeFlashLiquidation', args: [{ debtToken: candidate.debtToken, debtAmount: maxAaveRepay(candidate), collateralToken: candidate.collateralToken, insolventUser: candidate.borrower, dexPoolFee: quotes[0].fee, minProfit }] }) as Hex;
   } else if (candidate.protocol === 'aave-v3') {
     if (quotes.some((quote) => quote.calldata === '0x')) return undefined;
-    data = encodeFunctionData({ abi: FLASH_EXECUTOR_ABI, functionName: 'executeFlashLiquidationSplit', args: [{ debtToken: candidate.debtToken, debtAmount: repayAmount, collateralToken: candidate.collateralToken, insolventUser: candidate.borrower, minProfit, routes: quotes.map((quote) => ({ router: quote.router, approveTarget: quote.approveTarget, amountIn: quote.amountIn, minAmountOut: quote.minAmountOut, callData: quote.calldata })) }] }) as Hex;
-  } else {
+    data = encodeFunctionData({ abi: FLASH_EXECUTOR_ABI, functionName: 'executeFlashLiquidationSplit', args: [{ debtToken: candidate.debtToken, debtAmount: maxAaveRepay(candidate), collateralToken: candidate.collateralToken, insolventUser: candidate.borrower, minProfit, routes: quotes.map((quote) => ({ router: quote.router, approveTarget: quote.approveTarget, amountIn: quote.amountIn, minAmountOut: quote.minAmountOut, callData: quote.calldata })) }] }) as Hex;
+  } else if (candidate.protocol === 'morpho-blue') {
     const morpho = candidate as MorphoLiquidationCandidate;
-    data = encodeFunctionData({ abi: FLASH_EXECUTOR_ABI, functionName: 'executeMorphoMarketLiquidation', args: [{ flashToken: morpho.flashToken, flashAmount: repayAmount, marketParams: { ...morpho.marketParams, lltv: BigInt(morpho.marketParams.lltv) }, borrower: morpho.borrower, seizedAssets: BigInt(morpho.seizedAssets), repaidShares: BigInt(morpho.repaidShares), sellVenue: 0, dexPoolFee: quotes[0].fee, minProfit }] }) as Hex;
+    data = encodeFunctionData({ abi: FLASH_EXECUTOR_ABI, functionName: 'executeMorphoMarketLiquidation', args: [{ flashToken: morpho.flashToken, flashAmount: BigInt(morpho.flashAmount), marketParams: { ...morpho.marketParams, lltv: BigInt(morpho.marketParams.lltv) }, borrower: morpho.borrower, seizedAssets: BigInt(morpho.seizedAssets), repaidShares: BigInt(morpho.repaidShares), sellVenue: 0, dexPoolFee: quotes[0].fee, minProfit }] }) as Hex;
+  } else {
+    const dex = candidate as DexPairCandidate;
+    data = encodeFunctionData({ abi: FLASH_EXECUTOR_ABI, functionName: 'executeDexPairArbitrage', args: [{ flashToken: dex.flashToken, flashAmount: BigInt(dex.flashAmountWei), targetToken: dex.targetToken, buyVenue: DEX_VENUE_ID[dex.buyVenue], sellVenue: DEX_VENUE_ID[dex.sellVenue], uniFee: dex.uniFee, minProfit }] }) as Hex;
   }
   return {
     id: `proposal-${randomUUID()}`,
@@ -184,13 +201,13 @@ export function buildDynamicPlan(
     strategy: `${candidate.protocol}-dynamic`,
     borrowTierUsd: 0,
     priceImpactBps: Math.max(...quotes.map((quote) => quote.priceImpactBps)),
-    quotedNetProfitUsd,
+    quotedNetProfitUsd: Number(quotedNetProfitE8) / 1e8,
     legs: routeLegs(quotes),
     transaction: { to: config.executorAddress, data },
     sourceBlock,
     quoteBlock,
     capability,
-    profitTokenUsd,
+    profitTokenUsd: Number(profitTokenUsdE8) / 1e8,
     profitTokenDecimals,
     expiresAt: candidate.expiresAt
   };

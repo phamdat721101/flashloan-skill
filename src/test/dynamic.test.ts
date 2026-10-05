@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { buildDynamicPlan, closeFactorBps, maxAaveRepay, type AaveLiquidationCandidate, type DynamicSolverConfig, type RouteQuote } from '../dynamic.js';
+import { buildDynamicPlan, closeFactorBps, maxAaveRepay, type AaveLiquidationCandidate, type DynamicCandidate, type DynamicSolverConfig, type RouteQuote } from '../dynamic.js';
+import { FLASH_EXECUTOR_SELECTORS } from '../contracts/flash-executor.js';
 import { ConfiguredRouteSolver } from '../route-solver.js';
 
 const address = '0x1111111111111111111111111111111111111111' as const;
@@ -9,7 +10,7 @@ const candidate: AaveLiquidationCandidate = {
   borrower: address, pool: address, debtToken: address, collateralToken: '0x2222222222222222222222222222222222222222', debtAmount: '1000', healthFactorWad: '949999999999999999', liquidationBonusBps: 500
 };
 const quote: RouteQuote = { venue: 'uniswap-v3', router: address, approveTarget: address, path: [candidate.collateralToken, address], amountIn: 1_000n, amountOut: 1_200n, minAmountOut: 1_100n, priceImpactBps: 10, fee: 500, quoteBlock: 100n, calldata: '0x' };
-const config: DynamicSolverConfig = { executorAddress: address, minNetProfitUsd: 1, maxPriceImpactBps: 200, maxProposalBlockAge: 1, capabilities: { 'aave-v3-liquidation': { enabled: true, forkVerified: true } } };
+const config: DynamicSolverConfig = { executorAddress: address, minNetProfitUsd: '1', maxPriceImpactBps: 200, maxProposalBlockAge: 1, capabilities: { 'aave-v3-liquidation': { enabled: true, forkVerified: true } } };
 
 test('uses the protocol close-factor boundary rather than a static borrow tier', () => {
   assert.equal(closeFactorBps(950_000_000_000_000_000n), 5_000);
@@ -38,4 +39,14 @@ test('selects the best configured fee tier without a hardcoded pool address', as
   assert.equal(routes.length, 1);
   assert.equal(routes[0].fee, 100);
   assert.equal(routes[0].amountOut, 120n);
+});
+
+test('encodes the reviewed DEX pair capability with the stricter native profit floor', () => {
+  const dex: DynamicCandidate = {
+    id: 'dex-1', chainId: 42161, protocol: 'dex-pair-arbitrage', observedBlock: '100', observedBlockHash: `0x${'a'.repeat(64)}`, observedAt: candidate.observedAt, expiresAt: candidate.expiresAt,
+    flashToken: address, targetToken: candidate.collateralToken, flashAmountWei: '1000', buyVenue: 'uniswap-v3', sellVenue: 'camelot-v3', uniFee: 500, firstLegOutWei: '1200', finalOutWei: '1300'
+  };
+  const plan = buildDynamicPlan(dex, [quote], { ...config, minProfitWei: '2000000', capabilities: { 'dex-pair-arbitrage': { enabled: true, forkVerified: true } } }, 10, 1, 6);
+  assert.equal(plan?.capability, 'dex-pair-arbitrage');
+  assert.match(plan?.transaction.data ?? '', new RegExp(`^${FLASH_EXECUTOR_SELECTORS['dex-pair-arbitrage']}`));
 });

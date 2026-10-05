@@ -4,27 +4,27 @@
 {
   "featureId": "flashloan-agent-skill",
   "taskType": "feature",
-  "status": "Done",
+  "status": "In progress — DEX-pair bridge implementation requires fork proof",
   "input": {
-    "entrypoint": "src/cli.ts scan --config <scanner-config.json> --once | solve <solver-input.json> --config <solver-config.json>",
-    "payload": "secret-free scanner/solver configuration, public Arbitrum RPC, and block-bound candidate/route evidence"
+    "entrypoint": "src/cli.ts bridge --config <bridge-config.json> --once",
+    "payload": "secret-free bridge policy, head-pinned public Arbitrum RPC, Chainlink price attestations, and exact DEX quote evidence"
   },
   "processing": {
-    "apiHops": ["Arbitrum JSON-RPC: chain ID, bytecode, owner, exact call simulation, gas estimate, final preflight, transaction receipt"],
+    "apiHops": ["Arbitrum JSON-RPC: head block/hash, Chainlink price attestations, exact two-leg quote simulation, executor call simulation, gas estimate, final preflight, transaction receipt"],
     "datastores": ["atomic scanner JSON state", "operator-provided opportunity JSON", ".nim/memory.jsonl", ".nim/lessons.jsonl"],
     "services": ["Arbitrum executor contract", "configured quote venues", "registered opportunity providers", "private relay"]
   },
   "output": {
-    "state": "ScanEnvelope JSONL with typed candidates, plus block-bound AllocationPlan proposals and sanitized Nim runtime events",
+    "state": "head-pinned DEX BridgeDecision records, plus block-bound AllocationPlan proposals and sanitized Nim runtime events",
     "transitions": ["configured -> finalized-block-indexed -> live-state-validated -> typed-candidate-emitted", "candidate + route evidence -> capability-gated proposal|blocked", "proposal -> simulated -> risk-approved -> final-preflight -> private-relay receipt-valued|pnl-halted", "any RPC failure -> classified diagnostic"]
   },
   "seams": [
-    { "id": "config-to-scanner", "description": "Scanner configuration is secret-free and constrains the RPC, chain, bootstrap, and protocol addresses." },
+    { "id": "config-to-scanner", "description": "Scanner and bridge configuration are secret-free and constrain RPC, chain, approved quoters, on-chain oracles, and executor capabilities." },
     { "id": "checkpoint-to-logs", "description": "A changed checkpoint block hash rewinds the finality window before new logs are trusted." },
     { "id": "logs-to-state", "description": "Aave and Morpho event candidates are checked against current on-chain state." },
     { "id": "pool-to-intent", "description": "Balancer flash callbacks and Uniswap v4 unlock deltas remain distinct tagged intents." },
     { "id": "scanner-to-output", "description": "Only atomic checkpoint updates and schema-valid JSONL output occur; no wallet client or broadcast is reachable." },
-    { "id": "candidate-to-proposal", "description": "A typed candidate requires fresh route evidence, dynamic close-factor sizing, minimum profit, and a fork-proven capability before calldata exists." },
+    { "id": "candidate-to-proposal", "description": "A typed liquidation or DEX-pair candidate requires same-head exact quote/oracle evidence, bounded sizing, cumulative profit floors, and a fork-proven capability before calldata exists." },
     { "id": "runtime-to-memory", "description": "Every solver outcome is sanitized before Nim memory append; only deduplicated reusable failure codes become lessons." },
     { "id": "proposal-to-send", "description": "Exact calldata must match a reviewed executor capability, signer owner, quote block freshness, final simulation, and risk limits before autonomous send." },
     { "id": "receipt-to-ledger", "description": "Receipt events and gas must produce conservative realized P&L; unknown valuation persists a safety halt." }

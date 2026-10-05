@@ -9,6 +9,8 @@ import { ArbitrumScanner } from './scan/scanner.js';
 import { readFile } from 'node:fs/promises';
 import { buildDynamicPlan, parseDynamicSolverConfig, type DynamicCandidate, type RouteQuote } from './dynamic.js';
 import { NimRuntimeMemory } from './nim-memory.js';
+import { loadBridgeConfig } from './bridge/config.js';
+import { runDexBridge } from './bridge/runtime.js';
 
 const [command, opportunityFile] = process.argv.slice(2);
 
@@ -30,6 +32,13 @@ if (command === 'validate-config') {
     if (!watch) break;
     await new Promise((resolve) => setTimeout(resolve, scannerConfig.pollIntervalMs));
   } while (true);
+} else if (command === 'bridge') {
+  const args = process.argv.slice(3);
+  if (args.includes('--execute') || args.includes('--live')) throw new Error('bridge is read-only; use execute-auto only after an explicit operator review');
+  const configIndex = args.indexOf('--config');
+  const configPath = configIndex >= 0 ? args[configIndex + 1] : undefined;
+  if (!configPath) throw new Error('usage: bridge --config <bridge-config.json> [--once]');
+  console.log(JSON.stringify(await runDexBridge(await loadBridgeConfig(configPath))));
 } else if (command === 'solve' && opportunityFile) {
   const args = process.argv.slice(3);
   const configIndex = args.indexOf('--config');
@@ -61,5 +70,5 @@ if (command === 'validate-config') {
   const result = await lock.runExclusive(() => new FlashloanOrchestrator([new JsonOpportunityProvider(opportunityFile)], adapter, ledger).run(config, { broadcast: command !== 'simulate' }));
   console.log(JSON.stringify(result, (_, value) => typeof value === 'bigint' ? value.toString() : value));
 } else {
-  throw new Error('usage: validate-config | scan --config <scanner-config.json> [--once|--watch] | solve <solver-input.json> --config <solver-config.json> | simulate <opportunities.json> | execute-auto <opportunities.json>');
+  throw new Error('usage: validate-config | scan --config <scanner-config.json> [--once|--watch] | bridge --config <bridge-config.json> [--once] | solve <solver-input.json> --config <solver-config.json> | simulate <opportunities.json> | execute-auto <opportunities.json>');
 }

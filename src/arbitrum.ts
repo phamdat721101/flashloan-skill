@@ -98,3 +98,35 @@ export class ArbitrumExecutorAdapter implements ExecutorAdapter {
     return { transactionHash, blockNumber: receipt.blockNumber, gasUsed: receipt.gasUsed, realizedProfitUsd, realizedPnlStatus: 'known' };
   }
 }
+
+/**
+ * Public-RPC simulation boundary. It reads the on-chain executor owner and uses
+ * that address as the eth_call sender, so owner-gated calldata can be tested
+ * without loading an operator private key or constructing a wallet client.
+ */
+export class ArbitrumReadOnlySimulator {
+  private readonly publicClient;
+
+  constructor(private readonly config: Pick<SkillConfig, 'chainId' | 'rpcUrl' | 'executorAddress'>, private readonly nativeTokenUsd: number) {
+    if (config.chainId !== 42161 || !config.executorAddress) throw new Error('Arbitrum read-only simulation requires chain 42161 and executor address');
+    if (!Number.isFinite(nativeTokenUsd) || nativeTokenUsd <= 0) throw new Error('nativeTokenUsd must be positive');
+    this.publicClient = createPublicClient({ chain: arbitrum, transport: http(config.rpcUrl) });
+  }
+
+  async simulate(plan: AllocationPlan): Promise<SimulationResult> {
+    try {
+      validateExecutorPlan(plan, this.config as SkillConfig);
+      if (await this.publicClient.getChainId() !== 42161) throw new Error('RPC chain is not Arbitrum One');
+      const bytecode = await this.publicClient.getCode({ address: this.config.executorAddress! });
+      if (!bytecode || bytecode === '0x') throw new Error('configured executor has no deployed bytecode');
+      const owner = await this.publicClient.readContract({ address: this.config.executorAddress!, abi: FLASH_EXECUTOR_ABI, functionName: 'owner' });
+      await this.publicClient.call({ account: owner, ...plan.transaction });
+      const gasEstimate = await this.publicClient.estimateGas({ account: owner, ...plan.transaction });
+      const gasPrice = await this.publicClient.getGasPrice();
+      return { ok: true, gasEstimate, gasCostUsd: Number(gasEstimate * gasPrice) / Number(WEI_PER_ETH) * this.nativeTokenUsd, expectedNetProfitUsd: plan.quotedNetProfitUsd };
+    } catch (error) {
+      const outcome = executionOutcome('simulate', error);
+      return { ok: false, reason: outcome.message, outcome };
+    }
+  }
+}

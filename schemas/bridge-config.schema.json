@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Read-only Arbitrum DEX Pair Bridge Config",
+  "type": "object",
+  "required": ["chainId", "rpcUrl", "quoters", "pairs", "solver"],
+  "properties": {
+    "chainId": { "const": 42161 },
+    "rpcUrl": { "type": "string", "format": "uri" },
+    "quoters": { "type": "object", "required": ["uniswap-v3", "pancakeswap-v3", "camelot-v3"] },
+    "pairs": { "type": "array", "minItems": 1 },
+    "solver": { "$ref": "solver-config.schema.json" }
+  },
+  "additionalProperties": false
+}
