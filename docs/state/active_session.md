@@ -151,3 +151,21 @@ Deployed 0xfcd8f1257d8f37f4c51b4e6ac923137e5b6a2a16 and configured code-hash-pin
 ### Next steps
 
 Wire a scanner-derived no-hook circular V4 quote into the new executor, then simulate and manually approve one private-relay trade
+
+## Session 2026-10-06T16:51:03.365Z
+
+### Current goal
+
+Commit and publish the deployed dynamic V4 executor state for scanner integrations
+
+### Latest output or blocker
+
+Published main at 3c395f3; current dynamic V4 executor is 0xfcd8f1257d8f37f4c51b4e6ac923137e5b6a2a16 from deployment tx 0x12e591d8a1d8271da92aa6c6ed0607ec718e43960e736642bd75c34fc9856072; canonical metadata is exported as DYNAMIC_V4_EXECUTOR_DEPLOYMENT
+
+### Attempted solutions
+
+- None recorded.
+
+### Next steps
+
+Consume the deployment metadata only for ImmutableArbitrageExecutor V4 route encoding, then simulate a scanner-derived no-hook circular route before any manual private-relay trade
