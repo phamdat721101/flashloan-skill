@@ -1,0 +1,16 @@
+[package]
+name = "flashloan-scan"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "flashloan-scan"
+path = "src/main.rs"
+
+[dependencies]
+alloy = { version = "=2.1.1", default-features = false, features = ["std", "sol-types", "contract", "provider-http", "reqwest", "reqwest-rustls-tls", "rpc-types", "network", "signer-local"] }
+serde_json.workspace = true
+futures-util = "0.3"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "time"] }

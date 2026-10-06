@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/flashloan-core", "crates/flashloan-daemon"]
+members = ["crates/flashloan-core", "crates/flashloan-daemon", "crates/flashloan-scan"]
 resolver = "2"
 
 [workspace.package]
