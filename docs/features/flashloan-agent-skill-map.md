@@ -32,6 +32,10 @@
     { "id": "scheduler-to-winner", "description": "All sources are simulated under one bounded limit and stable global ordering; exactly one risk-approved plan may reach final preflight." },
     { "id": "manifest-to-executor", "description": "Chain ID, bytecode hash, ABI version, owner, selector, and fork proof bind each plan to a versioned v1 or v2 executor." },
     { "id": "preflight-to-relay", "description": "A typed relay adapter receives one freshly preflighted signed transaction and has no public-RPC fallback." },
+    { "id": "factory-to-pool", "description": "Only configured V2/V3 factories emit allowlisted pool candidates; factory discovery alone never enables broadcast." },
+    { "id": "scanner-to-output", "description": "Only atomic checkpoint updates and schema-valid JSONL output occur; no wallet client or broadcast is reachable." },
+    { "id": "sizing-to-proposal", "description": "Adaptive sampling retains exact quote evidence and selects the highest positive net-profit amount within price-impact bounds." },
+    { "id": "v4-unlock-to-settlement", "description": "A scanner-derived V4 PoolKey can run only through a code-hash-pinned PoolManager during an active Aave callback; every manager delta is settled/taken before flash repayment." },
     { "id": "runtime-to-memory", "description": "Every solver outcome is sanitized before Nim memory append; only deduplicated reusable failure codes become lessons." },
     { "id": "proposal-to-send", "description": "Exact calldata must match a reviewed executor capability, signer owner, quote block freshness, final simulation, and risk limits before autonomous send." },
     { "id": "receipt-to-ledger", "description": "Receipt events and gas must produce conservative realized P&L; unknown valuation persists a safety halt." }
@@ -52,6 +56,8 @@
     { "edgeId": "EDGE-10", "seamId": "manifest-to-executor", "command": "npm test", "logMarker": "executor manifest", "sourceFiles": ["src/arbitrum.ts"] },
     { "edgeId": "EDGE-11", "seamId": "preflight-to-relay", "command": "npm test", "logMarker": "no public fallback", "sourceFiles": ["src/arbitrum.ts"] },
     { "edgeId": "EDGE-12", "seamId": "receipt-to-ledger", "command": "npm test", "logMarker": "receipt valued", "sourceFiles": ["src/arbitrum.ts"] }
+    ,{ "edgeId": "EDGE-16", "seamId": "sizing-to-proposal", "command": "npm test", "logMarker": "EDGE-09", "sourceFiles": ["src/adaptive-sizing.ts", "src/arbitrage.ts"] },
+    { "edgeId": "EDGE-17", "seamId": "v4-unlock-to-settlement", "command": "forge test --offline", "logMarker": "testV4UnlockSettlesExactFlashInputAndPreservesExistingBalance", "sourceFiles": ["contracts/ImmutableArbitrageExecutor.sol", "test/ImmutableArbitrageExecutor.t.sol"] }
   ]
 }
 ```

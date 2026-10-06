@@ -77,3 +77,19 @@ test('validates Morpho borrower health from current market and oracle state', as
   assert.equal((opportunities[0] as { status: string }).status, 'actionable');
   assert.deepEqual(diagnostics, []);
 });
+
+test('EDGE-08 discovers allowlisted V2 and V3 factory pools without making them broadcastable', async () => {
+  const config = scannerConfig();
+  config.assetAllowlist = [address];
+  config.factories = [{ family: 'uniswap-v2', factory: address }, { family: 'uniswap-v3', factory: otherAddress }];
+  const scanner = new ArbitrumScanner(config);
+  (scanner as unknown as { client: unknown }).client = {
+    getLogs: async (request: { address: string }) => request.address === address
+      ? [{ args: { token0: address, token1: otherAddress, pair: otherAddress }, blockNumber: 20n }]
+      : [{ args: { token0: address, token1: otherAddress, fee: 500, tickSpacing: 10, pool: address }, blockNumber: 21n }]
+  };
+  const opportunities: unknown[] = [];
+  await (scanner as unknown as { scanFactories: (from: bigint, to: bigint, out: unknown[], diagnostics: unknown[]) => Promise<void> }).scanFactories(1n, 21n, opportunities, []);
+  assert.equal(opportunities.length, 2);
+  assert.deepEqual((opportunities as Array<{ candidate: { broadcastEligible: boolean } }>).map((item) => item.candidate.broadcastEligible), [false, false]);
+});

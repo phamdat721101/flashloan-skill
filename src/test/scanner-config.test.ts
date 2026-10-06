@@ -34,3 +34,14 @@ test('rejects a non-Arbitrum config and malformed protocol address before RPC us
   await assert.rejects(() => loadScannerConfig(wrongChain), /Arbitrum/);
   await assert.rejects(() => loadScannerConfig(badAddress), /20-byte/);
 });
+
+test('loads only named V2 and V3 factories for scalable pool discovery', async () => {
+  const config = await loadScannerConfig(await configFile({
+    chainId: 42161,
+    rpcUrl: 'https://rpc.example',
+    startBlock: '1',
+    factories: [{ family: 'uniswap-v2', factory: address }, { family: 'uniswap-v3', factory: '0x2222222222222222222222222222222222222222' }],
+    protocols: {}
+  }));
+  assert.deepEqual(config.factories?.map((factory) => factory.family), ['uniswap-v2', 'uniswap-v3']);
+});

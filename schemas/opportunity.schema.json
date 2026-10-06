@@ -22,7 +22,7 @@
           "quotedNetProfitUsd": { "type": "number" },
           "sourceBlock": { "type": ["string", "integer"], "minimum": 0 },
           "quoteBlock": { "type": ["string", "integer"], "minimum": 0 },
-          "capability": { "enum": ["aave-v3-liquidation", "aave-v3-liquidation-split", "morpho-blue-liquidation", "uniswap-v4-arbitrage", "dex-pair-arbitrage"] },
+          "capability": { "enum": ["aave-v3-liquidation", "aave-v3-liquidation-split", "morpho-blue-liquidation", "uniswap-v2-arbitrage", "uniswap-v3-arbitrage", "uniswap-v4-arbitrage", "dex-pair-arbitrage"] },
           "profitTokenUsd": { "type": "number", "exclusiveMinimum": 0 },
           "profitTokenDecimals": { "type": "integer", "minimum": 0, "maximum": 255 }
         }

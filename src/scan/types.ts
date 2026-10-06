@@ -1,7 +1,7 @@
 import type { Address } from '../types.js';
 
-export type ScanProtocol = 'aave-v3' | 'morpho-blue' | 'balancer-v2' | 'uniswap-v4';
-export type ScanKind = 'liquidation-watch' | 'flash-liquidity' | 'pool-liquidity';
+export type ScanProtocol = 'aave-v3' | 'morpho-blue' | 'balancer-v2' | 'uniswap-v2' | 'uniswap-v3' | 'uniswap-v4';
+export type ScanKind = 'liquidation-watch' | 'flash-liquidity' | 'pool-liquidity' | 'arbitrage-pool';
 export type ScanStatus = 'observed' | 'validated' | 'actionable';
 
 export interface ScannerConfig {
@@ -14,6 +14,7 @@ export interface ScannerConfig {
   logChunkSize?: number;
   pollIntervalMs?: number;
   assetAllowlist?: Address[];
+  factories?: Array<{ family: 'uniswap-v2' | 'uniswap-v3'; factory: Address }>;
   protocols: {
     aaveV3?: { pool: Address; multicall3?: Address; healthBatchSize?: number; warningHealthFactor?: number };
     morphoBlue?: { blue: Address; warningHealthFactor?: number };
@@ -37,7 +38,7 @@ export interface ScanDiagnostic {
 }
 
 export interface ScanIntent {
-  kind: 'aave-v3-liquidation' | 'morpho-blue-liquidation' | 'balancer-v2-flash-loan' | 'uniswap-v4-unlock';
+  kind: 'aave-v3-liquidation' | 'morpho-blue-liquidation' | 'balancer-v2-flash-loan' | 'uniswap-v2-arbitrage' | 'uniswap-v3-arbitrage' | 'uniswap-v4-unlock';
   contract: Address;
   metadata: Record<string, string | string[] | boolean>;
 }
@@ -47,6 +48,8 @@ export type ScanCandidate =
   | { protocol: 'aave-v3'; borrower: Address; pool: Address; reserves: Address[]; healthFactorWad: string; totalDebtBase: string; totalCollateralBase: string }
   | { protocol: 'morpho-blue'; borrower: Address; blue: Address; marketId: `0x${string}`; loanToken: Address; collateralToken: Address; oracle: Address; irm: Address; lltv: string; borrowShares: string; borrowedAssets: string; collateral: string }
   | { protocol: 'balancer-v2'; vault: Address; poolId: `0x${string}`; callbackRequired: true; broadcastEligible: false }
+  | { protocol: 'uniswap-v2'; factory: Address; pool: Address; token0: Address; token1: Address; broadcastEligible: false }
+  | { protocol: 'uniswap-v3'; factory: Address; pool: Address; token0: Address; token1: Address; fee: number; tickSpacing: number; broadcastEligible: false }
   | { protocol: 'uniswap-v4'; poolManager: Address; poolId: `0x${string}`; currency0: Address; currency1: Address; hooks: Address; callbackRequired: true; broadcastEligible: false };
 
 export interface ScanOpportunity {

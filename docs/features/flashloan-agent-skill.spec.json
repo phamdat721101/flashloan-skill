@@ -17,40 +17,46 @@
     { "package_or_module": "src/scan/scanner.ts", "symbol": "ArbitrumScanner", "file_location": "src/scan/scanner.ts" },
     { "package_or_module": "src/dynamic.ts", "symbol": "buildDynamicPlan", "file_location": "src/dynamic.ts" },
     { "package_or_module": "src/bridge/runtime.ts", "symbol": "runDexBridge", "file_location": "src/bridge/runtime.ts" },
+    { "package_or_module": "src/adaptive-sizing.ts", "symbol": "optimizeTradeSize", "file_location": "src/adaptive-sizing.ts" },
     { "package_or_module": "src/route-solver.ts", "symbol": "ConfiguredRouteSolver", "file_location": "src/route-solver.ts" },
     { "package_or_module": "src/nim-memory.ts", "symbol": "NimRuntimeMemory", "file_location": "src/nim-memory.ts" },
     { "package_or_module": "src/loss-ledger.ts", "symbol": "DailyLossLedger", "file_location": "src/loss-ledger.ts" },
     { "package_or_module": "src/execution-lock.ts", "symbol": "ExecutionLock", "file_location": "src/execution-lock.ts" },
     { "package_or_module": "crates/flashloan-core/src/lib.rs", "symbol": "find_affected_cycles", "file_location": "crates/flashloan-core/src/lib.rs" },
-    { "package_or_module": "crates/flashloan-daemon/src/main.rs", "symbol": "main", "file_location": "crates/flashloan-daemon/src/main.rs" }
+    { "package_or_module": "crates/flashloan-daemon/src/main.rs", "symbol": "main", "file_location": "crates/flashloan-daemon/src/main.rs" },
+    { "package_or_module": "contracts/ImmutableArbitrageExecutor.sol", "symbol": "ImmutableArbitrageExecutor", "file_location": "contracts/ImmutableArbitrageExecutor.sol" },
+    { "package_or_module": "src/contracts/flash-executor.ts", "symbol": "DYNAMIC_V4_EXECUTOR_DEPLOYMENT", "file_location": "src/contracts/flash-executor.ts" }
   ],
   "architecture": {
-    "pattern": "connector registry plus one global winner scheduler, public-RPC typed liquidation scanner, head-pinned DEX bridge, and exact-simulation relay execution gate",
-    "isolation_boundaries": "scanner and bridge discovery remain walletless; typed block-bound plans enter one risk and ranking boundary; only a manifest-verified executor with a typed relay protocol may sign or submit",
+    "pattern": "connector registry plus a global winner scheduler, dynamic factory discovery, adaptive sizing, and code-hash-pinned V4 settlement",
+    "isolation_boundaries": "scanner and bridge discovery remain walletless; only a manifest-verified executor with a typed relay protocol may sign or submit, and V4 settlement accepts only the pinned PoolManager during an Aave callback",
     "execution_flow": [
       "validate environment configuration and risk policy",
       "index finalized protocol events and validate live scanner candidates without a wallet",
-      "transform typed liquidation candidates and head-pinned DEX quote evidence into executor-ready opportunities",
-      "build and simulate every permitted allocation from both sources under one bounded concurrency limit",
+      "transform typed liquidation candidates, dynamic factory candidates, and head-pinned DEX quote evidence into executor-ready opportunities",
+      "derive adaptive sizes and simulate every permitted allocation from both sources under one bounded concurrency limit",
       "select exactly one globally highest-net allowed plan with stable tie-breaking",
       "repeat exact preflight and submit only through the explicitly verified relay protocol",
       "value the receipt conservatively or persist the autonomous-execution halt"
     ]
   },
   "data_contracts": {
-    "inputs": { "config": "SkillConfig, ScannerConfig, DynamicSolverConfig, and secret-free bridge policy", "opportunities": "Opportunity[]", "candidate": "DynamicCandidate", "route": "RouteQuote[]", "bridge": "BridgeDecision[]" },
+    "inputs": { "config": "SkillConfig, ScannerConfig, DynamicSolverConfig, and secret-free bridge policy", "opportunities": "Opportunity[]", "candidate": "DynamicCandidate or factory pool candidate", "route": "RouteQuote[]", "bridge": "BridgeDecision[]", "sizing": "SizingBounds" },
     "outputs": { "scan": "ScanEnvelope", "proposal": "AllocationPlan", "decision": "ExecutionDecision[]", "receipt": "ExecutionReceipt" },
     "error_states": ["invalid configuration", "unsupported chain", "checkpoint reorg", "classified RPC failure", "missing bytecode", "unproven capability", "executor manifest mismatch", "stale route", "failed simulation", "risk rejection", "relay rejection", "relay timeout", "unknown realized P&L"]
   },
   "test_criteria": [
     "configuration defaults and validation are covered",
     "every liquidation and DEX plan is simulated before global selection",
+    "adaptive live-bound sizes are quoted before selection and no fixed USD tier is selected",
+    "configured V2/V3 factories produce allowlisted, non-broadcastable pool candidates",
     "an invalid split allocation cannot broadcast",
     "the final executor adapter preflights immediately before send",
     "scan mode rejects execution flags and never constructs a wallet client",
     "scan output distinguishes Balancer callback loans from Uniswap v4 unlock delta settlement",
     "dynamic close-factor, capability, quote-freshness, fixed-point DEX valuation, and memory-redaction behavior are covered",
     "a local pinned Arbitrum fork proves executor bytecode, selectors, exact simulation, and no upstream transaction send",
-    "a fake relay proves configured submission behavior and no public-RPC fallback"
+    "a fake relay proves configured submission behavior and no public-RPC fallback",
+    "V4 unlock callbacks settle only the exact flash-route amount and reject unauthenticated direct invocation"
   ]
 }

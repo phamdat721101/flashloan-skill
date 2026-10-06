@@ -15,6 +15,8 @@
         "aave-v3-liquidation": { "$ref": "#/$defs/capability" },
         "aave-v3-liquidation-split": { "$ref": "#/$defs/capability" },
         "morpho-blue-liquidation": { "$ref": "#/$defs/capability" },
+        "uniswap-v2-arbitrage": { "$ref": "#/$defs/capability" },
+        "uniswap-v3-arbitrage": { "$ref": "#/$defs/capability" },
         "uniswap-v4-arbitrage": { "$ref": "#/$defs/capability" },
         "dex-pair-arbitrage": { "$ref": "#/$defs/capability" }
       },

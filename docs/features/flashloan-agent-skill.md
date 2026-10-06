@@ -16,10 +16,11 @@ DeFi operators who control an Arbitrum executor contract and a dedicated wallet,
 - Extension interfaces for additional chains, protocols, and scanner/data providers.
 - A key-free Arbitrum scanner that indexes Aave v3, Morpho Blue, Balancer v2, and Uniswap v4 events from a configured start block, persists reorg-aware checkpoints, and emits versioned JSONL scan envelopes.
 - A dynamic proposal bridge that accepts typed candidates and exact route evidence, enforces protocol close-factor/capability rules, and records sanitized run outcomes into local Nim memory.
+- Configured V2/V3 factory discovery, V4 PoolManager discovery, adaptive live-bound sizing, and an immutable V4 executor settlement surface.
 
 ## Non-goals
 
-- Deploying, upgrading, or funding an executor contract.
+- Upgrading the reviewed legacy executor contract.
 - Generating private keys, discovering untrusted contracts, or treating an estimated profit as realized profit.
 - Broadcasting during development or automated test runs.
 
@@ -35,7 +36,7 @@ Copy the proven execution boundary into a typed orchestrator and make scanners f
 ## System boundaries
 
 - Reads on-chain data and quotes through registered chain, protocol, and data-provider connectors.
-- The scanner is public-RPC-only and never builds a wallet client or sends a transaction. It emits typed protocol candidates and non-executable intents.
+- The scanner is public-RPC-only and never builds a wallet client or sends a transaction. Explicit V2/V3 factories and the configured V4 PoolManager emit typed, non-executable pool candidates.
 - Simulates exact executor calldata before every broadcast; only a configured local wallet that matches executor `owner()` permits autonomous execution.
 - Broadcasts are Arbitrum-only in v1, through an explicit private relay. Other chains require a registered connector and verified executor adapter.
 
@@ -43,11 +44,11 @@ Copy the proven execution boundary into a typed orchestrator and make scanners f
 
 - `AllocationPlan` carries capability, source/quote blocks, expiry, and optional P&L valuation metadata. `SimulationResult` and `ExecutionReceipt` include typed outcomes; unknown receipt P&L persists a safety halt.
 - `ScannerConfig`, `ScanEnvelope`, `ScanOpportunity`, `ScanCandidate`, and `ScanIntent` are defined in `src/scan/` and mirrored by `scan-config.schema.json` and `scan-envelope.schema.json`. Amounts and block numbers are strings to preserve integer precision in JSON.
-- `DynamicCandidate`, `RouteQuote`, and `DynamicSolverConfig` form the solver input contract. A proposal is eligible only after exact source/quote block evidence and a locally configured `enabled + forkVerified` executor capability.
+- `DynamicCandidate`, `RouteQuote`, `SizingBounds`, and `DynamicSolverConfig` form the solver input contract. Adaptive sizing derives and samples a live executable range instead of fixed USD tiers. A proposal is eligible only after exact source/quote block evidence and a locally configured `enabled + forkVerified` executor capability.
 
 ## Scanner contract
 
-`scan --config scanner.json --once` requires chain 42161, an HTTP(S) public RPC, a decimal `startBlock`, and protocol contract addresses. It polls finalized blocks only, validates its checkpoint hash before advancing, persists its discovered borrower universe, and records diagnostics instead of silently dropping RPC failures. With a configured `protocols.aaveV3.multicall3`, Aave health reads are split into account batches (default 200) instead of one RPC call per borrower. Aave and Morpho candidates include typed current position state; Balancer candidates describe Vault flash-liquidity; Uniswap v4 candidates describe `PoolManager.unlock` settlement requirements. Neither Balancer's callback flash loan nor v4 transient deltas are modeled as generic executor calldata.
+`scan --config scanner.json --once` requires chain 42161, an HTTP(S) public RPC, a decimal `startBlock`, and protocol contract addresses. It polls finalized blocks only, validates its checkpoint hash before advancing, persists its discovered borrower universe, and records diagnostics instead of silently dropping RPC failures. Explicit `factories` add V2 `PairCreated` and V3 `PoolCreated` discovery; all discovered pools are allowlist-filtered and non-broadcastable until capability and simulation gates pass. Aave and Morpho candidates include typed current position state; Balancer candidates describe Vault flash-liquidity; Uniswap v4 candidates describe `PoolManager.unlock` settlement requirements.
 
 ## Dynamic solver contract
 
@@ -211,6 +212,7 @@ Completion requires `npm test`, `npm run typecheck`, `cargo test --workspace --l
 - No secret value is logged or serialized.
 - An executor call is sent only after bytecode, chain, capability selector, owner, private-relay, and immediately preceding exact-simulation verification.
 - Dynamic builders are the default. Legacy borrow tiers are opt-in through `BORROW_TIERS_USD`; gas, daily-loss, price-impact, block-freshness, and RPC-concurrency limits are configurable.
+- The immutable V4 executor stores no pool, route target, or flash-loan pool. It resolves the current Aave pool from an owner-approved addresses provider and accepts a scanner-derived V4 `PoolKey` only through an owner-approved PoolManager. Both roots are pinned by runtime code hash. Settlement is accepted only through the authenticated `unlockCallback` during an active flash operation, and every delta is settled/taken before repayment and final-asset profit checks.
 
 ## Risks
 
@@ -230,4 +232,11 @@ Start with fixture opportunities and read-only simulation. Enable an operator wa
 
 - `npm test` covers dynamic allocation selection, stale/capability rejection, simulation-only behavior, unknown-P&L halting, and typed execution outcomes.
 - `npm run typecheck` passes.
+- `forge test --offline` proves the V4 callback rejects direct invocation and settles only the flash amount, never a pre-existing executor balance.
 - Optional `E2E_ARBITRUM_RPC_URL` validates the reviewed executor bytecode and owner ABI without signing. A funded dedicated-wallet broadcast remains a manual production acceptance step.
+
+## Dynamic V4 deployment evidence
+
+- Executor: `0xfcd8f1257d8f37f4c51b4e6ac923137e5b6a2a16` on Arbitrum (chain 42161), deployed by `0xc75aAeBD1F395cFc9e7c7f291Ea32d5C9d4c270a` in transaction `0x12e591d8a1d8271da92aa6c6ed0607ec718e43960e736642bd75c34fc9856072`.
+- The dynamic Aave provider root `0xa97684ead0e402dC232d5A977953DF7ECBaB3CDb` was configured in `0x06352b41e77d93ea03933b16869face17419232edfd2cf9622b0260d00f6708b` with runtime code hash `0x1a95f317ee56e0b9aedc4f4b7abd9e546dc45c26d1d77e95bcf62b789d9a5486`.
+- The dynamic V4 PoolManager root `0x360E68faCcca8cA495c1B759Fd9EEe466db9FB32` was configured in `0x3a4e3bef79f19c1e21af52a197f93463e6399393052825014600cc00570e6bbb` with runtime code hash `0xe4b2759e456c9c4ef763e3b4e257c5105e1ba283d7de8b131dd321197de794a4`; hooks remain disabled.

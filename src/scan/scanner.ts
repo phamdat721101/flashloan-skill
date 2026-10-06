@@ -22,6 +22,12 @@ const BALANCER_ABI = [
 const V4_ABI = [
   { type: 'event', name: 'Initialize', inputs: [{ indexed: true, name: 'id', type: 'bytes32' }, { indexed: true, name: 'currency0', type: 'address' }, { indexed: true, name: 'currency1', type: 'address' }, { indexed: false, name: 'fee', type: 'uint24' }, { indexed: false, name: 'tickSpacing', type: 'int24' }, { indexed: false, name: 'hooks', type: 'address' }, { indexed: false, name: 'sqrtPriceX96', type: 'uint160' }, { indexed: false, name: 'tick', type: 'int24' }] }
 ] as const;
+const V2_FACTORY_ABI = [
+  { type: 'event', name: 'PairCreated', inputs: [{ indexed: true, name: 'token0', type: 'address' }, { indexed: true, name: 'token1', type: 'address' }, { indexed: false, name: 'pair', type: 'address' }, { indexed: false, name: 'allPairsLength', type: 'uint256' }] }
+] as const;
+const V3_FACTORY_ABI = [
+  { type: 'event', name: 'PoolCreated', inputs: [{ indexed: true, name: 'token0', type: 'address' }, { indexed: true, name: 'token1', type: 'address' }, { indexed: true, name: 'fee', type: 'uint24' }, { indexed: false, name: 'tickSpacing', type: 'int24' }, { indexed: false, name: 'pool', type: 'address' }] }
+] as const;
 
 const WAD = 1_000_000_000_000_000_000n;
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
@@ -97,6 +103,7 @@ export class ArbitrumScanner {
       this.scanAave(fromBlock, toBlock, opportunities, diagnostics),
       this.scanMorpho(fromBlock, toBlock, opportunities, diagnostics),
       this.scanBalancer(fromBlock, toBlock, opportunities, diagnostics),
+      this.scanFactories(fromBlock, toBlock, opportunities, diagnostics),
       this.scanV4(fromBlock, toBlock, opportunities, diagnostics)
     ]);
   }
@@ -161,6 +168,29 @@ export class ArbitrumScanner {
         out.push({ id: id('morpho-blue', toBlock, [marketId, borrower]), protocol: 'morpho-blue', kind: 'liquidation-watch', status: healthFactor < 1 ? 'actionable' : 'validated', observedBlock: toBlock.toString(), observedAt: new Date().toISOString(), expiresAt: this.expiry(), target: { borrower, marketId, blue: config.blue }, metrics: { borrowShares: position[1].toString(), collateral: position[2].toString(), borrowedAssets: borrowedAssets.toString(), healthFactor: healthFactor.toFixed(8) }, executionIntent: { kind: 'morpho-blue-liquidation', contract: config.blue, metadata: { borrower, marketId } }, candidate: { protocol: 'morpho-blue', borrower, blue: config.blue, marketId, loanToken: params[0], collateralToken: params[1], oracle: params[2], irm: params[3], lltv: params[4].toString(), borrowShares: position[1].toString(), borrowedAssets: borrowedAssets.toString(), collateral: position[2].toString() } });
       }
     } catch (error) { diagnostics.push(diagnostic('morpho-blue', 'logs', error)); }
+  }
+
+  /** Discovers only configured factory families; quote and execution remain separate gates. */
+  private async scanFactories(fromBlock: bigint, toBlock: bigint, out: ScanOpportunity[], diagnostics: ScanDiagnostic[]): Promise<void> {
+    await Promise.all((this.config.factories ?? []).map(async (factory) => {
+      try {
+        if (factory.family === 'uniswap-v2') {
+          const logs = await this.client.getLogs({ address: factory.factory, event: V2_FACTORY_ABI[0], fromBlock, toBlock });
+          for (const log of logs) {
+            const { token0, token1, pair } = log.args;
+            if (!token0 || !token1 || !pair || !isAllowed(this.config.assetAllowlist, [token0, token1])) continue;
+            out.push({ id: id('uniswap-v2', log.blockNumber!, [factory.factory, pair]), protocol: 'uniswap-v2', kind: 'arbitrage-pool', status: 'observed', observedBlock: log.blockNumber!.toString(), observedAt: new Date().toISOString(), expiresAt: this.expiry(), target: { factory: factory.factory, pool: pair, token0, token1 }, metrics: { family: 'uniswap-v2' }, executionIntent: { kind: 'uniswap-v2-arbitrage', contract: factory.factory, metadata: { factory: factory.factory, pool: pair, token0, token1 } }, candidate: { protocol: 'uniswap-v2', factory: factory.factory, pool: pair, token0, token1, broadcastEligible: false } });
+          }
+        } else {
+          const logs = await this.client.getLogs({ address: factory.factory, event: V3_FACTORY_ABI[0], fromBlock, toBlock });
+          for (const log of logs) {
+            const { token0, token1, fee, tickSpacing, pool } = log.args;
+            if (!token0 || !token1 || fee === undefined || tickSpacing === undefined || !pool || !isAllowed(this.config.assetAllowlist, [token0, token1])) continue;
+            out.push({ id: id('uniswap-v3', log.blockNumber!, [factory.factory, pool]), protocol: 'uniswap-v3', kind: 'arbitrage-pool', status: 'observed', observedBlock: log.blockNumber!.toString(), observedAt: new Date().toISOString(), expiresAt: this.expiry(), target: { factory: factory.factory, pool, token0, token1 }, metrics: { family: 'uniswap-v3', fee: fee.toString(), tickSpacing: tickSpacing.toString() }, executionIntent: { kind: 'uniswap-v3-arbitrage', contract: factory.factory, metadata: { factory: factory.factory, pool, token0, token1, fee: fee.toString(), tickSpacing: tickSpacing.toString() } }, candidate: { protocol: 'uniswap-v3', factory: factory.factory, pool, token0, token1, fee, tickSpacing, broadcastEligible: false } });
+          }
+        }
+      } catch (error) { diagnostics.push(diagnostic(factory.family, 'logs', error)); }
+    }));
   }
 
   private async scanBalancer(fromBlock: bigint, toBlock: bigint, out: ScanOpportunity[], diagnostics: ScanDiagnostic[]): Promise<void> {

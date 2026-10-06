@@ -28,6 +28,15 @@ export async function loadScannerConfig(filePath: string): Promise<ScannerConfig
   const morpho = source.morphoBlue as Record<string, unknown> | undefined;
   const balancer = source.balancerV2 as Record<string, unknown> | undefined;
   const v4 = source.uniswapV4 as Record<string, unknown> | undefined;
+  const factories = value.factories === undefined ? undefined : (() => {
+    if (!Array.isArray(value.factories)) throw new Error('factories must be an array');
+    return value.factories.map((entry, index) => {
+      if (!entry || typeof entry !== 'object' || Array.isArray(entry)) throw new Error(`factories[${index}] must be an object`);
+      const factory = entry as Record<string, unknown>;
+      if (factory.family !== 'uniswap-v2' && factory.family !== 'uniswap-v3') throw new Error(`factories[${index}].family must be uniswap-v2 or uniswap-v3`);
+      return { family: factory.family as 'uniswap-v2' | 'uniswap-v3', factory: address(factory.factory, `factories[${index}].factory`) };
+    });
+  })();
   const assetAllowlist = value.assetAllowlist === undefined ? undefined : (value.assetAllowlist as unknown[]).map((item) => address(item, 'assetAllowlist item'));
   return {
     chainId: 42161,
@@ -39,6 +48,7 @@ export async function loadScannerConfig(filePath: string): Promise<ScannerConfig
     logChunkSize: positiveInteger(value.logChunkSize, 'logChunkSize', 2_000),
     pollIntervalMs: positiveInteger(value.pollIntervalMs, 'pollIntervalMs', 5_000),
     assetAllowlist,
+    factories,
     protocols: {
       aaveV3: aave ? { pool: address(aave.pool, 'protocols.aaveV3.pool'), multicall3: aave.multicall3 ? address(aave.multicall3, 'protocols.aaveV3.multicall3') : undefined, healthBatchSize: positiveInteger(aave.healthBatchSize, 'protocols.aaveV3.healthBatchSize', 200), warningHealthFactor: typeof aave.warningHealthFactor === 'number' ? aave.warningHealthFactor : 1.08 } : undefined,
       morphoBlue: morpho ? { blue: address(morpho.blue, 'protocols.morphoBlue.blue'), warningHealthFactor: typeof morpho.warningHealthFactor === 'number' ? morpho.warningHealthFactor : 1.05 } : undefined,
