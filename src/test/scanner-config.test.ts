@@ -45,3 +45,18 @@ test('loads only named V2 and V3 factories for scalable pool discovery', async (
   }));
   assert.deepEqual(config.factories?.map((factory) => factory.family), ['uniswap-v2', 'uniswap-v3']);
 });
+
+test('loads V2/V3/V4 venue roots and a dynamic-token risk policy', async () => {
+  const config = await loadScannerConfig(await configFile({
+    chainId: 42161, rpcUrl: 'https://rpc.example', startBlock: '1', protocols: {},
+    venues: [
+      { family: 'uniswap-v2', factory: address },
+      { family: 'uniswap-v3', factory: '0x2222222222222222222222222222222222222222' },
+      { family: 'uniswap-v4', poolManager: '0x3333333333333333333333333333333333333333', allowHooks: false }
+    ],
+    assetRiskPolicy: { minPoolAgeBlocks: 12, minLiquidityUsdE8: '100000000', denylist: ['0x4444444444444444444444444444444444444444'], requireSimulation: true }
+  }));
+  assert.deepEqual(config.venues?.map((venue) => venue.family), ['uniswap-v2', 'uniswap-v3', 'uniswap-v4']);
+  assert.equal(config.assetRiskPolicy?.minPoolAgeBlocks, 12);
+  assert.equal(config.assetRiskPolicy?.requireSimulation, true);
+});

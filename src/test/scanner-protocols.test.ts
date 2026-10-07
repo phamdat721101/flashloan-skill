@@ -93,3 +93,20 @@ test('EDGE-08 discovers allowlisted V2 and V3 factory pools without making them 
   assert.equal(opportunities.length, 2);
   assert.deepEqual((opportunities as Array<{ candidate: { broadcastEligible: boolean } }>).map((item) => item.candidate.broadcastEligible), [false, false]);
 });
+
+test('keeps newly discovered non-bluechip pools for analysis and marks denylisted assets rejected', async () => {
+  const config = scannerConfig();
+  config.factories = [{ family: 'uniswap-v2', factory: address }];
+  config.assetRiskPolicy = { denylist: [otherAddress], requireSimulation: true };
+  const scanner = new ArbitrumScanner(config);
+  (scanner as unknown as { client: unknown }).client = {
+    getLogs: async () => [{ args: { token0: address, token1: otherAddress, pair: otherAddress }, blockNumber: 20n }]
+  };
+  const opportunities: unknown[] = [];
+  await (scanner as unknown as { scanFactories: (from: bigint, to: bigint, out: unknown[], diagnostics: unknown[]) => Promise<void> }).scanFactories(1n, 21n, opportunities, []);
+  assert.equal(opportunities.length, 1);
+  assert.deepEqual((opportunities[0] as { candidate: { admission: string; admissionReasons: string[] } }).candidate, {
+    protocol: 'uniswap-v2', factory: address, pool: otherAddress, token0: address, token1: otherAddress,
+    admission: 'rejected', admissionReasons: ['TOKEN_DENYLISTED'], broadcastEligible: false
+  });
+});

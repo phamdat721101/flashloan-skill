@@ -9,7 +9,7 @@ test('scans a configured Arbitrum RPC without a wallet or transaction send', { s
   const config = await loadScannerConfig(scannerConfigPath!);
   const envelope = await new ArbitrumScanner(config).scanOnce();
   assert.equal(envelope.chainId, 42161);
-  assert.equal(envelope.schemaVersion, '1.0');
+  assert.equal(envelope.schemaVersion, '2.0');
   assert.match(envelope.observedBlock.hash, /^0x[\da-f]{64}$/i);
   assert.equal(Array.isArray(envelope.opportunities), true);
 });

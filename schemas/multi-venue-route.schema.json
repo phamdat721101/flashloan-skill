@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Multi Venue Arbitrage Route",
+  "type": "object",
+  "required": ["schemaVersion", "aaveProvider", "flashAsset", "flashAmount", "legs", "minProfit", "deadline", "quoteBlock"],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "aaveProvider": { "$ref": "#/$defs/address" },
+    "flashAsset": { "$ref": "#/$defs/address" },
+    "flashAmount": { "$ref": "#/$defs/uint" },
+    "minProfit": { "$ref": "#/$defs/uint" },
+    "deadline": { "$ref": "#/$defs/uint" },
+    "quoteBlock": { "type": "object", "required": ["number", "hash"], "properties": { "number": { "$ref": "#/$defs/uint" }, "hash": { "type": "string", "pattern": "^0x[0-9a-fA-F]{64}$" } }, "additionalProperties": false },
+    "legs": { "type": "array", "minItems": 2, "maxItems": 6, "items": { "$ref": "#/$defs/leg" } }
+  },
+  "$defs": {
+    "address": { "type": "string", "pattern": "^0x[0-9a-fA-F]{40}$" },
+    "uint": { "type": "string", "pattern": "^[0-9]+$" },
+    "leg": { "type": "object", "required": ["venueVersion", "root", "pool", "tokenIn", "tokenOut", "minAmountOut"], "properties": {
+      "venueVersion": { "enum": [2, 3, 4] }, "root": { "$ref": "#/$defs/address" }, "pool": { "$ref": "#/$defs/address" }, "tokenIn": { "$ref": "#/$defs/address" }, "tokenOut": { "$ref": "#/$defs/address" }, "minAmountOut": { "$ref": "#/$defs/uint" }, "fee": { "type": "integer", "minimum": 0 }, "sqrtPriceLimitX96": { "$ref": "#/$defs/uint" }, "tickSpacing": { "type": "integer" }, "hooks": { "$ref": "#/$defs/address" }, "hookData": { "type": "string", "pattern": "^0x[0-9a-fA-F]*$" }
+    }, "additionalProperties": false }
+  },
+  "additionalProperties": false
+}

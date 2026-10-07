@@ -10,13 +10,13 @@
     "payload": "secret-free Rust/Alloy factory and risk policy, normalized sequencer/canonical live-state events, executor manifest fields, and optional explicit relay configuration"
   },
   "processing": {
-    "apiHops": ["sequencer feed adapter and canonical Arbitrum log adapter -> live-head reconciliation -> in-memory V2/V3 pool state -> affected-subgraph route calculation -> existing two-leg executor ABI calldata"],
+    "apiHops": ["sequencer feed adapter and canonical Arbitrum log adapter -> live-head reconciliation -> versioned V2/V3/V4 pool discovery and admission -> bounded route calculation -> typed multi-venue executor calldata"],
     "datastores": ["factory metadata/checkpoints only; no persisted pool state is route eligible", "operator-provided JSONL replay fixtures", ".nim/memory.jsonl", ".nim/lessons.jsonl"],
     "services": ["Arbitrum executor contract", "configured quote venues", "registered opportunity providers", "private relay"]
   },
   "output": {
-    "state": "versioned JSONL live-head, pool-discovery, route-candidate, and typed rejection records; executable two-hop candidates include reviewed executor calldata",
-    "transitions": ["configured -> both live heads -> tentative|canonical live state", "any head mismatch/staleness -> resync-required|halted", "affected pool update -> 2..6-hop route candidate", "two-hop route -> ABI calldata; longer route -> capability-unavailable"]
+    "state": "versioned JSONL live-head, V2/V3/V4 pool-discovery, admission, route-candidate, and typed rejection records; executable routes include reviewed multi-venue executor calldata",
+    "transitions": ["configured -> both live heads -> tentative|canonical live state", "new pool -> evaluable|rejected by dynamic asset policy", "any head mismatch/staleness -> resync-required|halted", "affected pool update -> 2..6-hop route candidate", "exact simulation -> executable|rejected"]
   },
   "seams": [
     { "id": "config-to-scanner", "description": "Rust engine configuration rejects unreviewed relay protocols, bad chain IDs, malformed amounts, and selector mismatch before any route can be evaluated." },
@@ -26,7 +26,7 @@
     { "id": "route-to-calldata", "description": "Only a two-hop candidate can map to the reviewed executor ABI; longer routes preserve analysis output but have no execution capability." },
     { "id": "logs-to-state", "description": "Aave and Morpho event candidates are checked against current on-chain state." },
     { "id": "pool-to-intent", "description": "V3 routes stay within their known tick interval and V4 remains discovery-only, so unknown tick crossings cannot become executable estimates." },
-    { "id": "scanner-to-output", "description": "Dual-head JSONL replay produces an executable two-hop candidate with ABI calldata and does not construct a signer or broadcast transaction." },
+    { "id": "replay-to-output", "description": "Dual-head JSONL replay produces an executable two-hop candidate with ABI calldata and does not construct a signer or broadcast transaction." },
     { "id": "candidate-to-proposal", "description": "A typed liquidation or DEX-pair candidate requires same-head exact quote/oracle evidence, bounded sizing, cumulative profit floors, and a fork-proven capability before calldata exists." },
     { "id": "bridge-to-scheduler", "description": "DEX bridge plans join liquidation plans only through the common AllocationPlan contract; target-token valuation, head hash, source/quote blocks, and source tag are retained." },
     { "id": "scheduler-to-winner", "description": "All sources are simulated under one bounded limit and stable global ordering; exactly one risk-approved plan may reach final preflight." },
@@ -36,6 +36,8 @@
     { "id": "scanner-to-output", "description": "Only atomic checkpoint updates and schema-valid JSONL output occur; no wallet client or broadcast is reachable." },
     { "id": "sizing-to-proposal", "description": "Adaptive sampling retains exact quote evidence and selects the highest positive net-profit amount within price-impact bounds." },
     { "id": "v4-unlock-to-settlement", "description": "A scanner-derived V4 PoolKey can run only through a code-hash-pinned PoolManager during an active Aave callback; every manager delta is settled/taken before flash repayment." },
+    { "id": "asset-to-admission", "description": "Newly discovered assets remain analysis-only until deny-list, age, liquidity, and exact-simulation policy permit a quote-ready route." },
+    { "id": "route-to-callback", "description": "The multi-venue executor permits only a configured V2 factory pair, V3 factory pool, or V4 PoolManager to enter its expected callback phase; arbitrary targets and calldata are absent." },
     { "id": "runtime-to-memory", "description": "Every solver outcome is sanitized before Nim memory append; only deduplicated reusable failure codes become lessons." },
     { "id": "proposal-to-send", "description": "Exact calldata must match a reviewed executor capability, signer owner, quote block freshness, final simulation, and risk limits before autonomous send." },
     { "id": "receipt-to-ledger", "description": "Receipt events and gas must produce conservative realized P&L; unknown valuation persists a safety halt." }
@@ -57,7 +59,9 @@
     { "edgeId": "EDGE-11", "seamId": "preflight-to-relay", "command": "npm test", "logMarker": "no public fallback", "sourceFiles": ["src/arbitrum.ts"] },
     { "edgeId": "EDGE-12", "seamId": "receipt-to-ledger", "command": "npm test", "logMarker": "receipt valued", "sourceFiles": ["src/arbitrum.ts"] }
     ,{ "edgeId": "EDGE-16", "seamId": "sizing-to-proposal", "command": "npm test", "logMarker": "EDGE-09", "sourceFiles": ["src/adaptive-sizing.ts", "src/arbitrage.ts"] },
-    { "edgeId": "EDGE-17", "seamId": "v4-unlock-to-settlement", "command": "forge test --offline", "logMarker": "testV4UnlockSettlesExactFlashInputAndPreservesExistingBalance", "sourceFiles": ["contracts/ImmutableArbitrageExecutor.sol", "test/ImmutableArbitrageExecutor.t.sol"] }
+    { "edgeId": "EDGE-17", "seamId": "v4-unlock-to-settlement", "command": "forge test --offline", "logMarker": "testV4UnlockSettlesExactFlashInputAndPreservesExistingBalance", "sourceFiles": ["contracts/ImmutableArbitrageExecutor.sol", "test/ImmutableArbitrageExecutor.t.sol"] },
+    { "edgeId": "EDGE-18", "seamId": "route-to-callback", "command": "forge test --match-contract MultiVenueArbitrageExecutorTest", "logMarker": "testRejectsDirectCallbacks", "sourceFiles": ["contracts/MultiVenueArbitrageExecutor.sol", "test/MultiVenueArbitrageExecutor.t.sol"] },
+    { "edgeId": "EDGE-19", "seamId": "asset-to-admission", "command": "npm test", "logMarker": "keeps newly discovered non-bluechip pools", "sourceFiles": ["src/scan/scanner.ts", "src/test/scanner-protocols.test.ts"] }
   ]
 }
 ```

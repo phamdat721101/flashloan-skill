@@ -18,6 +18,8 @@ Interpret the request as one of these operations:
 - **simulate**: accepts only schema-valid, executor-ready opportunity JSON. Run `node dist/cli.js simulate <opportunities.json>`; it never sends a transaction.
 - **execute**: only after the user explicitly asks for autonomous execution and the environment supplies `OPERATOR_PRIVATE_KEY`, `FLASH_EXECUTOR_ADDRESS`, `PRIVATE_RELAY_URL`, and live valuation input. Run `node dist/cli.js execute-auto <opportunities.json>` and report the decision and receipt. Never fall back to a public transaction endpoint.
 
+For authenticated V2/V3/V4 routes, use the checked-in `MULTI_VENUE_EXECUTOR_DEPLOYMENT` record from `src/contracts/flash-executor.ts`: address `0x2ce728672f79f64c13de9bdc1ae56ddeca47d492`, deployment transaction `0x29b19381729e34e09e3e885f08e434600998c106ecdadac6a4f0eabc73575af5`, and the `multi-venue-arbitrage` capability. Do not substitute the legacy or V4-only executor record, and do not treat this record as permission to execute without the normal simulation and explicit-user-approval gates.
+
 The runtime verifies executor bytecode, chain ID, ABI selector, and `owner()` signer; requires every split to total 10,000 bps; enforces gas/price-impact/daily-loss limits; rejects stale proposals; and repeats the exact simulation immediately before broadcast. Unknown receipt P&L halts future autonomous sends until reviewed.
 
 ## Constraints

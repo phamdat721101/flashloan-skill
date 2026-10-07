@@ -14,11 +14,11 @@ test('EDGE-02 persists a checkpoint and appends one schema-valid envelope per sc
   assert.deepEqual(await store.loadCheckpoint(), { chainId: 42161, blockNumber: '123', blockHash: hash });
   const output = join(directory, 'results.jsonl');
   await store.appendEnvelope(output, {
-    schemaVersion: '1.0', runId: 'run-1', chainId: 42161,
+    schemaVersion: '2.0', runId: 'run-1', chainId: 42161,
     observedBlock: { number: '123', hash, timestamp: '2026-10-04T00:00:00.000Z' },
     opportunities: [], diagnostics: []
   });
-  assert.match(await readFile(output, 'utf8'), /"schemaVersion":"1.0"/);
+  assert.match(await readFile(output, 'utf8'), /"schemaVersion":"2.0"/);
 });
 
 test('returns no checkpoint before the scanner has persisted one', async () => {

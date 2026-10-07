@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { createPublicClient, decodeEventLog, http, type Address, type Hex } from 'viem';
 import { arbitrum } from 'viem/chains';
-import type { ScannerConfig, ScanDiagnostic, ScanEnvelope, ScanOpportunity, ScanProtocol } from './types.js';
+import type { PoolAdmission, ScannerConfig, ScanDiagnostic, ScanEnvelope, ScanOpportunity, ScanProtocol, VenueDescriptor } from './types.js';
 import { ScanStore } from './store.js';
 
 const AAVE_ABI = [
@@ -40,6 +40,15 @@ function diagnostic(protocol: ScanProtocol | undefined, stage: ScanDiagnostic['s
 
 function id(protocol: ScanProtocol, blockNumber: bigint, parts: string[]): string {
   return `${protocol}:${blockNumber}:${parts.join(':').toLowerCase()}`;
+}
+
+function admission(config: ScannerConfig, blockNumber: bigint, referenceBlock: bigint, assets: readonly Address[]): { admission: PoolAdmission; reasons: string[] } {
+  const policy = config.assetRiskPolicy;
+  const reasons: string[] = [];
+  if (policy?.denylist?.some((denied) => assets.some((asset) => asset.toLowerCase() === denied.toLowerCase()))) reasons.push('TOKEN_DENYLISTED');
+  if (config.assetAllowlist?.length && !assets.some((asset) => config.assetAllowlist!.some((allowed) => allowed.toLowerCase() === asset.toLowerCase()))) reasons.push('LEGACY_ALLOWLIST_MISS');
+  if (policy?.minPoolAgeBlocks && referenceBlock - blockNumber < BigInt(policy.minPoolAgeBlocks)) reasons.push('POOL_TOO_NEW');
+  return { admission: reasons.length ? 'rejected' : 'evaluable', reasons };
 }
 
 function isAllowed(assets: readonly Address[] | undefined, values: readonly Address[]): boolean {
@@ -86,7 +95,7 @@ export class ArbitrumScanner {
     const finalized = await this.client.getBlock({ blockNumber: finalBlock });
     await this.store.saveCheckpoint({ chainId: this.config.chainId, blockNumber: finalBlock.toString(), blockHash: finalized.hash });
     await this.store.saveEntities({ aaveBorrowers: [...this.aaveBorrowers], morphoBorrowers: [...this.morphoBorrowers.values()] });
-    const envelope: ScanEnvelope = { schemaVersion: '1.0', runId: randomUUID(), chainId: this.config.chainId, observedBlock: { number: finalBlock.toString(), hash: finalized.hash, timestamp: new Date(Number(finalized.timestamp) * 1_000).toISOString() }, opportunities, diagnostics };
+    const envelope: ScanEnvelope = { schemaVersion: '2.0', runId: randomUUID(), chainId: this.config.chainId, observedBlock: { number: finalBlock.toString(), hash: finalized.hash, timestamp: new Date(Number(finalized.timestamp) * 1_000).toISOString() }, opportunities, diagnostics };
     if (this.config.outputFile) await this.store.appendEnvelope(this.config.outputFile, envelope);
     return envelope;
   }
@@ -109,6 +118,11 @@ export class ArbitrumScanner {
   }
 
   private expiry(): string { return new Date(Date.now() + 60_000).toISOString(); }
+
+  private venues(): VenueDescriptor[] {
+    const legacy = (this.config.factories ?? []).map((factory) => ({ family: factory.family, factory: factory.factory } as VenueDescriptor));
+    return [...legacy, ...(this.config.venues ?? [])];
+  }
 
   private async aaveAccountData(pool: Address, borrowers: Address[], multicall3?: Address, healthBatchSize = 200): Promise<Array<readonly [bigint, bigint, bigint, bigint, bigint, bigint] | undefined>> {
     if (!multicall3) return Promise.all(borrowers.map(async (borrower) => this.client.readContract({ address: pool, abi: AAVE_ABI, functionName: 'getUserAccountData', args: [borrower] })));
@@ -172,21 +186,25 @@ export class ArbitrumScanner {
 
   /** Discovers only configured factory families; quote and execution remain separate gates. */
   private async scanFactories(fromBlock: bigint, toBlock: bigint, out: ScanOpportunity[], diagnostics: ScanDiagnostic[]): Promise<void> {
-    await Promise.all((this.config.factories ?? []).map(async (factory) => {
+    await Promise.all(this.venues().filter((venue) => venue.family !== 'uniswap-v4').map(async (factory) => {
       try {
         if (factory.family === 'uniswap-v2') {
-          const logs = await this.client.getLogs({ address: factory.factory, event: V2_FACTORY_ABI[0], fromBlock, toBlock });
+          const factoryAddress = factory.factory!;
+          const logs = await this.client.getLogs({ address: factoryAddress, event: V2_FACTORY_ABI[0], fromBlock, toBlock });
           for (const log of logs) {
             const { token0, token1, pair } = log.args;
-            if (!token0 || !token1 || !pair || !isAllowed(this.config.assetAllowlist, [token0, token1])) continue;
-            out.push({ id: id('uniswap-v2', log.blockNumber!, [factory.factory, pair]), protocol: 'uniswap-v2', kind: 'arbitrage-pool', status: 'observed', observedBlock: log.blockNumber!.toString(), observedAt: new Date().toISOString(), expiresAt: this.expiry(), target: { factory: factory.factory, pool: pair, token0, token1 }, metrics: { family: 'uniswap-v2' }, executionIntent: { kind: 'uniswap-v2-arbitrage', contract: factory.factory, metadata: { factory: factory.factory, pool: pair, token0, token1 } }, candidate: { protocol: 'uniswap-v2', factory: factory.factory, pool: pair, token0, token1, broadcastEligible: false } });
+            if (!token0 || !token1 || !pair) continue;
+            const gate = admission(this.config, log.blockNumber!, toBlock, [token0, token1]);
+            out.push({ id: id('uniswap-v2', log.blockNumber!, [factoryAddress, pair]), protocol: 'uniswap-v2', kind: 'arbitrage-pool', status: 'observed', observedBlock: log.blockNumber!.toString(), observedAt: new Date().toISOString(), expiresAt: this.expiry(), target: { factory: factoryAddress, pool: pair, token0, token1 }, metrics: { family: 'uniswap-v2', admission: gate.admission, admissionReasons: gate.reasons.join(',') }, executionIntent: { kind: 'uniswap-v2-arbitrage', contract: factoryAddress, metadata: { factory: factoryAddress, pool: pair, token0, token1 } }, candidate: { protocol: 'uniswap-v2', factory: factoryAddress, pool: pair, token0, token1, admission: gate.admission, admissionReasons: gate.reasons, broadcastEligible: false } });
           }
         } else {
-          const logs = await this.client.getLogs({ address: factory.factory, event: V3_FACTORY_ABI[0], fromBlock, toBlock });
+          const factoryAddress = factory.factory!;
+          const logs = await this.client.getLogs({ address: factoryAddress, event: V3_FACTORY_ABI[0], fromBlock, toBlock });
           for (const log of logs) {
             const { token0, token1, fee, tickSpacing, pool } = log.args;
-            if (!token0 || !token1 || fee === undefined || tickSpacing === undefined || !pool || !isAllowed(this.config.assetAllowlist, [token0, token1])) continue;
-            out.push({ id: id('uniswap-v3', log.blockNumber!, [factory.factory, pool]), protocol: 'uniswap-v3', kind: 'arbitrage-pool', status: 'observed', observedBlock: log.blockNumber!.toString(), observedAt: new Date().toISOString(), expiresAt: this.expiry(), target: { factory: factory.factory, pool, token0, token1 }, metrics: { family: 'uniswap-v3', fee: fee.toString(), tickSpacing: tickSpacing.toString() }, executionIntent: { kind: 'uniswap-v3-arbitrage', contract: factory.factory, metadata: { factory: factory.factory, pool, token0, token1, fee: fee.toString(), tickSpacing: tickSpacing.toString() } }, candidate: { protocol: 'uniswap-v3', factory: factory.factory, pool, token0, token1, fee, tickSpacing, broadcastEligible: false } });
+            if (!token0 || !token1 || fee === undefined || tickSpacing === undefined || !pool) continue;
+            const gate = admission(this.config, log.blockNumber!, toBlock, [token0, token1]);
+            out.push({ id: id('uniswap-v3', log.blockNumber!, [factoryAddress, pool]), protocol: 'uniswap-v3', kind: 'arbitrage-pool', status: 'observed', observedBlock: log.blockNumber!.toString(), observedAt: new Date().toISOString(), expiresAt: this.expiry(), target: { factory: factoryAddress, pool, token0, token1 }, metrics: { family: 'uniswap-v3', fee: fee.toString(), tickSpacing: tickSpacing.toString(), admission: gate.admission, admissionReasons: gate.reasons.join(',') }, executionIntent: { kind: 'uniswap-v3-arbitrage', contract: factoryAddress, metadata: { factory: factoryAddress, pool, token0, token1, fee: fee.toString(), tickSpacing: tickSpacing.toString() } }, candidate: { protocol: 'uniswap-v3', factory: factoryAddress, pool, token0, token1, fee, tickSpacing, admission: gate.admission, admissionReasons: gate.reasons, broadcastEligible: false } });
           }
         }
       } catch (error) { diagnostics.push(diagnostic(factory.family, 'logs', error)); }
@@ -209,16 +227,20 @@ export class ArbitrumScanner {
   }
 
   private async scanV4(fromBlock: bigint, toBlock: bigint, out: ScanOpportunity[], diagnostics: ScanDiagnostic[]): Promise<void> {
-    const config = this.config.protocols.uniswapV4;
-    if (!config) return;
-    try {
-      const logs = await this.client.getLogs({ address: config.poolManager, event: V4_ABI[0], fromBlock, toBlock });
+    const legacy = this.config.protocols.uniswapV4 ? [{ family: 'uniswap-v4' as const, poolManager: this.config.protocols.uniswapV4.poolManager, allowHooks: this.config.protocols.uniswapV4.allowHooks }] : [];
+    const managers = [...legacy, ...this.venues().filter((venue) => venue.family === 'uniswap-v4')];
+    await Promise.all(managers.map(async (config) => {
+      try {
+      const poolManager = config.poolManager!;
+      const logs = await this.client.getLogs({ address: poolManager, event: V4_ABI[0], fromBlock, toBlock });
       for (const log of logs) {
         const { id: poolId, currency0, currency1, hooks } = log.args;
-        if (!poolId || !currency0 || !currency1 || !hooks || !isAllowed(this.config.assetAllowlist, [currency0, currency1])) continue;
+        if (!poolId || !currency0 || !currency1 || !hooks) continue;
         if (!config.allowHooks && hooks.toLowerCase() !== ZERO_ADDRESS) continue;
-        out.push({ id: id('uniswap-v4', log.blockNumber!, [poolId]), protocol: 'uniswap-v4', kind: 'pool-liquidity', status: 'observed', observedBlock: log.blockNumber!.toString(), observedAt: new Date().toISOString(), expiresAt: this.expiry(), target: { poolManager: config.poolManager, poolId, currency0, currency1, hooks }, metrics: { fee: String(log.args.fee), tickSpacing: String(log.args.tickSpacing), quote: 'requires-quoter-route' }, executionIntent: { kind: 'uniswap-v4-unlock', contract: config.poolManager, metadata: { poolId, currency0, currency1, hooks, settleAllDeltas: true } }, candidate: { protocol: 'uniswap-v4', poolManager: config.poolManager, poolId, currency0, currency1, hooks, callbackRequired: true, broadcastEligible: false } });
+        const gate = admission(this.config, log.blockNumber!, toBlock, [currency0, currency1]);
+        out.push({ id: id('uniswap-v4', log.blockNumber!, [poolId]), protocol: 'uniswap-v4', kind: 'pool-liquidity', status: 'observed', observedBlock: log.blockNumber!.toString(), observedAt: new Date().toISOString(), expiresAt: this.expiry(), target: { poolManager, poolId, currency0, currency1, hooks }, metrics: { fee: String(log.args.fee), tickSpacing: String(log.args.tickSpacing), quote: 'requires-quoter-route', admission: gate.admission, admissionReasons: gate.reasons.join(',') }, executionIntent: { kind: 'uniswap-v4-unlock', contract: poolManager, metadata: { poolId, currency0, currency1, hooks, settleAllDeltas: true } }, candidate: { protocol: 'uniswap-v4', poolManager, poolId, currency0, currency1, hooks, fee: Number(log.args.fee), tickSpacing: Number(log.args.tickSpacing), admission: gate.admission, admissionReasons: gate.reasons, callbackRequired: true, broadcastEligible: false } });
       }
-    } catch (error) { diagnostics.push(diagnostic('uniswap-v4', 'logs', error)); }
+      } catch (error) { diagnostics.push(diagnostic('uniswap-v4', 'logs', error)); }
+    }));
   }
 }

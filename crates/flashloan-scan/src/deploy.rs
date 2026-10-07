@@ -22,6 +22,10 @@ sol! {
         function configureAaveProvider(address provider, bytes32 codeHash, bool allowed) external;
         function configurePoolManager(address manager, bytes32 codeHash, bool allowed, bool allowHooks) external;
     }
+    interface IMultiVenueExecutorConfig {
+        function configureAaveProvider(address provider, bytes32 codeHash, bool allowed) external;
+        function configureRoot(uint8 venueVersion, address root, bytes32 codeHash, bool allowed, bool allowHooks) external;
+    }
 }
 
 fn artifact_bytecode(path: &str) -> Result<Bytes, Box<dyn std::error::Error>> {
@@ -96,4 +100,74 @@ pub async fn run(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
         }
     }
     Err("DEPLOYMENT_RECEIPT_TIMEOUT".into())
+}
+
+/// Deploys the callback-authenticated V2/V3/V4 executor and pins all roots by
+/// their currently deployed runtime code hash. The inputs are explicit because
+/// factory and manager addresses are chain-specific operator decisions.
+pub async fn run_multi(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
+    if env::var("ALLOW_MULTI_VENUE_DEPLOY").as_deref() != Ok("true") {
+        return Err("MULTI_VENUE_DEPLOY_NOT_EXPLICITLY_ENABLED".into());
+    }
+    let artifact = args.first().ok_or("usage: flashloan-scan deploy-multi <forge-artifact.json> <aave-provider> <v2-factory> <v3-factory> <v4-pool-manager>")?;
+    let aave_provider: Address = args.get(1).ok_or("AAVE_PROVIDER_REQUIRED")?.parse()?;
+    let v2_factory: Address = args.get(2).ok_or("V2_FACTORY_REQUIRED")?.parse()?;
+    let v3_factory: Address = args.get(3).ok_or("V3_FACTORY_REQUIRED")?.parse()?;
+    let v4_manager: Address = args.get(4).ok_or("V4_POOL_MANAGER_REQUIRED")?.parse()?;
+    let rpc = env::var("ARBITRUM_RPC_URL")?;
+    let relay = env::var("PRIVATE_RELAY_URL")?;
+    let signer: PrivateKeySigner = env::var("OPERATOR_PRIVATE_KEY")?.parse()?;
+    let from = signer.address();
+    let public = ProviderBuilder::new().connect_http(rpc.parse()?);
+    if public.get_chain_id().await? != CHAIN_ID { return Err("CHAIN_MISMATCH".into()); }
+    if public.get_balance(from).await?.is_zero() { return Err("DEPLOYER_HAS_NO_ETH".into()); }
+    let bytecode = artifact_bytecode(artifact)?;
+    let draft = TransactionRequest::default().with_from(from).with_deploy_code(bytecode).with_nonce(public.get_transaction_count(from).await?).with_chain_id(CHAIN_ID);
+    let gas = public.estimate_gas(draft.clone()).await?;
+    let fees = public.estimate_eip1559_fees().await?;
+    let final_gas = public.estimate_gas(draft.clone()).await?.max(gas);
+    let tx = draft.with_gas_limit(final_gas).with_max_fee_per_gas(fees.max_fee_per_gas).with_max_priority_fee_per_gas(fees.max_priority_fee_per_gas);
+    let private = ProviderBuilder::new().wallet(EthereumWallet::from(signer.clone())).connect_http(relay.parse()?);
+    let deploy_hash = *private.send_transaction(tx).await?.tx_hash();
+    println!("{}", serde_json::json!({"event":"deploy-multi","status":"sent","txHash":format!("{deploy_hash:#x}"),"from":format!("{from:#x}"),"chainId":CHAIN_ID}));
+    let mut executor = None;
+    for _ in 0..60 {
+        tokio::time::sleep(Duration::from_secs(2)).await;
+        if let Some(receipt) = public.get_transaction_receipt(deploy_hash).await? {
+            if !receipt.status() { return Err("DEPLOYMENT_REVERTED".into()); }
+            executor = receipt.contract_address;
+            break;
+        }
+    }
+    let executor = executor.ok_or("DEPLOYMENT_RECEIPT_TIMEOUT")?;
+    if public.get_code_at(executor).await?.is_empty() { return Err("DEPLOYED_CODE_MISSING".into()); }
+    let roots = [("aave-provider", 1_u8, aave_provider), ("v2-factory", 2_u8, v2_factory), ("v3-factory", 3_u8, v3_factory), ("v4-pool-manager", 4_u8, v4_manager)];
+    for (name, version, root) in roots {
+        let code = public.get_code_at(root).await?;
+        if code.is_empty() { return Err(format!("ROOT_CODE_MISSING:{name}").into()); }
+        let hash: B256 = keccak256(code);
+        let data = if version == 1 {
+            IMultiVenueExecutorConfig::configureAaveProviderCall { provider: root, codeHash: hash, allowed: true }.abi_encode()
+        } else {
+            IMultiVenueExecutorConfig::configureRootCall { venueVersion: version, root, codeHash: hash, allowed: true, allowHooks: false }.abi_encode()
+        };
+        let setup = TransactionRequest::default().with_to(executor).with_from(from).with_input(Bytes::from(data)).with_nonce(public.get_transaction_count(from).await?).with_chain_id(CHAIN_ID);
+        let setup_gas = public.estimate_gas(setup.clone()).await?;
+        let setup_fees = public.estimate_eip1559_fees().await?;
+        let relay_provider = ProviderBuilder::new().wallet(EthereumWallet::from(signer.clone())).connect_http(relay.parse()?);
+        let setup_hash = *relay_provider.send_transaction(setup.with_gas_limit(setup_gas).with_max_fee_per_gas(setup_fees.max_fee_per_gas).with_max_priority_fee_per_gas(setup_fees.max_priority_fee_per_gas)).await?.tx_hash();
+        let mut confirmed = false;
+        for _ in 0..60 {
+            tokio::time::sleep(Duration::from_secs(2)).await;
+            if let Some(receipt) = public.get_transaction_receipt(setup_hash).await? {
+                if !receipt.status() { return Err(format!("ROOT_CONFIGURATION_REVERTED:{name}").into()); }
+                println!("{}", serde_json::json!({"event":"deploy-multi","status":"root-configured","root":name,"txHash":format!("{setup_hash:#x}"),"codeHash":format!("{hash:#x}")}));
+                confirmed = true;
+                break;
+            }
+        }
+        if !confirmed { return Err(format!("ROOT_CONFIGURATION_RECEIPT_TIMEOUT:{name}").into()); }
+    }
+    println!("{}", serde_json::json!({"event":"deploy-multi","status":"confirmed","contract":format!("{executor:#x}"),"deployTxHash":format!("{deploy_hash:#x}"),"chainId":CHAIN_ID}));
+    Ok(())
 }

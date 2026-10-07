@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import type { Address } from '../types.js';
-import type { ScannerConfig } from './types.js';
+import type { AssetRiskPolicy, ScannerConfig, VenueDescriptor } from './types.js';
 
 function address(value: unknown, name: string): Address {
   if (typeof value !== 'string' || !/^0x[\da-fA-F]{40}$/.test(value)) throw new Error(`${name} must be a 20-byte hex address`);
@@ -11,6 +11,30 @@ function positiveInteger(value: unknown, name: string, fallback: number): number
   if (value === undefined) return fallback;
   if (!Number.isInteger(value) || (value as number) <= 0) throw new Error(`${name} must be a positive integer`);
   return value as number;
+}
+
+function venues(value: unknown): VenueDescriptor[] | undefined {
+  if (value === undefined) return undefined;
+  if (!Array.isArray(value)) throw new Error('venues must be an array');
+  return value.map((entry, index) => {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) throw new Error(`venues[${index}] must be an object`);
+    const venue = entry as Record<string, unknown>;
+    if (venue.family !== 'uniswap-v2' && venue.family !== 'uniswap-v3' && venue.family !== 'uniswap-v4') throw new Error(`venues[${index}].family must be uniswap-v2, uniswap-v3, or uniswap-v4`);
+    if (venue.family === 'uniswap-v4') {
+      return { family: venue.family, poolManager: address(venue.poolManager, `venues[${index}].poolManager`), runtimeCodeHash: venue.runtimeCodeHash as `0x${string}` | undefined, allowHooks: venue.allowHooks === true };
+    }
+    return { family: venue.family, factory: address(venue.factory, `venues[${index}].factory`), runtimeCodeHash: venue.runtimeCodeHash as `0x${string}` | undefined };
+  });
+}
+
+function assetRiskPolicy(value: unknown): AssetRiskPolicy | undefined {
+  if (value === undefined) return undefined;
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('assetRiskPolicy must be an object');
+  const policy = value as Record<string, unknown>;
+  const minPoolAgeBlocks = policy.minPoolAgeBlocks === undefined ? undefined : positiveInteger(policy.minPoolAgeBlocks, 'assetRiskPolicy.minPoolAgeBlocks', 1);
+  const minLiquidityUsdE8 = policy.minLiquidityUsdE8 === undefined ? undefined : String(policy.minLiquidityUsdE8);
+  if (minLiquidityUsdE8 !== undefined && !/^\d+$/.test(minLiquidityUsdE8)) throw new Error('assetRiskPolicy.minLiquidityUsdE8 must be a decimal integer string');
+  return { minPoolAgeBlocks, minLiquidityUsdE8, denylist: policy.denylist === undefined ? undefined : (policy.denylist as unknown[]).map((item) => address(item, 'assetRiskPolicy.denylist item')), requireSimulation: policy.requireSimulation !== false };
 }
 
 /** Loads a secret-free, public-RPC-only scanner configuration. */
@@ -49,6 +73,8 @@ export async function loadScannerConfig(filePath: string): Promise<ScannerConfig
     pollIntervalMs: positiveInteger(value.pollIntervalMs, 'pollIntervalMs', 5_000),
     assetAllowlist,
     factories,
+    venues: venues(value.venues),
+    assetRiskPolicy: assetRiskPolicy(value.assetRiskPolicy),
     protocols: {
       aaveV3: aave ? { pool: address(aave.pool, 'protocols.aaveV3.pool'), multicall3: aave.multicall3 ? address(aave.multicall3, 'protocols.aaveV3.multicall3') : undefined, healthBatchSize: positiveInteger(aave.healthBatchSize, 'protocols.aaveV3.healthBatchSize', 200), warningHealthFactor: typeof aave.warningHealthFactor === 'number' ? aave.warningHealthFactor : 1.08 } : undefined,
       morphoBlue: morpho ? { blue: address(morpho.blue, 'protocols.morphoBlue.blue'), warningHealthFactor: typeof morpho.warningHealthFactor === 'number' ? morpho.warningHealthFactor : 1.05 } : undefined,

@@ -33,6 +33,42 @@ export const DYNAMIC_V4_EXECUTOR_DEPLOYMENT = {
   }
 } as const;
 
+/**
+ * Reviewed deployment state for the callback-authenticated V2/V3/V4 executor.
+ *
+ * This is intentionally distinct from the legacy and V4-only deployments:
+ * its `executeArbitrage` route format carries an explicit, code-hash-pinned
+ * protocol root on every leg. Consumers must choose this record only for the
+ * multi-venue route schema and must still pass their usual simulation gates.
+ */
+export const MULTI_VENUE_EXECUTOR_DEPLOYMENT = {
+  chainId: 42161,
+  address: '0x2ce728672f79f64c13de9bdc1ae56ddeca47d492' as Address,
+  deployTxHash: '0x29b19381729e34e09e3e885f08e434600998c106ecdadac6a4f0eabc73575af5' as Hex,
+  runtimeCodeHash: '0xb9e2738a3643a2b8dc566f475df658f610a9f6d587d5d2ebea072104a4fccbed' as Hex,
+  aaveProvider: {
+    address: '0xa97684ead0e402dC232d5A977953DF7ECBaB3CDb' as Address,
+    configureTxHash: '0xbcc015cc06a339608fb1e3b977b77efd18896fb360bcdc68b3add73bd63c7d2b' as Hex,
+    runtimeCodeHash: '0x1a95f317ee56e0b9aedc4f4b7abd9e546dc45c26d1d77e95bcf62b789d9a5486' as Hex
+  },
+  v2Factory: {
+    address: '0xf1D7CC64Fb4452F05c498126312eBE29f30Fbcf9' as Address,
+    configureTxHash: '0xef0cb87c6a5a32e4166dfe7b0031bf8df0e48ade6f9febccc451a3f30f014f67' as Hex,
+    runtimeCodeHash: '0xbab145d02e7005f0d84c6c1639d39b799b0ea16df99ebbdaf5a14d9da820b4e0' as Hex
+  },
+  v3Factory: {
+    address: '0x1F98431c8aD98523631AE4a59f267346ea31F984' as Address,
+    configureTxHash: '0x3d3e00b8702acb99a53d1a5880899c1602561449232ca8825ca35e9e9557aa02' as Hex,
+    runtimeCodeHash: '0x4d7b8525cd5d14343fa67a732fba5b24cddba11620ca88392f4ec6c52f91fd69' as Hex
+  },
+  v4PoolManager: {
+    address: '0x360E68faCcca8cA495c1B759Fd9EEe466db9FB32' as Address,
+    configureTxHash: '0x77b7fdb580ac6fb228fad870a4df0958c142e268440b30ae5c4a5d41da3ee08b' as Hex,
+    runtimeCodeHash: '0xe4b2759e456c9c4ef763e3b4e257c5105e1ba283d7de8b131dd321197de794a4' as Hex,
+    hooksAllowed: false
+  }
+} as const;
+
 export type ExecutorCapability =
   | 'aave-v3-liquidation'
   | 'aave-v3-liquidation-split'
@@ -40,7 +76,8 @@ export type ExecutorCapability =
   | 'uniswap-v4-arbitrage'
   | 'uniswap-v2-arbitrage'
   | 'uniswap-v3-arbitrage'
-  | 'dex-pair-arbitrage';
+  | 'dex-pair-arbitrage'
+  | 'multi-venue-arbitrage';
 
 const CAPABILITY_SIGNATURES: Record<ExecutorCapability, string> = {
   'aave-v3-liquidation': 'executeFlashLiquidation((address,uint256,address,address,uint24,uint256))',
@@ -49,7 +86,8 @@ const CAPABILITY_SIGNATURES: Record<ExecutorCapability, string> = {
   'uniswap-v4-arbitrage': 'executeV4Arbitrage((address,uint256,address[],bytes[],uint256,uint256))',
   'uniswap-v2-arbitrage': 'executeV2Arbitrage((address,uint256,address[],bytes[],uint256,uint256))',
   'uniswap-v3-arbitrage': 'executeV3Arbitrage((address,uint256,address[],bytes[],uint256,uint256))',
-  'dex-pair-arbitrage': 'executeDexPairArbitrage((address,uint256,address,uint8,uint8,uint24,uint256))'
+  'dex-pair-arbitrage': 'executeDexPairArbitrage((address,uint256,address,uint8,uint8,uint24,uint256))',
+  'multi-venue-arbitrage': 'executeArbitrage((address,address,uint256,(uint8,address,address,address,address,uint256,uint24,uint160,int24,address,bytes)[],uint256,uint256))'
 };
 
 export const FLASH_EXECUTOR_SELECTORS: Record<ExecutorCapability, Hex> = Object.fromEntries(
@@ -82,6 +120,12 @@ export const FLASH_EXECUTOR_ABI = [
   { type: 'function', name: 'executeV4Arbitrage', stateMutability: 'nonpayable', inputs: [{ name: 'params', type: 'tuple', components: [
     { name: 'flashAsset', type: 'address' }, { name: 'flashAmount', type: 'uint256' }, { name: 'targets', type: 'address[]' }, { name: 'calls', type: 'bytes[]' }, { name: 'minProfit', type: 'uint256' }, { name: 'deadline', type: 'uint256' }
   ] }], outputs: [] },
+  { type: 'function', name: 'executeArbitrage', stateMutability: 'nonpayable', inputs: [{ name: 'route', type: 'tuple', components: [
+    { name: 'aaveProvider', type: 'address' }, { name: 'flashAsset', type: 'address' }, { name: 'flashAmount', type: 'uint256' },
+    { name: 'legs', type: 'tuple[]', components: [
+      { name: 'venueVersion', type: 'uint8' }, { name: 'root', type: 'address' }, { name: 'pool', type: 'address' }, { name: 'tokenIn', type: 'address' }, { name: 'tokenOut', type: 'address' }, { name: 'minAmountOut', type: 'uint256' }, { name: 'fee', type: 'uint24' }, { name: 'sqrtPriceLimitX96', type: 'uint160' }, { name: 'tickSpacing', type: 'int24' }, { name: 'hooks', type: 'address' }, { name: 'hookData', type: 'bytes' }
+    ] }, { name: 'minProfit', type: 'uint256' }, { name: 'deadline', type: 'uint256' }
+  ] }], outputs: [] },
   { type: 'event', name: 'LiquidationExecuted', inputs: [
     { indexed: true, name: 'insolventUser', type: 'address' },
     { indexed: true, name: 'debtToken', type: 'address' },
@@ -101,5 +145,8 @@ export const FLASH_EXECUTOR_ABI = [
     { indexed: false, name: 'netProfit', type: 'uint256' },
     { indexed: false, name: 'buyVenue', type: 'uint8' },
     { indexed: false, name: 'sellVenue', type: 'uint8' }
+  ], anonymous: false }
+  , { type: 'event', name: 'MultiVenueArbitrageExecuted', inputs: [
+    { indexed: true, name: 'routeHash', type: 'bytes32' }, { indexed: true, name: 'asset', type: 'address' }, { indexed: false, name: 'flashAmount', type: 'uint256' }, { indexed: false, name: 'netProfit', type: 'uint256' }, { indexed: false, name: 'legs', type: 'uint256' }
   ], anonymous: false }
 ] as const;

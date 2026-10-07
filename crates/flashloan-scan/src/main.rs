@@ -41,6 +41,10 @@ async fn main() {
         if let Err(e) = deploy::run(&a[2..]).await { eprintln!("{{\"event\":\"deploy-v4\",\"status\":\"error\",\"error\":\"{e}\"}}"); std::process::exit(1); }
         return;
     }
+    if a.get(1).map(String::as_str) == Some("deploy-multi") {
+        if let Err(e) = deploy::run_multi(&a[2..]).await { eprintln!("{{\"event\":\"deploy-multi\",\"status\":\"error\",\"error\":\"{e}\"}}"); std::process::exit(1); }
+        return;
+    }
     let (Ok(rpc), Some(notional), Some(min_profit)) = (
         env::var("ARBITRUM_RPC_URL"),
         env::args().nth(1).and_then(|v| v.parse::<f64>().ok()),
