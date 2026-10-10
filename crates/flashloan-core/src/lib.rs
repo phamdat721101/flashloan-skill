@@ -242,7 +242,40 @@ pub struct Pool {
     pub venue_id: u8,
     pub token0: String,
     pub token1: String,
+    /// Discovery paths may omit this field. Speculative execution paths must
+    /// bind it to the live epoch before using the pool as mathematical input.
+    #[serde(default)]
+    pub snapshot: Option<PoolSnapshot>,
     pub state: PoolState,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct PoolSnapshot {
+    pub block_number: u64,
+    pub block_hash: String,
+    pub observed_at_ms: u64,
+}
+
+pub fn require_current_pool_snapshot(
+    pool: &Pool,
+    epoch: &LiveEpoch,
+    now_ms: u64,
+    max_age_ms: u64,
+) -> Result<(), EngineError> {
+    let Some(snapshot) = &pool.snapshot else {
+        return Err(EngineError::Rejected("POOL_SNAPSHOT_MISSING"));
+    };
+    let Some(head) = epoch.sequencer.as_ref() else {
+        return Err(EngineError::Rejected("LIVE_HEAD_NOT_READY"));
+    };
+    if snapshot.block_number != head.block_number || snapshot.block_hash != head.block_hash {
+        return Err(EngineError::Rejected("POOL_SNAPSHOT_HEAD_MISMATCH"));
+    }
+    if now_ms.saturating_sub(snapshot.observed_at_ms) > max_age_ms {
+        return Err(EngineError::Rejected("POOL_SNAPSHOT_STALE"));
+    }
+    Ok(())
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -345,6 +378,260 @@ pub fn quote_v2(
                 .checked_add(adjusted)
                 .ok_or(EngineError::MathOverflow)?,
     ))
+}
+
+/// The state produced when a known V2 exact-input swap is applied before our
+/// own route is evaluated. Reserves deliberately retain the full input amount:
+/// the fee remains in the pool, matching the pair contract's reserve update.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct V2ForwardState {
+    pub amount_out: String,
+    pub reserve0: String,
+    pub reserve1: String,
+}
+
+/// Result of a bounded, integer-only two-pool V2 speculation. This is an
+/// unsigned plan, never a permission to submit a transaction.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct V2SpeculativePlan {
+    pub target_pool_id: String,
+    pub counter_pool_id: String,
+    pub flash_amount: String,
+    pub expected_amount_out: String,
+    pub expected_net_profit: String,
+    pub projected_target: V2ForwardState,
+}
+
+/// Applies a pending V2 swap to a pool snapshot and returns the resulting
+/// reserves. Inputs must be in the pool's token ordering.
+pub fn project_v2_forward_state(
+    pool: &Pool,
+    token_in: &str,
+    amount_in: U256,
+) -> Result<Option<V2ForwardState>, EngineError> {
+    let PoolState::V2 {
+        reserve0,
+        reserve1,
+        fee_bps,
+    } = &pool.state
+    else {
+        return Ok(None);
+    };
+    let reserve0 = parse_u256(reserve0)?;
+    let reserve1 = parse_u256(reserve1)?;
+    let zero_for_one = if token_in.eq_ignore_ascii_case(&pool.token0) {
+        true
+    } else if token_in.eq_ignore_ascii_case(&pool.token1) {
+        false
+    } else {
+        return Ok(None);
+    };
+    let (reserve_in, reserve_out) = if zero_for_one {
+        (reserve0, reserve1)
+    } else {
+        (reserve1, reserve0)
+    };
+    let Some(amount_out) = quote_v2(amount_in, reserve_in, reserve_out, *fee_bps)? else {
+        return Ok(None);
+    };
+    let next_in = reserve_in
+        .checked_add(amount_in)
+        .ok_or(EngineError::MathOverflow)?;
+    let next_out = reserve_out
+        .checked_sub(amount_out)
+        .ok_or(EngineError::MathOverflow)?;
+    let (reserve0, reserve1) = if zero_for_one {
+        (next_in, next_out)
+    } else {
+        (next_out, next_in)
+    };
+    Ok(Some(V2ForwardState {
+        amount_out: amount_out.to_string(),
+        reserve0: reserve0.to_string(),
+        reserve1: reserve1.to_string(),
+    }))
+}
+
+/// Computes a two-hop V2 route after applying a target swap to `target_pool`.
+/// The closed-form stationary point is evaluated together with its neighbours,
+/// so integer division and the flash-loan fee cannot turn a continuous optimum
+/// into a false profitable plan.
+pub fn speculate_v2_two_hop(
+    target_pool: &Pool,
+    counter_pool: &Pool,
+    flash_token: &str,
+    target_amount_in: U256,
+    flash_loan_fee_bps: u16,
+    fixed_cost: U256,
+) -> Result<Option<V2SpeculativePlan>, EngineError> {
+    const BPS_DENOMINATOR: u64 = 10_000;
+    if flash_loan_fee_bps >= BPS_DENOMINATOR as u16 {
+        return Ok(None);
+    }
+    let Some(projected_target) =
+        project_v2_forward_state(target_pool, flash_token, target_amount_in)?
+    else {
+        return Ok(None);
+    };
+    let PoolState::V2 {
+        fee_bps: target_fee_bps,
+        ..
+    } = &target_pool.state
+    else {
+        return Ok(None);
+    };
+    let PoolState::V2 {
+        fee_bps: counter_fee_bps,
+        ..
+    } = &counter_pool.state
+    else {
+        return Ok(None);
+    };
+    if *target_fee_bps >= BPS_DENOMINATOR as u16 || *counter_fee_bps >= BPS_DENOMINATOR as u16 {
+        return Ok(None);
+    }
+
+    let (r1_x, r1_y) = if flash_token.eq_ignore_ascii_case(&target_pool.token0) {
+        (
+            parse_u256(&projected_target.reserve0)?,
+            parse_u256(&projected_target.reserve1)?,
+        )
+    } else if flash_token.eq_ignore_ascii_case(&target_pool.token1) {
+        (
+            parse_u256(&projected_target.reserve1)?,
+            parse_u256(&projected_target.reserve0)?,
+        )
+    } else {
+        return Ok(None);
+    };
+    let target_token = if flash_token.eq_ignore_ascii_case(&target_pool.token0) {
+        &target_pool.token1
+    } else {
+        &target_pool.token0
+    };
+    let (r2_y, r2_x) = if target_token.eq_ignore_ascii_case(&counter_pool.token0)
+        && flash_token.eq_ignore_ascii_case(&counter_pool.token1)
+    {
+        match &counter_pool.state {
+            PoolState::V2 {
+                reserve0, reserve1, ..
+            } => (parse_u256(reserve0)?, parse_u256(reserve1)?),
+            _ => return Ok(None),
+        }
+    } else if target_token.eq_ignore_ascii_case(&counter_pool.token1)
+        && flash_token.eq_ignore_ascii_case(&counter_pool.token0)
+    {
+        match &counter_pool.state {
+            PoolState::V2 {
+                reserve0, reserve1, ..
+            } => (parse_u256(reserve1)?, parse_u256(reserve0)?),
+            _ => return Ok(None),
+        }
+    } else {
+        return Ok(None);
+    };
+
+    let denominator = U256::from(BPS_DENOMINATOR);
+    let gamma1 = denominator - U256::from(*target_fee_bps);
+    let gamma2 = denominator - U256::from(*counter_fee_bps);
+    // Out(q) = A*q / (B + C*q), retaining the fee denominators in B and C.
+    let a = gamma1
+        .checked_mul(gamma2)
+        .and_then(|value| value.checked_mul(r1_y))
+        .and_then(|value| value.checked_mul(r2_x))
+        .ok_or(EngineError::MathOverflow)?;
+    let b = r1_x
+        .checked_mul(r2_y)
+        .and_then(|value| value.checked_mul(denominator))
+        .and_then(|value| value.checked_mul(denominator))
+        .ok_or(EngineError::MathOverflow)?;
+    let c = gamma1
+        .checked_mul(
+            denominator
+                .checked_mul(r2_y)
+                .and_then(|value| {
+                    gamma2
+                        .checked_mul(r1_y)
+                        .and_then(|other| value.checked_add(other))
+                })
+                .ok_or(EngineError::MathOverflow)?,
+        )
+        .ok_or(EngineError::MathOverflow)?;
+    if a.is_zero() || b.is_zero() || c.is_zero() {
+        return Ok(None);
+    }
+    let stationary_square = a
+        .checked_mul(b)
+        .and_then(|value| value.checked_mul(denominator))
+        .ok_or(EngineError::MathOverflow)?
+        / U256::from(BPS_DENOMINATOR + flash_loan_fee_bps as u64);
+    let root = integer_sqrt(stationary_square);
+    if root <= b {
+        return Ok(None);
+    }
+    let center = (root - b) / c;
+    let candidates = [
+        center.saturating_sub(U256::from(1u64)),
+        center,
+        center
+            .checked_add(U256::from(1u64))
+            .ok_or(EngineError::MathOverflow)?,
+    ];
+    let mut best: Option<(U256, U256, U256)> = None;
+    for amount in candidates.into_iter().filter(|amount| !amount.is_zero()) {
+        let Some(first_out) = quote_v2(amount, r1_x, r1_y, *target_fee_bps)? else {
+            continue;
+        };
+        let Some(final_out) = quote_v2(first_out, r2_y, r2_x, *counter_fee_bps)? else {
+            continue;
+        };
+        let loan_fee = amount
+            .checked_mul(U256::from(flash_loan_fee_bps))
+            .ok_or(EngineError::MathOverflow)?
+            / denominator;
+        let debt_and_cost = amount
+            .checked_add(loan_fee)
+            .and_then(|value| value.checked_add(fixed_cost))
+            .ok_or(EngineError::MathOverflow)?;
+        let Some(net_profit) = final_out.checked_sub(debt_and_cost) else {
+            continue;
+        };
+        if best
+            .as_ref()
+            .is_none_or(|(_, _, best_profit)| net_profit > *best_profit)
+        {
+            best = Some((amount, final_out, net_profit));
+        }
+    }
+    Ok(best.map(
+        |(flash_amount, expected_amount_out, expected_net_profit)| V2SpeculativePlan {
+            target_pool_id: target_pool.id.clone(),
+            counter_pool_id: counter_pool.id.clone(),
+            flash_amount: flash_amount.to_string(),
+            expected_amount_out: expected_amount_out.to_string(),
+            expected_net_profit: expected_net_profit.to_string(),
+            projected_target,
+        },
+    ))
+}
+
+fn integer_sqrt(value: U256) -> U256 {
+    if value <= U256::from(1u64) {
+        return value;
+    }
+    let mut lower = U256::from(1u64);
+    let mut upper = value / U256::from(2u64) + U256::from(1u64);
+    while lower < upper {
+        let midpoint = lower + (upper - lower) / U256::from(2u64);
+        if midpoint <= value / midpoint {
+            lower = midpoint + U256::from(1u64);
+        } else {
+            upper = midpoint;
+        }
+    }
+    lower - U256::from(1u64)
 }
 
 /// Exact-input V3 quote restricted to the currently known initialized-tick interval.
@@ -638,6 +925,7 @@ mod tests {
             venue_id,
             token0: token0.into(),
             token1: token1.into(),
+            snapshot: None,
             state: PoolState::V2 {
                 reserve0: reserve0.into(),
                 reserve1: reserve1.into(),
@@ -657,6 +945,121 @@ mod tests {
             )
             .unwrap(),
             Some(U256::from(1_813u64))
+        );
+    }
+
+    #[test]
+    fn forward_v2_projection_keeps_the_fee_in_the_input_reserve() {
+        let pool = v2(
+            "target",
+            "0x0000000000000000000000000000000000000001",
+            "0x0000000000000000000000000000000000000002",
+            "10000",
+            "20000",
+            1,
+        );
+        let projected = project_v2_forward_state(
+            &pool,
+            "0x0000000000000000000000000000000000000001",
+            U256::from(1_000u64),
+        )
+        .unwrap()
+        .unwrap();
+        assert_eq!(projected.amount_out, "1813");
+        assert_eq!(projected.reserve0, "11000");
+        assert_eq!(projected.reserve1, "18187");
+    }
+
+    #[test]
+    fn speculation_is_profitable_only_after_target_projection_and_rounding() {
+        let target = v2(
+            "target",
+            "0x0000000000000000000000000000000000000001",
+            "0x0000000000000000000000000000000000000002",
+            "100000",
+            "200000",
+            1,
+        );
+        let counter = v2(
+            "counter",
+            "0x0000000000000000000000000000000000000002",
+            "0x0000000000000000000000000000000000000001",
+            "100000",
+            "200000",
+            2,
+        );
+        let plan = speculate_v2_two_hop(
+            &target,
+            &counter,
+            "0x0000000000000000000000000000000000000001",
+            U256::from(1_000u64),
+            9,
+            U256::ZERO,
+        )
+        .unwrap()
+        .unwrap();
+        assert_eq!(plan.target_pool_id, "target");
+        assert!(parse_u256(&plan.flash_amount).unwrap() > U256::ZERO);
+        assert!(parse_u256(&plan.expected_net_profit).unwrap() > U256::ZERO);
+    }
+
+    #[test]
+    fn speculation_rejects_a_counter_pool_with_the_wrong_assets() {
+        let target = v2(
+            "target",
+            "0x0000000000000000000000000000000000000001",
+            "0x0000000000000000000000000000000000000002",
+            "100000",
+            "200000",
+            1,
+        );
+        let counter = v2(
+            "counter",
+            "0x0000000000000000000000000000000000000003",
+            "0x0000000000000000000000000000000000000004",
+            "100000",
+            "200000",
+            2,
+        );
+        assert!(
+            speculate_v2_two_hop(
+                &target,
+                &counter,
+                "0x0000000000000000000000000000000000000001",
+                U256::from(1_000u64),
+                0,
+                U256::ZERO,
+            )
+            .unwrap()
+            .is_none()
+        );
+    }
+
+    #[test]
+    fn speculative_paths_require_a_fresh_pool_snapshot_from_the_live_head() {
+        let pool = v2(
+            "target",
+            "0x0000000000000000000000000000000000000001",
+            "0x0000000000000000000000000000000000000002",
+            "100000",
+            "200000",
+            1,
+        );
+        let epoch = LiveEpoch {
+            status: LiveStatus::TentativeLive,
+            sequencer: Some(Head {
+                source: StateSource::Sequencer,
+                sequence: 1,
+                block_number: 101,
+                block_hash: "0xb".into(),
+                parent_hash: "0xa".into(),
+                observed_at_ms: 101,
+            }),
+            canonical: None,
+        };
+        assert_eq!(
+            require_current_pool_snapshot(&pool, &epoch, 110, 100).unwrap_err(),
+            EngineError::Rejected("POOL_SNAPSHOT_MISSING")
         );
     }
 

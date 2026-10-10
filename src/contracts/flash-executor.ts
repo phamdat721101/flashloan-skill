@@ -43,27 +43,27 @@ export const DYNAMIC_V4_EXECUTOR_DEPLOYMENT = {
  */
 export const MULTI_VENUE_EXECUTOR_DEPLOYMENT = {
   chainId: 42161,
-  address: '0x2ce728672f79f64c13de9bdc1ae56ddeca47d492' as Address,
-  deployTxHash: '0x29b19381729e34e09e3e885f08e434600998c106ecdadac6a4f0eabc73575af5' as Hex,
+  address: '0xd130b45b7e7d08fb7dbb1c79fa5d9b95ea8e27b2' as Address,
+  deployTxHash: '0x566b9d729cefe4af9f11a2673f15ab7cee8ae8c9c449276890c49d41391d6568' as Hex,
   runtimeCodeHash: '0xb9e2738a3643a2b8dc566f475df658f610a9f6d587d5d2ebea072104a4fccbed' as Hex,
   aaveProvider: {
     address: '0xa97684ead0e402dC232d5A977953DF7ECBaB3CDb' as Address,
-    configureTxHash: '0xbcc015cc06a339608fb1e3b977b77efd18896fb360bcdc68b3add73bd63c7d2b' as Hex,
+    configureTxHash: '0xa70d3aed4dcc9cae9388113b4d504bce3048822a813ba7c7c8e678529270dc84' as Hex,
     runtimeCodeHash: '0x1a95f317ee56e0b9aedc4f4b7abd9e546dc45c26d1d77e95bcf62b789d9a5486' as Hex
   },
   v2Factory: {
     address: '0xf1D7CC64Fb4452F05c498126312eBE29f30Fbcf9' as Address,
-    configureTxHash: '0xef0cb87c6a5a32e4166dfe7b0031bf8df0e48ade6f9febccc451a3f30f014f67' as Hex,
+    configureTxHash: '0x053b87e634714fa841b4b815b1800b733aa87ce0e6768d129cd75f04af60c9bf' as Hex,
     runtimeCodeHash: '0xbab145d02e7005f0d84c6c1639d39b799b0ea16df99ebbdaf5a14d9da820b4e0' as Hex
   },
   v3Factory: {
     address: '0x1F98431c8aD98523631AE4a59f267346ea31F984' as Address,
-    configureTxHash: '0x3d3e00b8702acb99a53d1a5880899c1602561449232ca8825ca35e9e9557aa02' as Hex,
+    configureTxHash: '0x436686a854d473b3b1e6c641d1c925bd1d899828570e6628554b855b728a9471' as Hex,
     runtimeCodeHash: '0x4d7b8525cd5d14343fa67a732fba5b24cddba11620ca88392f4ec6c52f91fd69' as Hex
   },
   v4PoolManager: {
     address: '0x360E68faCcca8cA495c1B759Fd9EEe466db9FB32' as Address,
-    configureTxHash: '0x77b7fdb580ac6fb228fad870a4df0958c142e268440b30ae5c4a5d41da3ee08b' as Hex,
+    configureTxHash: '0xdc2a45754be442fcd7366987b3f14925c424e52e40a7dfe54e0249428efe856c' as Hex,
     runtimeCodeHash: '0xe4b2759e456c9c4ef763e3b4e257c5105e1ba283d7de8b131dd321197de794a4' as Hex,
     hooksAllowed: false
   }

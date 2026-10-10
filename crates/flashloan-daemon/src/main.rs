@@ -1,6 +1,7 @@
 use alloy::primitives::U256;
 use flashloan_core::{
     DexPairCall, EngineConfig, Head, LiveHeads, Pool, find_affected_cycles, hex_encode,
+    require_current_pool_snapshot, speculate_v2_two_hop,
 };
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, env, fs, process::ExitCode, str::FromStr};
@@ -21,6 +22,17 @@ enum InboundEvent {
     Scan {
         anchor_token: String,
         amount_in: String,
+        now_ms: u64,
+    },
+    /// A target swap is projected into its pool snapshot before choosing a
+    /// two-hop V2 flash amount. The emitted plan is analytical and unsigned.
+    SpeculateV2 {
+        target_pool_id: String,
+        counter_pool_id: String,
+        flash_token: String,
+        target_amount_in: String,
+        flash_loan_fee_bps: u16,
+        fixed_cost: String,
         now_ms: u64,
     },
 }
@@ -197,6 +209,119 @@ fn main() -> ExitCode {
                         "rejected",
                         Some(error.to_string()),
                         serde_json::json!({ "anchorToken": anchor_token }),
+                    ),
+                }
+            }
+            InboundEvent::SpeculateV2 {
+                target_pool_id,
+                counter_pool_id,
+                flash_token,
+                target_amount_in,
+                flash_loan_fee_bps,
+                fixed_cost,
+                now_ms,
+            } => {
+                let epoch = match heads.executable_epoch(now_ms, config.risk.max_state_age_ms) {
+                    Ok(epoch) => epoch,
+                    Err(error) => {
+                        emit(
+                            "speculative_plan",
+                            "halted",
+                            Some(error.to_string()),
+                            serde_json::json!({ "targetPoolId": target_pool_id }),
+                        );
+                        continue;
+                    }
+                };
+                let target_amount = match U256::from_str(&target_amount_in) {
+                    Ok(amount) if amount > U256::ZERO => amount,
+                    _ => {
+                        emit(
+                            "speculative_plan",
+                            "rejected",
+                            Some("INVALID_TARGET_AMOUNT".into()),
+                            serde_json::json!({ "targetAmountIn": target_amount_in }),
+                        );
+                        continue;
+                    }
+                };
+                let fixed_cost = match U256::from_str(&fixed_cost) {
+                    Ok(cost) => cost,
+                    Err(_) => {
+                        emit(
+                            "speculative_plan",
+                            "rejected",
+                            Some("INVALID_FIXED_COST".into()),
+                            serde_json::json!({ "fixedCost": fixed_cost }),
+                        );
+                        continue;
+                    }
+                };
+                let Some(target_pool) = pools.get(&target_pool_id) else {
+                    emit(
+                        "speculative_plan",
+                        "rejected",
+                        Some("UNKNOWN_TARGET_POOL".into()),
+                        serde_json::json!({ "targetPoolId": target_pool_id }),
+                    );
+                    continue;
+                };
+                let Some(counter_pool) = pools.get(&counter_pool_id) else {
+                    emit(
+                        "speculative_plan",
+                        "rejected",
+                        Some("UNKNOWN_COUNTER_POOL".into()),
+                        serde_json::json!({ "counterPoolId": counter_pool_id }),
+                    );
+                    continue;
+                };
+                if let Err(error) = require_current_pool_snapshot(
+                    target_pool,
+                    &epoch,
+                    now_ms,
+                    config.risk.max_state_age_ms,
+                )
+                .and_then(|_| {
+                    require_current_pool_snapshot(
+                        counter_pool,
+                        &epoch,
+                        now_ms,
+                        config.risk.max_state_age_ms,
+                    )
+                }) {
+                    emit(
+                        "speculative_plan",
+                        "rejected",
+                        Some(error.to_string()),
+                        serde_json::json!({ "targetPoolId": target_pool_id, "counterPoolId": counter_pool_id }),
+                    );
+                    continue;
+                }
+                match speculate_v2_two_hop(
+                    target_pool,
+                    counter_pool,
+                    &flash_token,
+                    target_amount,
+                    flash_loan_fee_bps,
+                    fixed_cost,
+                ) {
+                    Ok(Some(plan)) => emit(
+                        "speculative_plan",
+                        "accepted",
+                        None,
+                        serde_json::json!({ "epoch": epoch, "plan": plan, "signed": false }),
+                    ),
+                    Ok(None) => emit(
+                        "speculative_plan",
+                        "rejected",
+                        Some("NO_PROFITABLE_V2_ROUTE".into()),
+                        serde_json::json!({ "targetPoolId": target_pool_id, "counterPoolId": counter_pool_id }),
+                    ),
+                    Err(error) => emit(
+                        "speculative_plan",
+                        "rejected",
+                        Some(error.to_string()),
+                        serde_json::json!({ "targetPoolId": target_pool_id, "counterPoolId": counter_pool_id }),
                     ),
                 }
             }

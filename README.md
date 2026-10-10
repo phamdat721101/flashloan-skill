@@ -29,6 +29,39 @@ node dist/cli.js validate-config
 
 The runtime accepts exact executor-ready opportunities matching `schemas/opportunity.schema.json`. `FLASH_EXECUTOR_ADDRESS`, `PRIVATE_RELAY_URL`, and `OPERATOR_PRIVATE_KEY` are explicit local configuration; no executor address or secret is implied.
 
+## Deployed Arbitrum multi-venue executor
+
+The reviewed multi-venue executor is deployed on Arbitrum One at
+`0xd130b45b7e7d08fb7dbb1c79fa5d9b95ea8e27b2` (deployment transaction
+[`0x566b…d6568`](https://arbiscan.io/tx/0x566b9d729cefe4af9f11a2673f15ab7cee8ae8c9c449276890c49d41391d6568)).
+`MULTI_VENUE_EXECUTOR_DEPLOYMENT` pins that address, its runtime hash
+`0xb9e2738a3643a2b8dc566f475df658f610a9f6d587d5d2ebea072104a4fccbed`,
+the Aave V3 provider, and the V2, V3, and V4 roots. Its V4 configuration
+explicitly disallows hooks. The deployed owner is the configured operator
+wallet; no private key is stored in this repository.
+
+The state-adapter layer reads block-pinned V3, Algebra Integral, and no-hook
+V4 pool state for simulation. It verifies code hashes and rereads the pinned
+head to reject reorged data. V3 and V4 have read-only Arbitrum fork coverage;
+Algebra remains admission-gated until a production pool and exact expected
+code hash are configured. These adapters produce observations only: they do
+not sign or broadcast transactions.
+
+The executor deployment and its root pins are proven read-only with:
+
+```sh
+forge test --fork-url "$ARBITRUM_RPC_URL" \
+  --match-contract MultiVenueArbitrageExecutorArbitrumForkProof -vv
+E2E_ARBITRUM_RPC_URL="$ARBITRUM_RPC_URL" npm test
+```
+
+This is deployment and simulation evidence, not a claim of a completed
+profitable flash-loan trade. A live execution remains gated on a
+schema-valid, profitable route, final relay simulation, a fresh estimate, and
+the existing execution risk checks. Start in private-relay canary mode with
+the configured executor address in local `FLASH_EXECUTOR_ADDRESS`; do not
+send a public-mempool canary.
+
 ## Read-only real-time scanning
 
 ## Rust/Alloy live route engine

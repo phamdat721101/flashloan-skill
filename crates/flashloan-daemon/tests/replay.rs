@@ -19,9 +19,10 @@ fn replay_requires_dual_live_heads_and_emits_an_executable_two_hop_candidate() {
     fs::write(&config, config_raw).unwrap();
     fs::write(&events, r#"{"eventType":"head","head":{"source":"canonical","sequence":1,"blockNumber":100,"blockHash":"0xa","parentHash":"0x9","observedAtMs":100}}
 {"eventType":"head","head":{"source":"sequencer","sequence":1,"blockNumber":101,"blockHash":"0xb","parentHash":"0xa","observedAtMs":101}}
-{"eventType":"poolUpsert","pool":{"id":"buy","venue":"uniswap-v2","venueId":1,"token0":"0x0000000000000000000000000000000000000001","token1":"0x0000000000000000000000000000000000000002","state":{"kind":"v2","reserve0":"100000","reserve1":"200000","feeBps":30}}}
-{"eventType":"poolUpsert","pool":{"id":"sell","venue":"uniswap-v2","venueId":2,"token0":"0x0000000000000000000000000000000000000002","token1":"0x0000000000000000000000000000000000000001","state":{"kind":"v2","reserve0":"100000","reserve1":"200000","feeBps":30}}}
-{"eventType":"scan","anchorToken":"0x0000000000000000000000000000000000000001","amountIn":"1000","nowMs":110}"#).unwrap();
+{"eventType":"poolUpsert","pool":{"id":"buy","venue":"uniswap-v2","venueId":1,"token0":"0x0000000000000000000000000000000000000001","token1":"0x0000000000000000000000000000000000000002","snapshot":{"blockNumber":101,"blockHash":"0xb","observedAtMs":101},"state":{"kind":"v2","reserve0":"100000","reserve1":"200000","feeBps":30}}}
+{"eventType":"poolUpsert","pool":{"id":"sell","venue":"uniswap-v2","venueId":2,"token0":"0x0000000000000000000000000000000000000002","token1":"0x0000000000000000000000000000000000000001","snapshot":{"blockNumber":101,"blockHash":"0xb","observedAtMs":101},"state":{"kind":"v2","reserve0":"100000","reserve1":"200000","feeBps":30}}}
+{"eventType":"scan","anchorToken":"0x0000000000000000000000000000000000000001","amountIn":"1000","nowMs":110}
+{"eventType":"speculateV2","targetPoolId":"buy","counterPoolId":"sell","flashToken":"0x0000000000000000000000000000000000000001","targetAmountIn":"1000","flashLoanFeeBps":9,"fixedCost":"0","nowMs":110}"#).unwrap();
     let output = Command::new(env!("CARGO_BIN_EXE_flashloan-daemon"))
         .args(["replay", config.to_str().unwrap(), events.to_str().unwrap()])
         .output()
@@ -35,6 +36,11 @@ fn replay_requires_dual_live_heads_and_emits_an_executable_two_hop_candidate() {
     assert!(stdout.contains("\"executable\":true"), "stdout: {stdout}");
     assert!(
         stdout.contains("\"executorCalldata\":\"0x"),
+        "stdout: {stdout}"
+    );
+    assert!(
+        stdout.contains("\"eventType\":\"speculative_plan\",\"status\":\"accepted\"")
+            && stdout.contains("\"signed\":false"),
         "stdout: {stdout}"
     );
     fs::remove_dir_all(root).unwrap();
