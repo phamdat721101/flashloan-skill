@@ -28,7 +28,11 @@ export async function runDexBridge(config: BridgeConfig): Promise<BridgeDecision
   const head = await client.getBlock({ blockTag: 'latest' });
   if (!head.number || !head.hash) throw new Error('head block is incomplete');
   const reader = new ArbitrumDexQuoteReader(config.rpcUrl, config.quoters, { number: head.number, hash: head.hash });
-  const grouped = await Promise.all(config.pairs.map(async (pair) => ({ pair, candidates: await discoverDexPairCandidates(pair, config.chainId, head.number!, head.hash!, reader) })));
+  const grouped: Array<{ pair: typeof config.pairs[number]; candidates: Awaited<ReturnType<typeof discoverDexPairCandidates>> }> = [];
+  for (const pair of config.pairs) {
+    const candidates = await discoverDexPairCandidates(pair, config.chainId, head.number!, head.hash!, reader);
+    grouped.push({ pair, candidates });
+  }
   const decisions: BridgeDecision[] = [];
   for (const { pair, candidates } of grouped) {
     const [flashTokenUsdE8, targetTokenUsdE8] = await Promise.all([

@@ -58,7 +58,7 @@ export interface AllocationPlan {
   /** Source and quote evidence are required for new autonomous proposals. */
   sourceBlock?: bigint;
   quoteBlock?: bigint;
-  capability?: 'aave-v3-liquidation' | 'aave-v3-liquidation-split' | 'morpho-blue-liquidation' | 'uniswap-v2-arbitrage' | 'uniswap-v3-arbitrage' | 'uniswap-v4-arbitrage' | 'dex-pair-arbitrage' | 'multi-venue-arbitrage';
+  capability?: 'aave-v3-liquidation' | 'aave-v3-liquidation-split' | 'morpho-blue-liquidation' | 'uniswap-v2-arbitrage' | 'uniswap-v3-arbitrage' | 'uniswap-v4-arbitrage' | 'dex-pair-arbitrage' | 'multi-venue-arbitrage' | 'multi-split-arbitrage';
   profitTokenUsd?: number;
   profitTokenDecimals?: number;
   expiresAt?: string;

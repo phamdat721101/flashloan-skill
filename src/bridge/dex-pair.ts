@@ -77,16 +77,17 @@ export async function discoverDexPairCandidates(
   }
   const observedAt = now.toISOString();
   const expiresAt = new Date(now.getTime() + 15_000).toISOString();
-  const candidates = await Promise.all(amounts.map(async (flashAmountWei) => {
+  const candidates: DexPairCandidate[] = [];
+  for (const flashAmountWei of amounts) {
     const first = await quoteReader.quote({ venue: policy.buyVenue, tokenIn: policy.flashToken, tokenOut: policy.targetToken, amountInWei: flashAmountWei, uniFee: policy.uniFee });
-    if (first.amountOutWei <= 0n) return undefined;
+    if (first.amountOutWei <= 0n) continue;
     const second = await quoteReader.quote({ venue: policy.sellVenue, tokenIn: policy.targetToken, tokenOut: policy.flashToken, amountInWei: first.amountOutWei, uniFee: policy.uniFee });
-    if (second.amountOutWei <= 0n || first.blockNumber < observedBlock || second.blockNumber < observedBlock || first.blockHash.toLowerCase() !== observedBlockHash.toLowerCase() || second.blockHash.toLowerCase() !== observedBlockHash.toLowerCase()) return undefined;
-    return {
+    if (second.amountOutWei <= 0n || first.blockNumber < observedBlock || second.blockNumber < observedBlock || first.blockHash.toLowerCase() !== observedBlockHash.toLowerCase() || second.blockHash.toLowerCase() !== observedBlockHash.toLowerCase()) continue;
+    candidates.push({
       id: candidateId(policy, flashAmountWei, observedBlock), chainId, observedBlock: observedBlock.toString(), observedBlockHash, observedAt, expiresAt,
       protocol: 'dex-pair-arbitrage' as const, flashToken: policy.flashToken, targetToken: policy.targetToken, flashAmountWei: flashAmountWei.toString(), buyVenue: policy.buyVenue, sellVenue: policy.sellVenue, uniFee: policy.uniFee,
       firstLegOutWei: first.amountOutWei.toString(), finalOutWei: second.amountOutWei.toString()
-    };
-  }));
-  return candidates.filter((candidate): candidate is DexPairCandidate => candidate !== undefined);
+    });
+  }
+  return candidates;
 }

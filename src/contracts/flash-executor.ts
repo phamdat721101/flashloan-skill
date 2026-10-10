@@ -69,6 +69,20 @@ export const MULTI_VENUE_EXECUTOR_DEPLOYMENT = {
   }
 } as const;
 
+/**
+ * Reviewed deployment state for the >= $100k Multi-Split & Triangular Flash Loan Executor.
+ * Deployed at Block #513468519. Supports 0%-fee Morpho Blue flash loans >= $100,000,
+ * convex multi-pool split routes across non-USDC assets, dynamic balance unwinding,
+ * and atomic profit verification.
+ */
+export const MULTI_SPLIT_EXECUTOR_DEPLOYMENT = {
+  chainId: 42161,
+  address: '0xb1aac2079c52fd31e038ec348505a0f55859d60f' as Address,
+  deployTxHash: '0x0996d0328a43ae3f23cb5d0297c76292d910f59a88a1276c928578a52010f5ef' as Hex,
+  morphoBlue: '0x6c247b1F6182318877311737BaC0844bAa518F5e' as Address,
+  capability: 'multi-split-arbitrage'
+} as const;
+
 export type ExecutorCapability =
   | 'aave-v3-liquidation'
   | 'aave-v3-liquidation-split'
@@ -77,7 +91,8 @@ export type ExecutorCapability =
   | 'uniswap-v2-arbitrage'
   | 'uniswap-v3-arbitrage'
   | 'dex-pair-arbitrage'
-  | 'multi-venue-arbitrage';
+  | 'multi-venue-arbitrage'
+  | 'multi-split-arbitrage';
 
 const CAPABILITY_SIGNATURES: Record<ExecutorCapability, string> = {
   'aave-v3-liquidation': 'executeFlashLiquidation((address,uint256,address,address,uint24,uint256))',
@@ -87,7 +102,8 @@ const CAPABILITY_SIGNATURES: Record<ExecutorCapability, string> = {
   'uniswap-v2-arbitrage': 'executeV2Arbitrage((address,uint256,address[],bytes[],uint256,uint256))',
   'uniswap-v3-arbitrage': 'executeV3Arbitrage((address,uint256,address[],bytes[],uint256,uint256))',
   'dex-pair-arbitrage': 'executeDexPairArbitrage((address,uint256,address,uint8,uint8,uint24,uint256))',
-  'multi-venue-arbitrage': 'executeArbitrage((address,address,uint256,(uint8,address,address,address,address,uint256,uint24,uint160,int24,address,bytes)[],uint256,uint256))'
+  'multi-venue-arbitrage': 'executeArbitrage((address,address,uint256,(uint8,address,address,address,address,uint256,uint256,uint160,int24,address,bytes)[],uint256,uint256))',
+  'multi-split-arbitrage': 'executeMultiSplitPairArbitrage((address,uint256,uint256,(address,uint256,uint8,uint8,uint24,uint24)[]))'
 };
 
 export const FLASH_EXECUTOR_SELECTORS: Record<ExecutorCapability, Hex> = Object.fromEntries(

@@ -169,3 +169,21 @@ Published main at 3c395f3; current dynamic V4 executor is 0xfcd8f1257d8f37f4c51b
 ### Next steps
 
 Consume the deployment metadata only for ImmutableArbitrageExecutor V4 route encoding, then simulate a scanner-derived no-hook circular route before any manual private-relay trade
+
+## Session 2026-10-08T10:00:55+07:00
+
+### Current goal
+
+Pull latest flashloan-skill from GitHub and re-sync the installed skill into every available agent host on this device
+
+### Latest output or blocker
+
+Pulled origin/main (7ab73b5 → 8b4c02a, "Add multi-venue arbitrage executor") via a clean ff-only merge after stashing unrelated local WIP (quote-reader retry/backoff); restored WIP post-pull with zero conflicts; rebuilt dist/; re-ran the repo's dist/agent-cli.js install --target <dir> against all 37 agent-host skills/ directories that already had a prior flashloan-agent install (left the 8 hosts with no prior install untouched); verified byte-for-byte match against canonical skills/flashloan-agent/ on all 37
+
+### Attempted solutions
+
+- None recorded.
+
+### Next steps
+
+Resolve and commit the pending local src/bridge/* WIP (RPC retry/backoff with exponential delay + block-staleness refresh), then re-sync hosts again if that work touches skills/flashloan-agent/
