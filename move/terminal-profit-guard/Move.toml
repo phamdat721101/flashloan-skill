@@ -1,0 +1,6 @@
+[package]
+name = "terminal_profit_guard"
+edition = "2024.beta"
+
+[addresses]
+terminal_profit_guard = "0x0"

@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Sui Adapter Manifest",
+  "type": "object",
+  "required": ["id", "network", "baseAssetType", "lender", "venue", "mutableObjects", "receiptMode", "enabled"],
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "network": { "enum": ["mainnet", "testnet", "localnet"] },
+    "baseAssetType": { "type": "string", "pattern": "::" },
+    "receiptMode": { "const": "hot-potato" },
+    "enabled": { "type": "boolean" }
+  }
+}
