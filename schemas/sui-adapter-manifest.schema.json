@@ -2,17 +2,68 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Sui Adapter Manifest",
   "type": "object",
-  "required": ["id", "network", "baseAssetType", "lender", "venue", "mutableObjectIds", "receiptMode", "enabled"],
+  "required": ["id", "network", "lenders", "venues"],
   "properties": {
     "id": { "type": "string", "minLength": 1 },
     "network": { "enum": ["mainnet", "testnet", "localnet"] },
-    "baseAssetType": { "type": "string", "pattern": "::" },
-    "mutableObjectIds": {
+    "lenders": {
       "type": "array",
-      "minItems": 1,
-      "items": { "type": "string", "pattern": "^0x[0-9a-fA-F]{1,64}$" }
+      "minItems": 3,
+      "items": { "$ref": "#/$defs/lender" }
     },
-    "receiptMode": { "const": "hot-potato" },
-    "enabled": { "type": "boolean" }
+    "venues": {
+      "type": "array",
+      "minItems": 2,
+      "items": { "$ref": "#/$defs/venue" }
+    }
+  },
+  "$defs": {
+    "address": { "type": "string", "pattern": "^0x[0-9a-fA-F]{1,64}$" },
+    "decimal": { "type": "string", "pattern": "^[0-9]+$" },
+    "revision": {
+      "type": "object",
+      "required": ["packageId", "publishedAt", "packageDigest", "verifiedCheckpoint"],
+      "properties": {
+        "packageId": { "$ref": "#/$defs/address" },
+        "publishedAt": { "$ref": "#/$defs/address" },
+        "packageDigest": { "type": "string", "minLength": 1 },
+        "verifiedCheckpoint": { "$ref": "#/$defs/decimal" }
+      }
+    },
+    "target": {
+      "allOf": [
+        { "$ref": "#/$defs/revision" },
+        { "type": "object", "required": ["module", "function"], "properties": { "module": { "type": "string" }, "function": { "type": "string" } } }
+      ]
+    },
+    "lender": {
+      "type": "object",
+      "required": ["id", "kind", "revision", "borrow", "repay", "supportedAssets", "mutableObjectIds", "receiptMode", "enabled"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "kind": { "enum": ["navi", "suilend", "scallop"] },
+        "revision": { "$ref": "#/$defs/revision" },
+        "borrow": { "$ref": "#/$defs/target" },
+        "repay": { "$ref": "#/$defs/target" },
+        "supportedAssets": { "type": "array", "minItems": 1, "items": { "type": "string", "pattern": "::" } },
+        "mutableObjectIds": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/address" } },
+        "receiptMode": { "const": "hot-potato" },
+        "enabled": { "type": "boolean" }
+      }
+    },
+    "venue": {
+      "type": "object",
+      "required": ["id", "kind", "revision", "exactIn", "supportedAssets", "mutableObjectIds", "feeSource", "enabled"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "kind": { "enum": ["cetus", "turbos"] },
+        "revision": { "$ref": "#/$defs/revision" },
+        "exactIn": { "$ref": "#/$defs/target" },
+        "supportedAssets": { "type": "array", "minItems": 2, "items": { "type": "string", "pattern": "::" } },
+        "mutableObjectIds": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/address" } },
+        "feeSource": { "const": "route-asset" },
+        "enabled": { "type": "boolean" }
+      }
+    }
   }
 }

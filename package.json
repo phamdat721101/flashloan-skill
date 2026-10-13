@@ -16,8 +16,10 @@
     "sui:validate-config": "tsx src/sui/cli.ts validate-config",
     "sui:wallet-address": "tsx src/sui/cli.ts wallet-address",
     "sui:deploy-guard": "tsx src/sui/cli.ts deploy-guard",
+    "sui:upgrade-guard": "tsx src/sui/cli.ts upgrade-guard",
     "sui:deepbook-flashloan-canary": "tsx src/sui/cli.ts deepbook-flashloan-canary",
     "sui:cetus-pool-canary": "tsx src/sui/cli.ts cetus-pool-canary",
+    "sui:validate-adapter-registry": "tsx src/sui/cli.ts validate-adapter-registry",
     "install-skill": "tsx src/agent-cli.ts install",
     "rust:check": "cargo check --workspace --locked",
     "rust:test": "cargo test --workspace --locked"

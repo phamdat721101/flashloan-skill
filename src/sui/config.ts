@@ -1,7 +1,7 @@
 import { existsSync } from 'node:fs';
 
 export type SuiNetwork = 'mainnet' | 'testnet' | 'localnet';
-export type SuiExecutionMode = 'read-only' | 'dry-run' | 'testnet-canary' | 'mainnet-canary';
+export type SuiExecutionMode = 'read-only' | 'dry-run' | 'testnet-canary' | 'mainnet-canary' | 'auto';
 
 export interface SuiDeploymentConfig {
   network: SuiNetwork;
@@ -13,6 +13,8 @@ export interface SuiDeploymentConfig {
   deployConfirmation?: string;
   mainnetConfirmation?: string;
   expectedChainIdentifier?: string;
+  guardPackageId?: `0x${string}`;
+  guardUpgradeCapId?: `0x${string}`;
 }
 
 const ADDRESS = /^0x[0-9a-fA-F]{1,64}$/;
@@ -29,8 +31,18 @@ function parseNetwork(value: string | undefined): SuiNetwork {
 }
 
 function parseExecutionMode(value: string | undefined): SuiExecutionMode {
-  if (value === 'read-only' || value === 'dry-run' || value === 'testnet-canary' || value === 'mainnet-canary') return value;
-  throw new Error('SUI_EXECUTION_MODE must be read-only, dry-run, testnet-canary, or mainnet-canary');
+  if (value === 'read-only' || value === 'dry-run' || value === 'testnet-canary' || value === 'mainnet-canary' || value === 'auto') return value;
+  throw new Error('SUI_EXECUTION_MODE must be read-only, dry-run, testnet-canary, mainnet-canary, or auto');
+}
+
+/** Auto mode is a separate runtime authorization and is never sufficient to publish a Move package. */
+export function requireAutonomousExecution(config: SuiDeploymentConfig): void {
+  if (config.network !== 'mainnet' || config.executionMode !== 'auto') {
+    throw new Error('Autonomous execution requires SUI_NETWORK=mainnet and SUI_EXECUTION_MODE=auto');
+  }
+  if (!config.deployerAddress || !config.expectedChainIdentifier) {
+    throw new Error('Autonomous execution requires SUI_DEPLOYER_ADDRESS and SUI_CHAIN_IDENTIFIER');
+  }
 }
 
 function parseAddress(value: string | undefined, name: string): `0x${string}` | undefined {
@@ -78,8 +90,35 @@ export function loadSuiDeploymentConfig(env: NodeJS.ProcessEnv = process.env): S
     deployerAddress: parseAddress(env.SUI_DEPLOYER_ADDRESS, 'SUI_DEPLOYER_ADDRESS'),
     deployConfirmation: env.SUI_DEPLOY_CONFIRM,
     mainnetConfirmation: env.SUI_MAINNET_DEPLOY_CONFIRM,
-    expectedChainIdentifier: env.SUI_CHAIN_IDENTIFIER
+    expectedChainIdentifier: env.SUI_CHAIN_IDENTIFIER,
+    guardPackageId: parseAddress(env.SUI_GUARD_PACKAGE_ID, 'SUI_GUARD_PACKAGE_ID'),
+    guardUpgradeCapId: parseAddress(env.SUI_GUARD_UPGRADE_CAP_ID, 'SUI_GUARD_UPGRADE_CAP_ID')
   };
+}
+
+/** Upgrade consent is distinct from a fresh publish and requires the existing package controls. */
+export function requireUpgradeAuthorization(config: SuiDeploymentConfig): asserts config is SuiDeploymentConfig & {
+  deployerAddress: `0x${string}`;
+  guardPackageId: `0x${string}`;
+  guardUpgradeCapId: `0x${string}`;
+} {
+  const expectedMode = config.network === 'mainnet' ? 'mainnet-canary' : 'testnet-canary';
+  if (config.executionMode !== expectedMode) {
+    throw new Error(`Upgrading on ${config.network} requires SUI_EXECUTION_MODE=${expectedMode}`);
+  }
+  if (config.deployConfirmation !== 'upgrade') {
+    throw new Error('Upgrading requires SUI_DEPLOY_CONFIRM=upgrade');
+  }
+  if (!config.deployerAddress) throw new Error('SUI_DEPLOYER_ADDRESS is required for upgrading');
+  if (!config.guardPackageId || !config.guardUpgradeCapId) {
+    throw new Error('Upgrading requires SUI_GUARD_PACKAGE_ID and SUI_GUARD_UPGRADE_CAP_ID');
+  }
+  if (config.network === 'mainnet') {
+    if (config.mainnetConfirmation !== 'I_UNDERSTAND_MAINNET_DEPLOYMENT') {
+      throw new Error('Mainnet upgrading requires SUI_MAINNET_DEPLOY_CONFIRM=I_UNDERSTAND_MAINNET_DEPLOYMENT');
+    }
+    if (!config.expectedChainIdentifier) throw new Error('Mainnet upgrading requires SUI_CHAIN_IDENTIFIER');
+  }
 }
 
 export function requirePublishAuthorization(config: SuiDeploymentConfig): asserts config is SuiDeploymentConfig & {
@@ -109,6 +148,8 @@ export function publicSuiConfig(config: SuiDeploymentConfig): Record<string, str
     guardPackageDir: config.guardPackageDir,
     gasBudgetMist: config.gasBudgetMist.toString(),
     deployerAddress: config.deployerAddress ?? '',
-    expectedChainIdentifier: config.expectedChainIdentifier ?? ''
+    expectedChainIdentifier: config.expectedChainIdentifier ?? '',
+    guardPackageId: config.guardPackageId ?? '',
+    guardUpgradeCapId: config.guardUpgradeCapId ?? ''
   };
 }

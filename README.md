@@ -36,11 +36,11 @@ canaries. The guard is a final-custody invariant: it can receive a terminal
 profit only after an atomic route has repaid its lender. It is not a lender,
 DEX adapter, or permission to submit an arbitrage transaction.
 
-The latest deployed guard package is
-[`0x1c89f1442b2dcebcfbbf226263c6f4228f4397edff700a0af0a31cef41677713`](https://suiscan.xyz/mainnet/object/0x1c89f1442b2dcebcfbbf226263c6f4228f4397edff700a0af0a31cef41677713),
-published in transaction
-[`9B5GKGTHSX1mztKoZmZeKLmGuQKfufnEATtFQs3VgwX6`](https://suiscan.xyz/mainnet/tx/9B5GKGTHSX1mztKoZmZeKLmGuQKfufnEATtFQs3VgwX6).
-The retained `UpgradeCap`, `AdminCap`, and `OperatorCap` are documented in the
+The active guard package is
+[`0x96859191011298474c3e9944d52237083ce2b5a7065797036543fb8be9ed0c81`](https://suiscan.xyz/mainnet/object/0x96859191011298474c3e9944d52237083ce2b5a7065797036543fb8be9ed0c81),
+upgraded in transaction
+[`2yi723GHkgiT3Tcg5JTkQZ7PrZPFjvKyuMwtUy9XboXp`](https://suiscan.xyz/mainnet/tx/2yi723GHkgiT3Tcg5JTkQZ7PrZPFjvKyuMwtUy9XboXp).
+The retained `UpgradeCap`, `AdminCap`, `OperatorCap`, and `PauseCap` are documented in the
 [Sui deployment record](docs/sui-flashloan/deployment.md); treat them as
 operator-controlled objects, never configuration values to copy into a public
 route request.
@@ -58,6 +58,26 @@ npm run sui:validate-config
 npm run sui:wallet-address
 ```
 
+### Current mainnet guard workflow
+
+Use the public identifiers from the [deployment record](docs/sui-flashloan/deployment.md)
+in a local, untracked environment file. `SUI_GUARD_PACKAGE_ID` and
+`SUI_GUARD_ACTIVE_PACKAGE_ID` must both be the active package above; the
+`UpgradeCap`, `AdminCap`, `OperatorCap`, and `PauseCap` stay under operator
+custody. Verify the configuration and the admission policy before enabling a
+route compiler:
+
+```sh
+npm run sui:validate-config
+npm run sui:validate-adapter-registry -- ./config/sui-adapters.example.json
+```
+
+For an incident stop, the `AdminCap` holder sets the `PauseCap` to paused. A
+route PTB must use `assert_min_profit_and_transfer_with_pause`; a paused guard,
+an unreviewed adapter revision, missing exact repayment, or insufficient
+terminal profit reverts the entire transaction. This repository has no command
+that sends a live flashloan trade yet—only the guard upgrade path can sign.
+
 The two canaries below use the supported Sui gRPC transport. They never sign
 or submit: the DeepBook command simulates borrow and exact repayment; the
 Cetus command checks the admitted pool's package digest, object identity,
@@ -74,6 +94,24 @@ fee coin have been reviewed. The service currently fails closed before that
 stage; it does not claim a live profitable flashloan execution. See
 [`docs/sui-flashloan/`](docs/sui-flashloan/) for the route, schema, and E2E
 requirements.
+
+### Multi-lender route admission
+
+The route registry now models NAVI, Suilend, Scallop, Cetus, and Turbos as
+separate revision-pinned adapters. Validate a reviewed registry before any
+future send path is enabled:
+
+```sh
+npm run sui:validate-adapter-registry -- ./config/sui-adapters.example.json
+```
+
+Only an owned SUI gas coin may be an external fungible PTB input. Each lender
+and venue fee must be sourced from a borrowed or route-produced SUI/USDC coin;
+registries that require an operator-owned fee token are rejected. `auto` mode
+only authorizes a fully identified mainnet runtime. It does not enable an
+unverified protocol package or bypass the per-route simulation and receipt
+checks. The checked-in example is intentionally disabled and contains no live
+package or pool identifiers.
 
 ## Deployed Arbitrum multi-venue executor
 

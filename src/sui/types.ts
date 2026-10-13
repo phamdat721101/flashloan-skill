@@ -56,3 +56,61 @@ export interface SuiRoutePlan {
   profit: Decimal;
   commands: RouteCommand[];
 }
+
+export type SuiFlashLenderKind = 'navi' | 'suilend' | 'scallop';
+export type SuiSwapVenueKind = 'cetus' | 'turbos';
+export type RouteFeeSource = 'route-asset';
+
+/** A lender-specific receipt remains opaque to the generic compiler. */
+export interface SuiFlashLenderAdapter {
+  id: string;
+  kind: SuiFlashLenderKind;
+  revision: RevisionPin;
+  borrow: MoveTarget;
+  repay: MoveTarget;
+  supportedAssets: string[];
+  mutableObjectIds: SuiAddress[];
+  receiptMode: 'hot-potato';
+  enabled: boolean;
+}
+
+export interface SuiSwapVenueAdapter {
+  id: string;
+  kind: SuiSwapVenueKind;
+  revision: RevisionPin;
+  exactIn: MoveTarget;
+  supportedAssets: string[];
+  mutableObjectIds: SuiAddress[];
+  /** A venue requiring an operator-owned fee coin is never admitted. */
+  feeSource: RouteFeeSource;
+  enabled: boolean;
+}
+
+export interface SuiAdapterRegistry {
+  id: string;
+  network: SuiNetworkName;
+  lenders: SuiFlashLenderAdapter[];
+  venues: SuiSwapVenueAdapter[];
+}
+
+export interface SuiRouteFee {
+  assetType: string;
+  amount: Decimal;
+  source: RouteFeeSource;
+}
+
+/** Non-SUI coins may only be produced by an earlier command in the same PTB. */
+export interface SuiAutonomousRoute {
+  lenderAdapterId: string;
+  venueAdapterIds: string[];
+  borrowAssetType: string;
+  baseAssetType: string;
+  borrowAmount: Decimal;
+  repayAmount: Decimal;
+  finalBaseAmount: Decimal;
+  minProfitBase: Decimal;
+  gasReserveMist: Decimal;
+  expiresAtCheckpoint: Decimal;
+  externalFungibleInputs: string[];
+  feeBreakdown: SuiRouteFee[];
+}
