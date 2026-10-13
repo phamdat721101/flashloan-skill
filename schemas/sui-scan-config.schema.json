@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Sui Scanner Configuration",
+  "type": "object",
+  "required": ["network", "rpcUrl", "startCheckpoint", "protocols"],
+  "properties": {
+    "network": { "enum": ["mainnet", "testnet", "devnet", "localnet"] },
+    "rpcUrl": { "type": "string", "format": "uri" },
+    "wsUrl": { "type": "string", "format": "uri" },
+    "startCheckpoint": { "type": "string", "pattern": "^[0-9]+$" },
+    "assetAllowlist": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "protocols": {
+      "type": "object",
+      "required": ["hotPotatoLender", "cetus", "deepbook"],
+      "properties": {
+        "hotPotatoLender": {
+          "type": "object",
+          "required": ["packageId", "poolId"],
+          "properties": {
+            "packageId": { "type": "string", "pattern": "^0x[0-9a-fA-F]{64}$" },
+            "poolId": { "type": "string", "pattern": "^0x[0-9a-fA-F]{64}$" }
+          }
+        },
+        "scallop": {
+          "type": "object",
+          "properties": {
+            "marketId": { "type": "string", "pattern": "^0x[0-9a-fA-F]{64}$" }
+          }
+        },
+        "cetus": {
+          "type": "object",
+          "required": ["globalConfigId", "pools"],
+          "properties": {
+            "globalConfigId": { "type": "string", "pattern": "^0x[0-9a-fA-F]{64}$" },
+            "pools": { "type": "array", "items": { "type": "string", "pattern": "^0x[0-9a-fA-F]{64}$" } }
+          }
+        },
+        "deepbook": {
+          "type": "object",
+          "required": ["pools"],
+          "properties": {
+            "pools": { "type": "array", "items": { "type": "string", "pattern": "^0x[0-9a-fA-F]{64}$" } }
+          }
+        }
+      }
+    }
+  }
+}

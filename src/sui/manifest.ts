@@ -39,8 +39,8 @@ export function validateAdapterManifest(manifest: SuiAdapterManifest): void {
   if (manifest.receiptMode !== 'hot-potato') throw new Error('only hot-potato receipt manifests are supported');
   target(manifest.lender, 'manifest.lender');
   target(manifest.venue, 'manifest.venue');
-  if (manifest.mutableObjects.length === 0) throw new Error('manifest.mutableObjects must not be empty');
-  manifest.mutableObjects.forEach((ref, index) => objectRef(ref, `manifest.mutableObjects[${index}]`));
+  if (manifest.mutableObjectIds.length === 0) throw new Error('manifest.mutableObjectIds must not be empty');
+  manifest.mutableObjectIds.forEach((id, index) => address(id, `manifest.mutableObjectIds[${index}]`));
 }
 
 /** Rejects a quote if package digest, object version, or checkpoint has drifted. */
@@ -56,10 +56,11 @@ export function assertSnapshotMatchesManifest(manifest: SuiAdapterManifest, snap
       throw new Error(`${name} package digest mismatch`);
     }
   }
-  for (const expected of manifest.mutableObjects) {
-    const observed = snapshot.objects.find((candidate) => candidate.id.toLowerCase() === expected.id.toLowerCase());
-    if (!observed || observed.version !== expected.version || observed.digest !== expected.digest) {
-      throw new Error(`mutable object reference mismatch for ${expected.id}`);
+  for (const id of manifest.mutableObjectIds) {
+    const observed = snapshot.objects.find((candidate) => candidate.id.toLowerCase() === id.toLowerCase());
+    if (!observed) {
+      throw new Error(`mutable object reference missing for ${id}`);
     }
+    objectRef(observed, `snapshot object ${id}`);
   }
 }

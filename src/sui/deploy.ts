@@ -1,37 +1,96 @@
-import { spawnSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import { resolve } from 'node:path';
+import { SuiGrpcClient } from '@mysten/sui/grpc';
+import { Transaction } from '@mysten/sui/transactions';
 import { requirePublishAuthorization, type SuiDeploymentConfig } from './config.js';
+import type { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
 
 export function publishCommand(config: SuiDeploymentConfig): readonly string[] {
   requirePublishAuthorization(config);
-  return ['client', 'publish', resolve(config.guardPackageDir), '--gas-budget', config.gasBudgetMist.toString()];
+  return ['move', 'build', '--path', resolve(config.guardPackageDir), '--dump-bytecode-as-base64', '--ignore-chain'];
 }
 
-function runSuiClient(args: readonly string[]): string {
-  const result = spawnSync('sui', [...args], { encoding: 'utf8' });
-  if (result.error) throw new Error(`Sui CLI is required: ${result.error.message}`);
-  if (result.status !== 0) throw new Error(result.stderr.trim() || `sui ${args.join(' ')} failed`);
-  return result.stdout.trim();
+interface CompiledPackage {
+  modules: string[];
+  dependencies: string[];
 }
 
-/** Publishes only after checking the selected CLI network and wallet against explicit config. */
-export function publishTerminalGuard(config: SuiDeploymentConfig): void {
+export interface SuiPublishReceipt {
+  digest: string;
+  gasUsed: {
+    computationCost: string;
+    storageCost: string;
+    storageRebate: string;
+    nonRefundableStorageFee: string;
+  };
+}
+
+function compilePackage(config: SuiDeploymentConfig): CompiledPackage {
+  let output: string;
+  try {
+    output = execFileSync('sui', publishCommand(config), { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+  } catch {
+    throw new Error('Sui Move build failed');
+  }
+
+  let payload: unknown;
+  try {
+    payload = JSON.parse(output.trim());
+  } catch {
+    throw new Error('Sui Move build did not return package bytecode JSON');
+  }
+  if (!payload || typeof payload !== 'object' || !Array.isArray((payload as CompiledPackage).modules) || !Array.isArray((payload as CompiledPackage).dependencies)) {
+    throw new Error('Sui Move build returned an invalid package payload');
+  }
+  return payload as CompiledPackage;
+}
+
+function createPublishTransaction(config: SuiDeploymentConfig, compiled: CompiledPackage): Transaction {
+  const transaction = new Transaction();
+  const [upgradeCap] = transaction.publish(compiled);
+  transaction.transferObjects([upgradeCap], config.deployerAddress!);
+  transaction.setSender(config.deployerAddress!);
+  transaction.setGasBudget(config.gasBudgetMist);
+  return transaction;
+}
+
+/** Publishes through the supported gRPC transport after simulation and exact signer/chain checks. */
+export async function publishTerminalGuard(config: SuiDeploymentConfig, signer: Ed25519Keypair): Promise<SuiPublishReceipt> {
   requirePublishAuthorization(config);
-  const cliNetwork = runSuiClient(['client', 'active-env']);
-  if (cliNetwork !== config.network) {
-    throw new Error(`Sui CLI active network ${cliNetwork || '(empty)'} does not match SUI_NETWORK=${config.network}`);
+  if (signer.toSuiAddress().toLowerCase() !== config.deployerAddress.toLowerCase()) {
+    throw new Error('Sui signer address does not match SUI_DEPLOYER_ADDRESS');
   }
-  const activeAddress = runSuiClient(['client', 'active-address']).toLowerCase();
-  if (activeAddress !== config.deployerAddress.toLowerCase()) {
-    throw new Error('Sui CLI active address does not match SUI_DEPLOYER_ADDRESS');
-  }
+
+  const client = new SuiGrpcClient({ baseUrl: config.rpcUrl, network: config.network });
   if (config.network === 'mainnet') {
-    const chainIdentifier = runSuiClient(['client', 'chain-identifier']);
-    if (chainIdentifier !== config.expectedChainIdentifier) {
-      throw new Error('Sui CLI chain identifier does not match SUI_CHAIN_IDENTIFIER');
+    const chain = await client.getChainIdentifier();
+    if (chain.chainIdentifier !== config.expectedChainIdentifier) {
+      throw new Error('Sui gRPC chain identifier does not match SUI_CHAIN_IDENTIFIER');
     }
   }
-  const result = spawnSync('sui', [...publishCommand(config)], { stdio: 'inherit' });
-  if (result.error) throw new Error(`Sui CLI publish failed: ${result.error.message}`);
-  if (result.status !== 0) throw new Error('Sui CLI publish failed');
+
+  const compiled = compilePackage(config);
+  const simulation = await client.simulateTransaction({ transaction: createPublishTransaction(config, compiled), include: { effects: true } });
+  if (simulation.$kind !== 'Transaction' || !simulation.Transaction.effects?.status.success) {
+    throw new Error('Sui publish simulation failed');
+  }
+
+  const result = await client.signAndExecuteTransaction({
+    signer,
+    transaction: createPublishTransaction(config, compiled),
+    include: { effects: true }
+  });
+  if (result.$kind !== 'Transaction' || !result.Transaction.effects?.status.success || !result.Transaction.effects.gasUsed) {
+    throw new Error('Sui publish transaction failed');
+  }
+  const gasUsed = result.Transaction.effects.gasUsed;
+  return {
+    digest: result.Transaction.digest,
+    gasUsed: {
+      computationCost: gasUsed.computationCost.toString(),
+      storageCost: gasUsed.storageCost.toString(),
+      storageRebate: gasUsed.storageRebate.toString(),
+      nonRefundableStorageFee: gasUsed.nonRefundableStorageFee.toString()
+    }
+  };
 }

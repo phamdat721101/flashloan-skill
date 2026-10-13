@@ -8,7 +8,7 @@ const lender: MoveTarget = { packageId: '0x1', publishedAt: '0x1', packageDigest
 const venue: MoveTarget = { packageId: '0x2', publishedAt: '0x2', packageDigest: 'venue-digest', verifiedCheckpoint: '10', module: 'pool', function: 'swap' };
 const manifest: SuiAdapterManifest = {
   id: 'reference-testnet', network: 'testnet', baseAssetType: '0x2::sui::SUI', lender, venue,
-  mutableObjects: [{ id: '0xa', version: '7', digest: 'pool-digest' }], receiptMode: 'hot-potato', enabled: false
+  mutableObjectIds: ['0xa'], receiptMode: 'hot-potato', enabled: false
 };
 
 test('accepts only a snapshot pinned to reviewed package and object revisions', () => {
@@ -21,6 +21,10 @@ test('accepts only a snapshot pinned to reviewed package and object revisions', 
     checkpoint: '11', packageDigests: { '0x1': 'changed', '0x2': 'venue-digest' },
     objects: [{ id: '0xa', version: '7', digest: 'pool-digest' }]
   }), /digest mismatch/);
+  assert.throws(() => assertSnapshotMatchesManifest(manifest, {
+    checkpoint: '11', packageDigests: { '0x1': 'lender-digest', '0x2': 'venue-digest' },
+    objects: []
+  }), /reference missing/);
 });
 
 test('compiles exact repayment and rejects terminal-profit diversion', () => {

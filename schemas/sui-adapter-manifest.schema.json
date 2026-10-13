@@ -2,11 +2,16 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Sui Adapter Manifest",
   "type": "object",
-  "required": ["id", "network", "baseAssetType", "lender", "venue", "mutableObjects", "receiptMode", "enabled"],
+  "required": ["id", "network", "baseAssetType", "lender", "venue", "mutableObjectIds", "receiptMode", "enabled"],
   "properties": {
     "id": { "type": "string", "minLength": 1 },
     "network": { "enum": ["mainnet", "testnet", "localnet"] },
     "baseAssetType": { "type": "string", "pattern": "::" },
+    "mutableObjectIds": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "pattern": "^0x[0-9a-fA-F]{1,64}$" }
+    },
     "receiptMode": { "const": "hot-potato" },
     "enabled": { "type": "boolean" }
   }

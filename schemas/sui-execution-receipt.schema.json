@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Sui Execution Receipt",
+  "type": "object",
+  "required": ["digest", "checkpoint", "status", "realizedProfitMist", "gasUsed", "timestamp"],
+  "properties": {
+    "digest": { "type": "string", "pattern": "^[1-9A-HJ-NP-Za-km-z]{43,44}$" },
+    "checkpoint": { "type": "string", "pattern": "^[0-9]+$" },
+    "status": { "enum": ["success", "failure", "halted"] },
+    "realizedProfitMist": { "type": "string", "pattern": "^[0-9]+$" },
+    "realizedProfitUsd": { "type": "number" },
+    "gasUsed": {
+      "type": "object",
+      "required": ["computationCost", "storageCost", "storageRebate", "netGasMist"],
+      "properties": {
+        "computationCost": { "type": "string", "pattern": "^[0-9]+$" },
+        "storageCost": { "type": "string", "pattern": "^[0-9]+$" },
+        "storageRebate": { "type": "string", "pattern": "^[0-9]+$" },
+        "netGasMist": { "type": "string", "pattern": "^-?[0-9]+$" }
+      }
+    },
+    "errorMessage": { "type": "string" },
+    "timestamp": { "type": "string", "format": "date-time" }
+  }
+}

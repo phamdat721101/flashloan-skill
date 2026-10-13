@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Sui Flashloan Opportunity",
+  "type": "object",
+  "required": ["id", "network", "channel", "strategy", "expiresAtCheckpoint", "plans"],
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "network": { "enum": ["mainnet", "testnet", "localnet"] },
+    "channel": { "type": "string", "minLength": 1 },
+    "strategy": { "enum": ["hot-potato-cetus-deepbook", "scallop-cetus-arbitrage", "navi-triangular-arbitrage"] },
+    "expiresAtCheckpoint": { "type": "string", "pattern": "^[0-9]+$" },
+    "plans": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["planId", "borrowAsset", "borrowAmount", "quotedNetProfitMist", "quotedNetProfitUsd", "ptbRoute"],
+        "properties": {
+          "planId": { "type": "string", "minLength": 1 },
+          "borrowAsset": { "type": "string" },
+          "borrowAmount": { "type": "string", "pattern": "^[0-9]+$" },
+          "priceImpactBps": { "type": "number", "minimum": 0 },
+          "quotedNetProfitMist": { "type": "string", "pattern": "^[0-9]+$" },
+          "quotedNetProfitUsd": { "type": "number", "exclusiveMinimum": 0 },
+          "ptbRoute": { "$ref": "#/$defs/ptbRoute" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "ptbRoute": {
+      "type": "object",
+      "required": ["commands", "inputs"],
+      "properties": {
+        "inputs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["kind", "value"],
+            "properties": {
+              "kind": { "enum": ["pure", "sharedObject", "ownedObject"] },
+              "value": { "type": "string" }
+            }
+          }
+        },
+        "commands": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["type", "package", "module", "function"],
+            "properties": {
+              "type": { "enum": ["moveCall", "splitCoins", "mergeCoins"] },
+              "package": { "type": "string" },
+              "module": { "type": "string" },
+              "function": { "type": "string" },
+              "typeArguments": { "type": "array", "items": { "type": "string" } },
+              "arguments": { "type": "array", "items": { "type": "string" } }
+            }
+          }
+        }
+      }
+    }
+  }
+}

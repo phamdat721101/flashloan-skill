@@ -29,6 +29,52 @@ node dist/cli.js validate-config
 
 The runtime accepts exact executor-ready opportunities matching `schemas/opportunity.schema.json`. `FLASH_EXECUTOR_ADDRESS`, `PRIVATE_RELAY_URL`, and `OPERATOR_PRIVATE_KEY` are explicit local configuration; no executor address or secret is implied.
 
+## Sui mainnet flashloan service
+
+The Sui service has a deployed terminal-profit guard and two read-only mainnet
+canaries. The guard is a final-custody invariant: it can receive a terminal
+profit only after an atomic route has repaid its lender. It is not a lender,
+DEX adapter, or permission to submit an arbitrage transaction.
+
+The latest deployed guard package is
+[`0x1c89f1442b2dcebcfbbf226263c6f4228f4397edff700a0af0a31cef41677713`](https://suiscan.xyz/mainnet/object/0x1c89f1442b2dcebcfbbf226263c6f4228f4397edff700a0af0a31cef41677713),
+published in transaction
+[`9B5GKGTHSX1mztKoZmZeKLmGuQKfufnEATtFQs3VgwX6`](https://suiscan.xyz/mainnet/tx/9B5GKGTHSX1mztKoZmZeKLmGuQKfufnEATtFQs3VgwX6).
+The retained `UpgradeCap`, `AdminCap`, and `OperatorCap` are documented in the
+[Sui deployment record](docs/sui-flashloan/deployment.md); treat them as
+operator-controlled objects, never configuration values to copy into a public
+route request.
+
+Start with public-only configuration. Copy `.env.example` to a local `.env`,
+set `SUI_NETWORK=mainnet`, set
+`SUI_RPC_URL=https://fullnode.mainnet.sui.io:443`, and add the reviewed public
+DeepBook and Cetus canary pins. Do not put `SUI_OPERATOR_PRIVATE_KEY` in a
+repository, prompt, receipt, or shell history. Validate the non-secret
+deployment inputs and, if needed, confirm that the optional local signer
+matches the configured public address:
+
+```sh
+npm run sui:validate-config
+npm run sui:wallet-address
+```
+
+The two canaries below use the supported Sui gRPC transport. They never sign
+or submit: the DeepBook command simulates borrow and exact repayment; the
+Cetus command checks the admitted pool's package digest, object identity,
+asset types, pause state, fee tier, and liquidity.
+
+```sh
+npm run sui:deepbook-flashloan-canary
+npm run sui:cetus-pool-canary
+```
+
+Do not construct or submit a cross-venue route until fresh quotes, exact
+minimum outputs, repayment amounts, and the required owned DeepBook `DEEP`
+fee coin have been reviewed. The service currently fails closed before that
+stage; it does not claim a live profitable flashloan execution. See
+[`docs/sui-flashloan/`](docs/sui-flashloan/) for the route, schema, and E2E
+requirements.
+
 ## Deployed Arbitrum multi-venue executor
 
 The reviewed multi-venue executor is deployed on Arbitrum One at

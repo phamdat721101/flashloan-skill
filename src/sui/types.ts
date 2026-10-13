@@ -26,7 +26,8 @@ export interface SuiAdapterManifest {
   baseAssetType: string;
   lender: MoveTarget;
   venue: MoveTarget;
-  mutableObjects: SuiObjectRef[];
+  /** Stable shared-object identities admitted by the reviewed adapter revision. */
+  mutableObjectIds: SuiAddress[];
   receiptMode: 'hot-potato';
   enabled: boolean;
 }

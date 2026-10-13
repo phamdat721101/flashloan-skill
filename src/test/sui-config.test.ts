@@ -18,7 +18,7 @@ const valid = {
 test('accepts an explicit testnet deployment configuration', () => {
   const config = loadSuiDeploymentConfig(valid);
   requirePublishAuthorization(config);
-  assert.deepEqual(publishCommand(config).slice(0, 3), ['client', 'publish', process.cwd()]);
+  assert.deepEqual(publishCommand(config).slice(0, 4), ['move', 'build', '--path', process.cwd()]);
 });
 
 test('refuses accidental deployment settings', () => {
