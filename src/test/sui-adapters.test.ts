@@ -76,4 +76,6 @@ test('rejects disabled adapters and routes that cannot repay and profit', () => 
     lenders: registry.lenders.map((lender) => lender.id === 'navi' ? { ...lender, enabled: false } : lender)
   }, route), /lender is not enabled/);
   assert.throws(() => assertAutonomousRoute(registry, { ...route, finalBaseAmount: '1005499' }), /cannot meet its minimum profit/);
+  assert.throws(() => assertAutonomousRoute(registry, { ...route, baseAssetType: SUI, finalBaseAmount: '1000000000000000' }), /same asset units/);
+  assert.throws(() => validateAdapterRegistry({ ...registry, venues: registry.venues.map(venue => ({ ...venue, supportedAssets: [SUI, SUI] })) }), /without duplicates/);
 });

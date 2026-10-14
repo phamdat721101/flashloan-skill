@@ -1,9 +1,9 @@
 import { arbitrum } from 'viem/chains';
-import { createPublicClient, createWalletClient, formatUnits, http, parseEventLogs } from 'viem';
+import { createPublicClient, createWalletClient, decodeFunctionData, formatUnits, http, parseEventLogs } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import type { ExecutorAdapter } from './connectors.js';
 import type { AllocationPlan, ExecutionReceipt, SimulationResult, SkillConfig } from './types.js';
-import { FLASH_EXECUTOR_ABI, FLASH_EXECUTOR_SELECTORS } from './contracts/flash-executor.js';
+import { DYNAMIC_V4_EXECUTOR_DEPLOYMENT, FLASH_EXECUTOR_ABI, FLASH_EXECUTOR_SELECTORS, MULTI_VENUE_EXECUTOR_DEPLOYMENT } from './contracts/flash-executor.js';
 import { executionOutcome } from './execution-outcome.js';
 
 const WEI_PER_ETH = 1_000_000_000_000_000_000n;
@@ -13,6 +13,15 @@ export function validateExecutorPlan(plan: AllocationPlan, config: SkillConfig):
   if (plan.chainId !== config.chainId) throw new Error('plan chain does not match configured chain');
   if (plan.transaction.to.toLowerCase() !== config.executorAddress.toLowerCase()) {
     throw new Error('plan transaction must target the configured executor');
+  }
+  // These immutable addresses retain the reversed V4 BalanceDelta decoder.
+  // A local source repair does not admit their deployed V4 execution path.
+  const target = plan.transaction.to.toLowerCase();
+  if (target === DYNAMIC_V4_EXECUTOR_DEPLOYMENT.address.toLowerCase()) throw new Error('known unsafe V4 deployment requires corrected deployment admission');
+  if (target === MULTI_VENUE_EXECUTOR_DEPLOYMENT.address.toLowerCase() && plan.transaction.data.slice(0, 10).toLowerCase() === FLASH_EXECUTOR_SELECTORS['multi-venue-arbitrage'].toLowerCase()) {
+    const decoded = decodeFunctionData({ abi: FLASH_EXECUTOR_ABI, data: plan.transaction.data });
+    if (decoded.functionName !== 'executeArbitrage') throw new Error('invalid multi-venue route');
+    if (decoded.args[0].legs.some(leg => leg.venueVersion === 4)) throw new Error('known unsafe V4 deployment requires corrected deployment admission');
   }
   if (plan.expiresAt && Date.parse(plan.expiresAt) <= Date.now()) throw new Error('stale proposal has expired');
   if (plan.capability) {

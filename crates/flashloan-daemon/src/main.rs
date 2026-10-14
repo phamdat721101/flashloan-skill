@@ -1,7 +1,7 @@
 use alloy::primitives::U256;
 use flashloan_core::{
     DexPairCall, EngineConfig, Head, LiveHeads, Pool, find_affected_cycles, hex_encode,
-    require_current_pool_snapshot, speculate_v2_two_hop,
+    require_current_pool_snapshot, speculate_v2_two_hop_with_target_token,
 };
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, env, fs, process::ExitCode, str::FromStr};
@@ -30,6 +30,8 @@ enum InboundEvent {
         target_pool_id: String,
         counter_pool_id: String,
         flash_token: String,
+        #[serde(default)]
+        target_token_in: Option<String>,
         target_amount_in: String,
         flash_loan_fee_bps: u16,
         fixed_cost: String,
@@ -216,6 +218,7 @@ fn main() -> ExitCode {
                 target_pool_id,
                 counter_pool_id,
                 flash_token,
+                target_token_in,
                 target_amount_in,
                 flash_loan_fee_bps,
                 fixed_cost,
@@ -297,10 +300,11 @@ fn main() -> ExitCode {
                     );
                     continue;
                 }
-                match speculate_v2_two_hop(
+                match speculate_v2_two_hop_with_target_token(
                     target_pool,
                     counter_pool,
                     &flash_token,
+                    target_token_in.as_deref().unwrap_or(&flash_token),
                     target_amount,
                     flash_loan_fee_bps,
                     fixed_cost,

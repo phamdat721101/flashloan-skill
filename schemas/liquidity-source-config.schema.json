@@ -1,0 +1,121 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Liquidity read-only source configuration v3",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "rpcUrl", "sourceId", "cursor", "pools"],
+      "properties": {
+        "schemaVersion": { "const": "3.0" },
+        "rpcUrl": { "type": "string", "format": "uri" },
+        "sourceId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "cursor": { "$ref": "#/$defs/u64" },
+        "blockNumber": { "$ref": "#/$defs/u64" },
+        "pools": {
+          "type": "array", "minItems": 1, "maxItems": 100,
+          "items": {
+            "type": "object", "additionalProperties": false,
+            "required": ["address", "expectedCodeHash"],
+            "properties": {
+              "address": { "type": "string", "pattern": "^0x[0-9a-fA-F]{40}$" },
+              "expectedCodeHash": { "type": "string", "pattern": "^0x[0-9a-f]{64}$" }
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object", "additionalProperties": false,
+      "required": ["schemaVersion", "rpcUrl", "network", "expectedChainIdentifier", "checkpoint"],
+      "properties": {
+        "schemaVersion": { "const": "3.0" },
+        "rpcUrl": { "type": "string", "format": "uri" },
+        "network": { "enum": ["mainnet", "testnet", "localnet"] },
+        "expectedChainIdentifier": { "type": "string", "pattern": "^[1-9A-HJ-NP-Za-km-z]{32,44}$" },
+        "checkpoint": { "$ref": "#/$defs/u64" }
+      }
+    },
+    {
+      "type": "object", "additionalProperties": false,
+      "required": ["schemaVersion", "rpcUrl", "sourceId", "network", "pools", "fromBlock", "toBlock", "maxFrames", "journalPath"],
+      "properties": {
+        "schemaVersion": { "const": "3.0" },
+        "rpcUrl": { "type": "string", "format": "uri" },
+        "sourceId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "network": { "enum": ["42161", "421614"] },
+        "pools": { "$ref": "#/oneOf/0/properties/pools" },
+        "fromBlock": { "$ref": "#/$defs/u64" },
+        "toBlock": { "$ref": "#/$defs/u64" },
+        "maxFrames": { "type": "integer", "minimum": 1, "maximum": 1000 },
+        "journalPath": { "type": "string", "minLength": 1 }
+      }
+    },
+    {
+      "type": "object", "additionalProperties": false,
+      "required": ["schemaVersion", "rpcUrl", "sourceId", "network", "expectedChainIdentifier", "fromCheckpoint", "toCheckpoint", "maxFrames", "journalPath"],
+      "properties": {
+        "schemaVersion": { "const": "3.0" },
+        "rpcUrl": { "type": "string", "format": "uri" },
+        "sourceId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "network": { "enum": ["mainnet", "testnet", "localnet"] },
+        "expectedChainIdentifier": { "$ref": "#/oneOf/1/properties/expectedChainIdentifier" },
+        "fromCheckpoint": { "$ref": "#/$defs/u64" },
+        "toCheckpoint": { "$ref": "#/$defs/u64" },
+        "maxFrames": { "type": "integer", "minimum": 1, "maximum": 1000 },
+        "journalPath": { "type": "string", "minLength": 1 }
+      }
+    },
+    {
+      "type": "object", "additionalProperties": false,
+      "required": ["schemaVersion", "sourceId", "network", "expectedChainIdentifier", "journalPath", "trackedObjectIds"],
+      "properties": {
+        "schemaVersion": { "const": "3.0" },
+        "sourceId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "network": { "enum": ["mainnet", "testnet", "localnet"] },
+        "expectedChainIdentifier": { "$ref": "#/oneOf/1/properties/expectedChainIdentifier" },
+        "journalPath": { "type": "string", "minLength": 1 },
+        "trackedObjectIds": { "type": "array", "minItems": 1, "maxItems": 1000, "uniqueItems": true, "items": { "type": "string", "pattern": "^0x[0-9a-fA-F]{1,64}$" } }
+      }
+    },
+    {
+      "type": "object", "additionalProperties": false,
+      "required": ["schemaVersion", "rpcUrl", "sourceId", "network", "pools", "journalPath", "start", "maxFrames", "maxGap", "pollIntervalMs", "maxIdlePolls"],
+      "properties": {
+        "schemaVersion": { "const": "3.0" },
+        "rpcUrl": { "type": "string", "format": "uri" },
+        "sourceId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "network": { "enum": ["42161", "421614"] },
+        "pools": { "$ref": "#/oneOf/0/properties/pools" },
+        "journalPath": { "type": "string", "minLength": 1 },
+        "start": { "$ref": "#/$defs/u64" },
+        "maxFrames": { "$ref": "#/$defs/followLimit" },
+        "maxGap": { "$ref": "#/$defs/followLimit" },
+        "maxIdlePolls": { "$ref": "#/$defs/followLimit" },
+        "pollIntervalMs": { "type": "integer", "minimum": 100, "maximum": 60000 }
+      }
+    },
+    {
+      "type": "object", "additionalProperties": false,
+      "required": ["schemaVersion", "rpcUrl", "sourceId", "network", "expectedChainIdentifier", "journalPath", "start", "maxFrames", "maxGap", "pollIntervalMs", "maxIdlePolls"],
+      "properties": {
+        "schemaVersion": { "const": "3.0" },
+        "rpcUrl": { "type": "string", "format": "uri" },
+        "sourceId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "network": { "enum": ["mainnet", "testnet", "localnet"] },
+        "expectedChainIdentifier": { "$ref": "#/oneOf/1/properties/expectedChainIdentifier" },
+        "journalPath": { "type": "string", "minLength": 1 },
+        "start": { "$ref": "#/$defs/u64" },
+        "maxFrames": { "$ref": "#/$defs/followLimit" },
+        "maxGap": { "$ref": "#/$defs/followLimit" },
+        "maxIdlePolls": { "$ref": "#/$defs/followLimit" },
+        "pollIntervalMs": { "type": "integer", "minimum": 100, "maximum": 60000 }
+      }
+    }
+  ],
+  "$defs": {
+    "u64": { "type": "string", "pattern": "^(0|[1-9][0-9]*)$", "maxLength": 20 },
+    "followLimit": { "type": "integer", "minimum": 1, "maximum": 1000 }
+  },
+  "$comment": "The runtime additionally enforces exact u64 bounds, HTTPS except localhost, unique pool addresses, and endpoint chain identity. Configuration does not authorize signing or submission."
+}

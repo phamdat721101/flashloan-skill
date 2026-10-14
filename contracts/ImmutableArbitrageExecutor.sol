@@ -192,8 +192,8 @@ contract ImmutableArbitrageExecutor {
 
     function _amounts(BalanceDelta delta) private pure returns (int128 amount0, int128 amount1) {
         int256 packed = BalanceDelta.unwrap(delta);
-        amount0 = int128(packed);
-        amount1 = int128(packed >> 128);
+        amount0 = int128(packed >> 128);
+        amount1 = int128(packed);
     }
 
     function _safeApprove(address asset, address spender, uint256 amount) private {

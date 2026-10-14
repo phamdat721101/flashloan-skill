@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Exact bounded CLMM quote v3",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "protocol", "snapshotDigest", "tokenIn", "amountIn", "amountOut", "feeAmount", "sqrtPriceAfterX96", "liquidityAfter", "tickAfter", "crossedTicks", "steps"],
+  "properties": {
+    "schemaVersion": { "const": "3.0" },
+    "protocol": { "enum": ["uniswap-v3", "uniswap-v4"] },
+    "snapshotDigest": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "tokenIn": { "type": "string", "pattern": "^0x[0-9a-fA-F]{40}$" },
+    "amountIn": { "$ref": "#/$defs/u256" },
+    "amountOut": { "$ref": "#/$defs/u256" },
+    "feeAmount": { "$ref": "#/$defs/u256" },
+    "sqrtPriceAfterX96": { "type": "string", "pattern": "^[1-9][0-9]*$", "maxLength": 49 },
+    "liquidityAfter": { "type": "string", "pattern": "^(0|[1-9][0-9]*)$", "maxLength": 39 },
+    "tickAfter": { "type": "integer", "minimum": -887272, "maximum": 887272 },
+    "crossedTicks": { "type": "array", "maxItems": 4096, "uniqueItems": true, "items": { "type": "integer", "minimum": -887272, "maximum": 887272 } },
+    "steps": { "type": "integer", "minimum": 1, "maximum": 4096 }
+  },
+  "$defs": { "u256": { "type": "string", "pattern": "^(0|[1-9][0-9]*)$", "maxLength": 78 } },
+  "$comment": "Native token units; runtime enforces exact integer widths, complete tick coverage and direction. V4 supports static fees and ERC-20 no-hook pools only. This quote is not an execution admission or oracle valuation."
+}

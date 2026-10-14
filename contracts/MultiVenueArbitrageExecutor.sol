@@ -4,6 +4,8 @@ pragma solidity >=0.8.25 <0.9.0;
 interface IMVToken { function balanceOf(address) external view returns (uint256); function transfer(address, uint256) external returns (bool); function approve(address, uint256) external returns (bool); }
 interface IMVAaveProvider { function getPool() external view returns (address); }
 interface IMVAavePool { function ADDRESSES_PROVIDER() external view returns (address); function flashLoanSimple(address, address, uint256, bytes calldata, uint16) external; }
+interface IMVMorpho { function flashLoan(address, uint256, bytes calldata) external; }
+interface IMVBalancer { function flashLoan(address, address[] calldata, uint256[] calldata, bytes calldata) external; }
 interface IMVV2Factory { function getPair(address, address) external view returns (address); }
 interface IMVV2Pair { function token0() external view returns (address); function token1() external view returns (address); function swap(uint256, uint256, address, bytes calldata) external; }
 interface IMVV3Factory { function getPool(address, address, uint24) external view returns (address); }
@@ -30,6 +32,12 @@ contract MultiVenueArbitrageExecutor {
     mapping(address => bytes32) public trustedV3FactoryCodeHash;
     mapping(address => bytes32) public trustedV4ManagerCodeHash;
     mapping(address => bool) public v4HooksAllowed;
+    mapping(uint8 => mapping(address => bytes32)) public trustedLenderCodeHash;
+    address private activeLender;
+    uint8 private activeLenderKind;
+    bytes32 private activeLoanHash;
+    uint256 private loanOpeningBalance;
+    bool private loanCallbackCompleted;
 
     struct Leg {
         uint8 venueVersion;
@@ -45,11 +53,69 @@ contract MultiVenueArbitrageExecutor {
         bytes hookData;
     }
     struct ArbitrageRoute { address aaveProvider; address flashAsset; uint256 flashAmount; Leg[] legs; uint256 minProfit; uint256 deadline; }
+    /// kind 1: Morpho Blue, kind 2: Balancer V2. Aave retains its existing ABI.
+    struct LenderRoute { uint8 kind; address lender; address flashAsset; uint256 flashAmount; Leg[] legs; uint256 minProfit; uint256 deadline; }
 
     event RootConfigured(uint8 indexed venueVersion, address indexed root, bytes32 codeHash, bool allowed, bool allowHooks);
     event MultiVenueArbitrageExecuted(bytes32 indexed routeHash, address indexed asset, uint256 flashAmount, uint256 netProfit, uint256 legs);
 
     constructor() { owner = msg.sender; }
+
+    function configureLender(uint8 kind, address lender, bytes32 codeHash, bool allowed) external onlyOwner onlyIdle {
+        if ((kind != 1 && kind != 2) || lender == address(0) || (allowed && (codeHash == bytes32(0) || lender.codehash != codeHash))) revert InvalidRoute();
+        trustedLenderCodeHash[kind][lender] = allowed ? codeHash : bytes32(0);
+        emit RootConfigured(kind == 1 ? 5 : 6, lender, codeHash, allowed, false);
+    }
+
+    function executeLenderArbitrage(LenderRoute calldata route) external onlyOwner onlyIdle {
+        bytes32 pin = trustedLenderCodeHash[route.kind][route.lender];
+        if (pin == bytes32(0) || route.lender.codehash != pin) revert UntrustedRoot();
+        _validateLegs(route.flashAsset, route.flashAmount, route.legs, route.deadline);
+        activeLender = route.lender; activeLenderKind = route.kind;
+        loanOpeningBalance = IMVToken(route.flashAsset).balanceOf(address(this));
+        bytes memory data = abi.encode(route); activeLoanHash = keccak256(data);
+        loanCallbackCompleted = false; phase = Phase.AwaitingFlash;
+        if (route.kind == 1) IMVMorpho(route.lender).flashLoan(route.flashAsset, route.flashAmount, data);
+        else if (route.kind == 2) {
+            address[] memory tokens = new address[](1); tokens[0] = route.flashAsset;
+            uint256[] memory amounts = new uint256[](1); amounts[0] = route.flashAmount;
+            IMVBalancer(route.lender).flashLoan(address(this), tokens, amounts, data);
+        } else revert InvalidRoute();
+        if (!loanCallbackCompleted || phase != Phase.AwaitingFlash) revert CallbackOnly();
+        if (IMVToken(route.flashAsset).balanceOf(address(this)) < loanOpeningBalance + route.minProfit) revert Unprofitable();
+        phase = Phase.Idle; activeLender = address(0); activeLenderKind = 0;
+        activeLoanHash = bytes32(0); loanOpeningBalance = 0; loanCallbackCompleted = false;
+    }
+
+    function onMorphoFlashLoan(uint256 assets, bytes calldata data) external {
+        LenderRoute memory route = _checkLoanCallback(1, data);
+        if (assets != route.flashAmount) revert InvalidRoute();
+        _executeLoanRoute(route, 0);
+        _safeApprove(route.flashAsset, msg.sender, assets);
+    }
+
+    function receiveFlashLoan(address[] calldata tokens, uint256[] calldata amounts, uint256[] calldata fees, bytes calldata data) external {
+        LenderRoute memory route = _checkLoanCallback(2, data);
+        if (tokens.length != 1 || amounts.length != 1 || fees.length != 1 || tokens[0] != route.flashAsset || amounts[0] != route.flashAmount) revert InvalidRoute();
+        _executeLoanRoute(route, fees[0]);
+        _safeTransfer(route.flashAsset, msg.sender, amounts[0] + fees[0]);
+    }
+
+    function _checkLoanCallback(uint8 kind, bytes calldata data) private returns (LenderRoute memory route) {
+        if (phase != Phase.AwaitingFlash || loanCallbackCompleted || activeLenderKind != kind || msg.sender != activeLender || keccak256(data) != activeLoanHash || msg.sender.codehash != trustedLenderCodeHash[kind][msg.sender]) revert CallbackOnly();
+        route = abi.decode(data, (LenderRoute));
+        if (route.kind != kind || route.lender != msg.sender) revert InvalidRoute();
+        loanCallbackCompleted = true;
+    }
+
+    function _executeLoanRoute(LenderRoute memory route, uint256 fee) private {
+        if (IMVToken(route.flashAsset).balanceOf(address(this)) < loanOpeningBalance + route.flashAmount) revert InvalidRoute();
+        uint256 current = route.flashAmount;
+        for (uint256 i; i < route.legs.length; ++i) current = _executeLeg(route.legs[i], current);
+        uint256 closing = IMVToken(route.flashAsset).balanceOf(address(this));
+        if (closing < loanOpeningBalance + route.flashAmount + fee + route.minProfit) revert Unprofitable();
+        emit MultiVenueArbitrageExecuted(activeLoanHash, route.flashAsset, route.flashAmount, closing - loanOpeningBalance - route.flashAmount - fee, route.legs.length);
+    }
 
     function configureRoot(uint8 venueVersion, address root, bytes32 codeHash, bool allowed, bool allowHooks) external onlyOwner onlyIdle {
         if (root == address(0) || venueVersion < V2 || venueVersion > V4 || (allowed && (codeHash == bytes32(0) || root.codehash != codeHash))) revert InvalidRoute();
@@ -110,7 +176,7 @@ contract MultiVenueArbitrageExecutor {
         bool zeroForOne = leg.tokenIn == key.currency0;
         MVBalanceDelta delta = IMVV4PoolManager(msg.sender).swap(key, MVSwapParams(zeroForOne, -int256(expectedInput), leg.sqrtPriceLimitX96), leg.hookData);
         int256 packed = MVBalanceDelta.unwrap(delta);
-        int128 amount0 = int128(packed); int128 amount1 = int128(packed >> 128);
+        int128 amount0 = int128(packed >> 128); int128 amount1 = int128(packed);
         _settleV4(msg.sender, key.currency0, amount0); _settleV4(msg.sender, key.currency1, amount1);
         phase = Phase.AwaitingFlash;
         return bytes("");
@@ -144,10 +210,14 @@ contract MultiVenueArbitrageExecutor {
     }
 
     function _validateRoute(ArbitrageRoute calldata route) private view {
-        if (block.timestamp > route.deadline || route.flashAmount == 0 || route.legs.length < 2 || route.legs.length > MAX_HOPS || !_trustedAaveProvider(route.aaveProvider)) revert InvalidRoute();
-        address token = route.flashAsset;
-        for (uint256 i; i < route.legs.length; ++i) { if (route.legs[i].tokenIn != token || route.legs[i].minAmountOut == 0) revert InvalidRoute(); token = route.legs[i].tokenOut; }
-        if (token != route.flashAsset) revert InvalidRoute();
+        if (!_trustedAaveProvider(route.aaveProvider)) revert InvalidRoute();
+        _validateLegs(route.flashAsset, route.flashAmount, route.legs, route.deadline);
+    }
+    function _validateLegs(address asset, uint256 amount, Leg[] memory legs, uint256 deadline) private view {
+        if (block.timestamp > deadline || amount == 0 || asset == address(0) || legs.length < 2 || legs.length > MAX_HOPS) revert InvalidRoute();
+        address token = asset;
+        for (uint256 i; i < legs.length; ++i) { if (legs[i].tokenIn != token || legs[i].minAmountOut == 0) revert InvalidRoute(); token = legs[i].tokenOut; }
+        if (token != asset) revert InvalidRoute();
     }
     function _settleV4(address manager, address currency, int128 delta) private { if (delta > 0) IMVV4PoolManager(manager).take(currency, address(this), uint256(uint128(delta))); else if (delta < 0) { IMVV4PoolManager(manager).sync(currency); _safeTransfer(currency, manager, uint256(uint128(-delta))); IMVV4PoolManager(manager).settle(); } }
     function _trustedAaveProvider(address a) private view returns (bool) { return trustedAaveProviderCodeHash[a] != bytes32(0) && a.codehash == trustedAaveProviderCodeHash[a]; }

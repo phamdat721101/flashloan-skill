@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createPublicClient, http, keccak256, type Address } from 'viem';
+import { createPublicClient, http, keccak256, parseAbi, type Address } from 'viem';
 import { arbitrum } from 'viem/chains';
 import { snapshotUniswapV3, snapshotUniswapV4, type StateClient } from '../state-adapters.js';
+import { quoteV3ExactInput } from '../liquidity/clmm.js';
 
 const V3_POOL = '0xC6962004f452bE9203591991D15f6b388e09E8D0' as Address;
 const V4_MANAGER = '0x360E68faCcca8cA495c1B759Fd9EEe466db9FB32' as Address;
@@ -30,4 +31,41 @@ test('E2E reads V3 and no-hook V4 state from one pinned Arbitrum head', { skip: 
   // An initialized pool can legitimately have no active in-range liquidity.
   // The adapter must preserve that exact zero rather than invent a quote.
   assert.ok(BigInt(v4.liquidity) >= 0n);
+});
+
+test('E2E exact V3 math matches canonical QuoterV2 output and final price at the identical block', { skip: !process.env.E2E_ARBITRUM_RPC_URL }, async () => {
+  const publicClient = createPublicClient({ chain: arbitrum, transport: http(process.env.E2E_ARBITRUM_RPC_URL, { timeout: 15000, retryCount: 0 }) });
+  const block = await publicClient.getBlock();
+  const pinned = {
+    getChainId: () => publicClient.getChainId(),
+    getBlock: ({ blockNumber = block.number } = {}) => publicClient.getBlock({ blockNumber }),
+    getCode: publicClient.getCode,
+    readContract: publicClient.readContract
+  } as unknown as StateClient;
+  const metadata = parseAbi(['function slot0() view returns(uint160,int24,uint16,uint16,uint16,uint8,bool)', 'function tickSpacing() view returns(int24)']);
+  const slot = await publicClient.readContract({ address: V3_POOL, abi: metadata, functionName: 'slot0', blockNumber: block.number });
+  const spacing = Number(await publicClient.readContract({ address: V3_POOL, abi: metadata, functionName: 'tickSpacing', blockNumber: block.number }));
+  const center = Math.floor(Math.floor(Number(slot[1]) / spacing) / 256);
+  const words = [center - 1, center, center + 1];
+  const code = await publicClient.getCode({ address: V3_POOL, blockNumber: block.number }); assert.ok(code);
+  const state = await snapshotUniswapV3(pinned, V3_POOL, words, { chainId: 42161, expectedRuntimeCodeHash: keccak256(code), maxBitmapWords: 3 });
+  const lower = Math.max(-887272, words[0] * 256 * spacing), upper = Math.min(887272, (words[2] * 256 + 255) * spacing);
+  const quoter = '0x61fFE014bA17989E743c5F6cB21bF9697530B21e' as Address;
+  const abi = parseAbi(['function quoteExactInputSingle((address tokenIn,address tokenOut,uint256 amountIn,uint24 fee,uint160 sqrtPriceLimitX96) params) returns(uint256 amountOut,uint160 sqrtPriceX96After,uint32 initializedTicksCrossed,uint256 gasEstimate)']);
+  let crossed = false;
+  for (const [tokenIn, tokenOut] of [[state.token0, state.token1], [state.token1, state.token0]]) {
+    const decimals = await publicClient.readContract({ address: tokenIn, abi: parseAbi(['function decimals() view returns(uint8)']), functionName: 'decimals', blockNumber: block.number });
+    // A larger bounded notional exercises actual initialized tick crossings.
+    const large = decimals === 18 ? 100n * 10n ** 18n : 500000n * 10n ** BigInt(decimals);
+    for (const amount of ['1000', '1000000', large.toString()]) {
+      const quoted = quoteV3ExactInput(state, tokenIn, amount, lower, upper);
+      const canonical = await publicClient.simulateContract({ address: quoter, abi, functionName: 'quoteExactInputSingle', args: [{ tokenIn, tokenOut, amountIn: BigInt(amount), fee: state.feePips, sqrtPriceLimitX96: 0n }], blockNumber: block.number });
+      assert.equal(quoted.amountOut, canonical.result[0].toString());
+      assert.equal(quoted.sqrtPriceAfterX96, canonical.result[1].toString());
+      if (quoted.crossedTicks.length > 0) crossed = true;
+    }
+  }
+  assert.equal(crossed, true, 'the canonical comparison must include an actual initialized tick crossing');
+  assert.equal((await publicClient.getBlock({ blockNumber: block.number })).hash, block.hash);
+  console.log(JSON.stringify({ marker: 'v3_exact_math_matches_canonical_quoter', evidence: 'read-only-arbitrum-rpc', blockNumber: block.number.toString(), blockHash: block.hash }));
 });

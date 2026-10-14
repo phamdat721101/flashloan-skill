@@ -87,7 +87,7 @@ export function validateAdapterRegistry(registry: SuiAdapterRegistry): void {
     targetUsesRevision(lender.borrow, lender.revision, `lender ${lender.id}.borrow`);
     targetUsesRevision(lender.repay, lender.revision, `lender ${lender.id}.repay`);
     if (lender.receiptMode !== 'hot-potato') throw new Error(`lender ${lender.id} must use a hot-potato receipt`);
-    if (lender.supportedAssets.length === 0) throw new Error(`lender ${lender.id} must support an asset`);
+    if (lender.supportedAssets.length === 0 || new Set(lender.supportedAssets).size !== lender.supportedAssets.length) throw new Error(`lender ${lender.id} must support unique assets`);
     lender.supportedAssets.forEach((asset, index) => supportedAsset(asset, `lender ${lender.id}.supportedAssets[${index}]`));
     lender.mutableObjectIds.forEach((id, index) => address(id, `lender ${lender.id}.mutableObjectIds[${index}]`));
   }
@@ -102,7 +102,7 @@ export function validateAdapterRegistry(registry: SuiAdapterRegistry): void {
     validateMoveTarget(venue.exactIn, `venue ${venue.id}.exactIn`);
     targetUsesRevision(venue.exactIn, venue.revision, `venue ${venue.id}.exactIn`);
     if (venue.feeSource !== 'route-asset') throw new Error(`venue ${venue.id} requires an external fee coin`);
-    if (venue.supportedAssets.length < 2) throw new Error(`venue ${venue.id} must support SUI and native USDC`);
+    if (!venue.supportedAssets.includes(SUI_TYPE) || !venue.supportedAssets.includes(NATIVE_USDC_TYPE) || new Set(venue.supportedAssets).size !== venue.supportedAssets.length) throw new Error(`venue ${venue.id} must support SUI and native USDC without duplicates`);
     venue.supportedAssets.forEach((asset, index) => supportedAsset(asset, `venue ${venue.id}.supportedAssets[${index}]`));
     venue.mutableObjectIds.forEach((id, index) => address(id, `venue ${venue.id}.mutableObjectIds[${index}]`));
   }
@@ -119,6 +119,7 @@ export function assertAutonomousRoute(registry: SuiAdapterRegistry, route: SuiAu
   if (venues.some((venue) => !venue)) throw new Error('route venue is not enabled');
   supportedAsset(route.borrowAssetType, 'route.borrowAssetType');
   supportedAsset(route.baseAssetType, 'route.baseAssetType');
+  if (route.borrowAssetType !== route.baseAssetType) throw new Error('route repayment and final base amount must use the same asset units');
   if (route.externalFungibleInputs.length !== 1 || route.externalFungibleInputs[0] !== SUI_TYPE) {
     throw new Error('only an owned SUI gas coin may be an external fungible input');
   }

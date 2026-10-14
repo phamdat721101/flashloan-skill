@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Checkpoint-consistent declared Sui object references v3",
+  "type": "object", "additionalProperties": false,
+  "required": ["schemaVersion", "identity", "chainIdentifier", "completeForDeclaredObjectSet", "objects", "missingObjectIds", "stateDigest"],
+  "properties": {
+    "schemaVersion": { "const": "3.0" },
+    "identity": { "$ref": "liquidity-snapshot.schema.json#/properties/identity/oneOf/1" },
+    "chainIdentifier": { "type": "string", "pattern": "^[1-9A-HJ-NP-Za-km-z]{32,44}$" },
+    "completeForDeclaredObjectSet": { "type": "boolean" },
+    "objects": {
+      "type": "array", "maxItems": 1000,
+      "items": {
+        "type": "object", "additionalProperties": false, "required": ["objectId", "version", "digest"],
+        "properties": {
+          "objectId": { "$ref": "#/$defs/objectId" },
+          "version": { "type": "string", "pattern": "^[1-9][0-9]*$", "maxLength": 20 },
+          "digest": { "type": "string", "pattern": "^[1-9A-HJ-NP-Za-km-z]{32,44}$" }
+        }
+      }
+    },
+    "missingObjectIds": { "type": "array", "maxItems": 1000, "uniqueItems": true, "items": { "$ref": "#/$defs/objectId" } },
+    "stateDigest": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+  },
+  "$defs": { "objectId": { "type": "string", "pattern": "^0x[0-9a-f]{64}$" } },
+  "$comment": "Completeness covers ONLY explicitly declared object IDs after contiguous checkpoint effects. It does not prove all pool/tick/dynamic-field/fee dependencies are declared, does not supply protocol liquidity math, and is not trade admission. Runtime also enforces exact u64 versions and unique IDs."
+}

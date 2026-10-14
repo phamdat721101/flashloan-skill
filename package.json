@@ -22,7 +22,9 @@
     "sui:validate-adapter-registry": "tsx src/sui/cli.ts validate-adapter-registry",
     "install-skill": "tsx src/agent-cli.ts install",
     "rust:check": "cargo check --workspace --locked",
-    "rust:test": "cargo test --workspace --locked"
+    "rust:test": "cargo test --workspace --locked",
+    "liquidity:test": "npm run build && node --test dist/test/liquid-pattern-e2e.test.js dist/test/liquidity-*.test.js dist/test/state-adapters.test.js dist/test/sui-flash-lenders.test.js",
+    "liquidity": "tsx src/liquidity/cli.ts"
   },
   "dependencies": {
     "@mysten/sui": "^2.0.0",

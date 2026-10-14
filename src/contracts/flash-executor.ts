@@ -9,7 +9,8 @@ import type { Address, Hex } from '../types.js';
 export const FLASH_EXECUTOR_ADDRESS = '0x093e98a6e2e278426adc7161b61bb2132e0ad192' as Address;
 
 /**
- * Reviewed deployment state for the dynamic Uniswap V4 settlement executor.
+ * Historical deployment state for the dynamic Uniswap V4 settlement executor.
+ * V4 admission is revoked: immutable bytecode retains reversed delta decoding.
  *
  * This is deliberately separate from FLASH_EXECUTOR_ADDRESS: the legacy
  * executor ABI cannot encode the authenticated V4 unlock/callback flow.
@@ -17,6 +18,7 @@ export const FLASH_EXECUTOR_ADDRESS = '0x093e98a6e2e278426adc7161b61bb2132e0ad19
  * they produce the ImmutableArbitrageExecutor route format.
  */
 export const DYNAMIC_V4_EXECUTOR_DEPLOYMENT = {
+  v4ExecutionAdmission: 'revoked-reversed-balance-delta',
   chainId: 42161,
   address: '0xfcd8f1257d8f37f4c51b4e6ac923137e5b6a2a16' as Address,
   deployTxHash: '0x12e591d8a1d8271da92aa6c6ed0607ec718e43960e736642bd75c34fc9856072' as Hex,
@@ -34,7 +36,8 @@ export const DYNAMIC_V4_EXECUTOR_DEPLOYMENT = {
 } as const;
 
 /**
- * Reviewed deployment state for the callback-authenticated V2/V3/V4 executor.
+ * Historical deployment state for the callback-authenticated V2/V3/V4 executor.
+ * V4 admission is revoked; V2/V3 still require their normal execution gates.
  *
  * This is intentionally distinct from the legacy and V4-only deployments:
  * its `executeArbitrage` route format carries an explicit, code-hash-pinned
@@ -42,6 +45,7 @@ export const DYNAMIC_V4_EXECUTOR_DEPLOYMENT = {
  * multi-venue route schema and must still pass their usual simulation gates.
  */
 export const MULTI_VENUE_EXECUTOR_DEPLOYMENT = {
+  v4ExecutionAdmission: 'revoked-reversed-balance-delta',
   chainId: 42161,
   address: '0xd130b45b7e7d08fb7dbb1c79fa5d9b95ea8e27b2' as Address,
   deployTxHash: '0x566b9d729cefe4af9f11a2673f15ab7cee8ae8c9c449276890c49d41391d6568' as Hex,
@@ -78,6 +82,8 @@ export const MULTI_VENUE_EXECUTOR_DEPLOYMENT = {
 export const MULTI_SPLIT_EXECUTOR_DEPLOYMENT = {
   chainId: 42161,
   address: '0xb1aac2079c52fd31e038ec348505a0f55859d60f' as Address,
+  runtimeCodeHash: '0xa3f091893cee71a89509cf51c1ef49828a5a1850e72b88691924c824c80dd81e' as Hex,
+  codeVerifiedAtBlock: 514628150,
   deployTxHash: '0x0996d0328a43ae3f23cb5d0297c76292d910f59a88a1276c928578a52010f5ef' as Hex,
   morphoBlue: '0x6c247b1F6182318877311737BaC0844bAa518F5e' as Address,
   capability: 'multi-split-arbitrage'
@@ -102,7 +108,7 @@ const CAPABILITY_SIGNATURES: Record<ExecutorCapability, string> = {
   'uniswap-v2-arbitrage': 'executeV2Arbitrage((address,uint256,address[],bytes[],uint256,uint256))',
   'uniswap-v3-arbitrage': 'executeV3Arbitrage((address,uint256,address[],bytes[],uint256,uint256))',
   'dex-pair-arbitrage': 'executeDexPairArbitrage((address,uint256,address,uint8,uint8,uint24,uint256))',
-  'multi-venue-arbitrage': 'executeArbitrage((address,address,uint256,(uint8,address,address,address,address,uint256,uint256,uint160,int24,address,bytes)[],uint256,uint256))',
+  'multi-venue-arbitrage': 'executeArbitrage((address,address,uint256,(uint8,address,address,address,address,uint256,uint24,uint160,int24,address,bytes)[],uint256,uint256))',
   'multi-split-arbitrage': 'executeMultiSplitPairArbitrage((address,uint256,uint256,(address,uint256,uint8,uint8,uint24,uint24)[]))'
 };
 

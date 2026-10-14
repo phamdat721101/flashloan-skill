@@ -2,7 +2,7 @@
 //! JSON and network adapters deliberately stay in the daemon crate; this crate only
 //! accepts validated live updates and returns candidates or typed rejections.
 
-use alloy::primitives::{Address, U256, keccak256};
+use alloy::primitives::{Address, U256, Uint, keccak256};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::{BTreeSet, HashMap},
@@ -365,19 +365,22 @@ pub fn quote_v2(
     if amount_in.is_zero() || reserve_in.is_zero() || reserve_out.is_zero() || fee_bps >= 10_000 {
         return Ok(None);
     }
-    let adjusted = amount_in
-        .checked_mul(U256::from(10_000u64 - fee_bps as u64))
-        .ok_or(EngineError::MathOverflow)?
-        / U256::from(10_000u64);
-    let numerator = reserve_out
-        .checked_mul(adjusted)
-        .ok_or(EngineError::MathOverflow)?;
-    Ok(Some(
-        numerator
-            / reserve_in
-                .checked_add(adjusted)
-                .ok_or(EngineError::MathOverflow)?,
-    ))
+    type Wide = Uint<1024, 16>;
+    // Retain the fee denominator until the sole final division. Flooring the
+    // adjusted input first disagrees with the canonical pair for small inputs.
+    let adjusted = Wide::from(amount_in) * Wide::from(10_000u64 - fee_bps as u64);
+    let output = Wide::from(reserve_out) * adjusted
+        / (Wide::from(reserve_in) * Wide::from(10_000u64) + adjusted);
+    Ok(Some(narrow_math(output)?))
+}
+
+fn narrow_math(value: Uint<1024, 16>) -> Result<U256, EngineError> {
+    U256::checked_from_limbs_slice(value.as_limbs()).ok_or(EngineError::MathOverflow)
+}
+
+fn ceil_div(value: Uint<1024, 16>, denominator: Uint<1024, 16>) -> Uint<1024, 16> {
+    let quotient = value / denominator;
+    if value % denominator == Uint::ZERO { quotient } else { quotient + Uint::from(1u64) }
 }
 
 /// The state produced when a known V2 exact-input swap is applied before our
@@ -466,12 +469,28 @@ pub fn speculate_v2_two_hop(
     flash_loan_fee_bps: u16,
     fixed_cost: U256,
 ) -> Result<Option<V2SpeculativePlan>, EngineError> {
+    speculate_v2_two_hop_with_target_token(
+        target_pool, counter_pool, flash_token, flash_token,
+        target_amount_in, flash_loan_fee_bps, fixed_cost,
+    )
+}
+
+/// The observed swap direction is independent of the asset borrowed by our route.
+pub fn speculate_v2_two_hop_with_target_token(
+    target_pool: &Pool,
+    counter_pool: &Pool,
+    flash_token: &str,
+    target_token_in: &str,
+    target_amount_in: U256,
+    flash_loan_fee_bps: u16,
+    fixed_cost: U256,
+) -> Result<Option<V2SpeculativePlan>, EngineError> {
     const BPS_DENOMINATOR: u64 = 10_000;
     if flash_loan_fee_bps >= BPS_DENOMINATOR as u16 {
         return Ok(None);
     }
     let Some(projected_target) =
-        project_v2_forward_state(target_pool, flash_token, target_amount_in)?
+        project_v2_forward_state(target_pool, target_token_in, target_amount_in)?
     else {
         return Ok(None);
     };
@@ -533,27 +552,35 @@ pub fn speculate_v2_two_hop(
         return Ok(None);
     };
 
-    let denominator = U256::from(BPS_DENOMINATOR);
-    let gamma1 = denominator - U256::from(*target_fee_bps);
-    let gamma2 = denominator - U256::from(*counter_fee_bps);
+    // Four reserve factors occur before the square root. U256 is not wide
+    // enough even for ordinary 18-decimal balances. Keep checked arithmetic
+    // and narrow only the final input amount used by the exact swap quotes.
+    type SolverUint = Uint<1024, 16>;
+    let denominator = SolverUint::from(BPS_DENOMINATOR);
+    let gamma1 = denominator - SolverUint::from(*target_fee_bps);
+    let gamma2 = denominator - SolverUint::from(*counter_fee_bps);
+    let (wide_r1_x, wide_r1_y, wide_r2_y, wide_r2_x) = (
+        SolverUint::from(r1_x), SolverUint::from(r1_y),
+        SolverUint::from(r2_y), SolverUint::from(r2_x),
+    );
     // Out(q) = A*q / (B + C*q), retaining the fee denominators in B and C.
     let a = gamma1
         .checked_mul(gamma2)
-        .and_then(|value| value.checked_mul(r1_y))
-        .and_then(|value| value.checked_mul(r2_x))
+        .and_then(|value| value.checked_mul(wide_r1_y))
+        .and_then(|value| value.checked_mul(wide_r2_x))
         .ok_or(EngineError::MathOverflow)?;
-    let b = r1_x
-        .checked_mul(r2_y)
+    let b = wide_r1_x
+        .checked_mul(wide_r2_y)
         .and_then(|value| value.checked_mul(denominator))
         .and_then(|value| value.checked_mul(denominator))
         .ok_or(EngineError::MathOverflow)?;
     let c = gamma1
         .checked_mul(
             denominator
-                .checked_mul(r2_y)
+                .checked_mul(wide_r2_y)
                 .and_then(|value| {
                     gamma2
-                        .checked_mul(r1_y)
+                        .checked_mul(wide_r1_y)
                         .and_then(|other| value.checked_add(other))
                 })
                 .ok_or(EngineError::MathOverflow)?,
@@ -566,12 +593,13 @@ pub fn speculate_v2_two_hop(
         .checked_mul(b)
         .and_then(|value| value.checked_mul(denominator))
         .ok_or(EngineError::MathOverflow)?
-        / U256::from(BPS_DENOMINATOR + flash_loan_fee_bps as u64);
+        / SolverUint::from(BPS_DENOMINATOR + flash_loan_fee_bps as u64);
     let root = integer_sqrt(stationary_square);
     if root <= b {
         return Ok(None);
     }
-    let center = (root - b) / c;
+    let wide_center = (root - b) / c;
+    let center = narrow_math(wide_center)?;
     let candidates = [
         center.saturating_sub(U256::from(1u64)),
         center,
@@ -587,10 +615,12 @@ pub fn speculate_v2_two_hop(
         let Some(final_out) = quote_v2(first_out, r2_y, r2_x, *counter_fee_bps)? else {
             continue;
         };
-        let loan_fee = amount
-            .checked_mul(U256::from(flash_loan_fee_bps))
-            .ok_or(EngineError::MathOverflow)?
-            / denominator;
+        // A generic basis-point estimate must not understate lender debt.
+        // Actual per-lender fees still require final exact-payload preflight.
+        let loan_fee = narrow_math(ceil_div(
+            SolverUint::from(amount) * SolverUint::from(flash_loan_fee_bps),
+            denominator,
+        ))?;
         let debt_and_cost = amount
             .checked_add(loan_fee)
             .and_then(|value| value.checked_add(fixed_cost))
@@ -598,6 +628,9 @@ pub fn speculate_v2_two_hop(
         let Some(net_profit) = final_out.checked_sub(debt_and_cost) else {
             continue;
         };
+        if net_profit.is_zero() {
+            continue;
+        }
         if best
             .as_ref()
             .is_none_or(|(_, _, best_profit)| net_profit > *best_profit)
@@ -617,21 +650,22 @@ pub fn speculate_v2_two_hop(
     ))
 }
 
-fn integer_sqrt(value: U256) -> U256 {
-    if value <= U256::from(1u64) {
+fn integer_sqrt(value: Uint<1024, 16>) -> Uint<1024, 16> {
+    type Wide = Uint<1024, 16>;
+    if value <= Wide::from(1u64) {
         return value;
     }
-    let mut lower = U256::from(1u64);
-    let mut upper = value / U256::from(2u64) + U256::from(1u64);
+    let mut lower = Wide::from(1u64);
+    let mut upper = value / Wide::from(2u64) + Wide::from(1u64);
     while lower < upper {
-        let midpoint = lower + (upper - lower) / U256::from(2u64);
+        let midpoint = lower + (upper - lower) / Wide::from(2u64);
         if midpoint <= value / midpoint {
-            lower = midpoint + U256::from(1u64);
+            lower = midpoint + Wide::from(1u64);
         } else {
             upper = midpoint;
         }
     }
-    lower - U256::from(1u64)
+    lower - Wide::from(1u64)
 }
 
 /// Exact-input V3 quote restricted to the currently known initialized-tick interval.
@@ -644,61 +678,51 @@ pub fn quote_v3_single_tick(
     fee_pips: u32,
     zero_for_one: bool,
 ) -> Result<Option<U256>, EngineError> {
-    const Q96: U256 = U256::from_limbs([0, 1, 0, 0]);
+    const Q96: U256 = U256::from_limbs([0, 1u64 << 32, 0, 0]);
+    type Wide = Uint<1024, 16>;
     if amount_in.is_zero()
         || liquidity.is_zero()
         || sqrt_price_x96.is_zero()
         || fee_pips >= 1_000_000
+        || liquidity > U256::from(u128::MAX)
+        || sqrt_price_x96 >= (U256::from(1u64) << 160)
+        || limit_x96.is_zero()
+        || limit_x96 >= (U256::from(1u64) << 160)
     {
         return Ok(None);
     }
-    let amount_after_fee = amount_in
-        .checked_mul(U256::from(1_000_000u64 - fee_pips as u64))
-        .ok_or(EngineError::MathOverflow)?
-        / U256::from(1_000_000u64);
+    let amount_after_fee = narrow_math(Wide::from(amount_in)
+        * Wide::from(1_000_000u64 - fee_pips as u64) / Wide::from(1_000_000u64))?;
+    let numerator1 = liquidity * Q96;
     if zero_for_one {
-        let term = amount_after_fee
-            .checked_mul(sqrt_price_x96)
-            .ok_or(EngineError::MathOverflow)?
-            / Q96;
-        let next = liquidity
-            .checked_mul(sqrt_price_x96)
-            .ok_or(EngineError::MathOverflow)?
-            / liquidity
-                .checked_add(term)
-                .ok_or(EngineError::MathOverflow)?;
+        // Match SqrtPriceMath's precise path and its uint256-overflow fallback.
+        let precise_denominator = amount_after_fee.checked_mul(sqrt_price_x96)
+            .and_then(|product| numerator1.checked_add(product));
+        let next = match precise_denominator {
+            Some(denominator) => narrow_math(ceil_div(
+                Wide::from(numerator1) * Wide::from(sqrt_price_x96), Wide::from(denominator),
+            ))?,
+            None => {
+                let denominator = (numerator1 / sqrt_price_x96).checked_add(amount_after_fee)
+                    .ok_or(EngineError::MathOverflow)?;
+                narrow_math(ceil_div(Wide::from(numerator1), Wide::from(denominator)))?
+            }
+        };
         if next < limit_x96 || next >= sqrt_price_x96 {
             return Ok(None);
         }
-        Ok(Some(
-            liquidity
-                .checked_mul(sqrt_price_x96 - next)
-                .ok_or(EngineError::MathOverflow)?
-                / Q96,
-        ))
+        Ok(Some(narrow_math(Wide::from(liquidity) * Wide::from(sqrt_price_x96 - next) / Wide::from(Q96))?))
     } else {
         let next = sqrt_price_x96
             .checked_add(
-                amount_after_fee
-                    .checked_mul(Q96)
-                    .ok_or(EngineError::MathOverflow)?
-                    / liquidity,
+                narrow_math(Wide::from(amount_after_fee) * Wide::from(Q96) / Wide::from(liquidity))?,
             )
             .ok_or(EngineError::MathOverflow)?;
-        if next > limit_x96 || next <= sqrt_price_x96 {
+        if next > limit_x96 || next <= sqrt_price_x96 || next >= (U256::from(1u64) << 160) {
             return Ok(None);
         }
-        let numerator = liquidity
-            .checked_mul(next - sqrt_price_x96)
-            .ok_or(EngineError::MathOverflow)?
-            .checked_mul(Q96)
-            .ok_or(EngineError::MathOverflow)?;
-        Ok(Some(
-            numerator
-                / next
-                    .checked_mul(sqrt_price_x96)
-                    .ok_or(EngineError::MathOverflow)?,
-        ))
+        Ok(Some(narrow_math(Wide::from(numerator1) * Wide::from(next - sqrt_price_x96)
+            / Wide::from(next) / Wide::from(sqrt_price_x96))?))
     }
 }
 
@@ -1004,6 +1028,45 @@ mod tests {
     }
 
     #[test]
+    fn speculation_handles_large_18_decimal_reserves() {
+        let x = "0x0000000000000000000000000000000000000001";
+        let y = "0x0000000000000000000000000000000000000002";
+        let reserve = "1000000000000000000000000000000";
+        let target = v2("target", x, y, reserve, reserve, 1);
+        let counter = v2("counter", y, x, reserve, reserve, 2);
+        let plan = speculate_v2_two_hop_with_target_token(
+            &target, &counter, x, y,
+            parse_u256("100000000000000000000000000000").unwrap(),
+            5, U256::ZERO,
+        ).unwrap().expect("profitable large-reserve route must not overflow");
+        assert!(parse_u256(&plan.flash_amount).unwrap() > U256::ZERO);
+        assert!(parse_u256(&plan.expected_net_profit).unwrap() > U256::ZERO);
+        let amount = parse_u256(&plan.flash_amount).unwrap();
+        let first = quote_v2(amount,
+            parse_u256(&plan.projected_target.reserve0).unwrap(),
+            parse_u256(&plan.projected_target.reserve1).unwrap(), 30).unwrap().unwrap();
+        let final_out = quote_v2(first, parse_u256(reserve).unwrap(), parse_u256(reserve).unwrap(), 30).unwrap().unwrap();
+        assert_eq!(final_out.to_string(), plan.expected_amount_out);
+    }
+
+    #[test]
+    fn speculative_target_direction_can_differ_from_flash_asset() {
+        let x = "0x0000000000000000000000000000000000000001";
+        let y = "0x0000000000000000000000000000000000000002";
+        let target = v2("target", x, y, "100000", "100000", 1);
+        let counter = v2("counter", y, x, "100000", "100000", 2);
+        let plan = speculate_v2_two_hop_with_target_token(
+            &target, &counter, x, y, U256::from(10_000u64), 0, U256::ZERO,
+        ).unwrap().expect("dumping y creates a route borrowing x");
+        assert_eq!(plan.projected_target.reserve1, "110000");
+        assert!(parse_u256(&plan.projected_target.reserve0).unwrap() < U256::from(100_000u64));
+        assert!(parse_u256(&plan.expected_net_profit).unwrap() > U256::ZERO);
+        assert!(speculate_v2_two_hop_with_target_token(
+            &target, &counter, x, "unknown", U256::from(10_000u64), 0, U256::ZERO,
+        ).unwrap().is_none());
+    }
+
+    #[test]
     fn speculation_rejects_a_counter_pool_with_the_wrong_assets() {
         let target = v2(
             "target",
@@ -1064,8 +1127,35 @@ mod tests {
     }
 
     #[test]
+    fn v2_fee_rounding_keeps_fractional_input_until_final_division() {
+        assert_eq!(quote_v2(U256::from(1u64), U256::from(1u64), U256::from(1000u64), 30)
+            .unwrap().unwrap(), U256::from(499u64));
+        for amount in 1u64..=100 {
+            let expected = amount * 997 * 20000 / (10000 * 1000 + amount * 997);
+            assert_eq!(quote_v2(U256::from(amount), U256::from(10000u64), U256::from(20000u64), 30)
+                .unwrap().unwrap(), U256::from(expected));
+        }
+    }
+
+    #[test]
+    fn v3_canonical_q96_and_directional_rounding_match_exact_vectors() {
+        let q96 = parse_u256("79228162514264337593543950336").unwrap();
+        for zero_for_one in [true, false] {
+            let limit = if zero_for_one { q96 / U256::from(4u64) } else { q96 * U256::from(4u64) };
+            assert_eq!(quote_v3_single_tick(U256::from(1000u64), U256::from(1000u64), q96, limit, 0, zero_for_one)
+                .unwrap().unwrap(), U256::from(500u64));
+            let expected = if zero_for_one { 333u64 } else { 23u64 };
+            assert_eq!(quote_v3_single_tick(U256::from(100u64), U256::from(1000u64), q96 * U256::from(2u64), limit, 0, zero_for_one)
+                .unwrap().unwrap(), U256::from(expected));
+        }
+        assert_eq!(quote_v3_single_tick(U256::from(1000u64), U256::from(1_000_000_000_000u64), q96, q96 / U256::from(2u64), 3000, true)
+            .unwrap().unwrap(), U256::from(996u64));
+        assert!(quote_v3_single_tick(U256::from(1u64), U256::from(u128::MAX) + U256::from(1u64), q96, q96 / U256::from(2u64), 0, true).unwrap().is_none());
+    }
+
+    #[test]
     fn v3_quote_rejects_tick_crossing_instead_of_estimating() {
-        let q96 = U256::from_limbs([0, 1, 0, 0]);
+        let q96 = parse_u256("79228162514264337593543950336").unwrap();
         let within_tick = quote_v3_single_tick(
             U256::from(1_000u64),
             U256::from(1_000_000_000_000u64),

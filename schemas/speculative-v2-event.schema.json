@@ -59,6 +59,7 @@
         "targetPoolId": { "type": "string", "minLength": 1 },
         "counterPoolId": { "type": "string", "minLength": 1 },
         "flashToken": { "$ref": "#/$defs/address" },
+        "targetTokenIn": { "$ref": "#/$defs/address" },
         "targetAmountIn": { "$ref": "#/$defs/uint" },
         "flashLoanFeeBps": { "type": "integer", "minimum": 0, "maximum": 9999 },
         "fixedCost": { "$ref": "#/$defs/uint" },

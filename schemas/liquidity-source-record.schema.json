@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Durably committed source observation v3",
+  "type": "object", "additionalProperties": false,
+  "required": ["schemaVersion", "sourceId", "chainIdentifier", "identity", "parentDigest", "payload", "payloadDigest", "previousRecordDigest", "recordDigest"],
+  "properties": {
+    "schemaVersion": { "const": "3.0" },
+    "sourceId": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "chainIdentifier": { "type": "string", "minLength": 1 },
+    "identity": { "$ref": "liquidity-snapshot.schema.json#/properties/identity" },
+    "parentDigest": { "type": ["string", "null"] },
+    "payload": true,
+    "payloadDigest": { "$ref": "#/$defs/hash" },
+    "previousRecordDigest": { "anyOf": [{ "$ref": "#/$defs/hash" }, { "type": "null" }] },
+    "recordDigest": { "$ref": "#/$defs/hash" }
+  },
+  "$defs": { "hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" } },
+  "$comment": "Runtime additionally enforces chain/genesis/source bindings, canonical payload and record hashes, consecutive heights, correct chain-parent links, u64 limits, and a bounded serialized record size. No source record constitutes protocol state completeness or trade admission."
+}

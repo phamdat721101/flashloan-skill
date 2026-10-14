@@ -89,8 +89,10 @@ npm run sui:cetus-pool-canary
 ```
 
 Do not construct or submit a cross-venue route until fresh quotes, exact
-minimum outputs, repayment amounts, and the required owned DeepBook `DEEP`
-fee coin have been reviewed. The service currently fails closed before that
+minimum outputs, repayment amounts, and the admitted DeepBook package's
+fee mode have been reviewed. Do not assume an operator-owned `DEEP` fee coin
+is required: supported revisions can charge the swap input token when the
+DEEP input is zero. The service currently fails closed before that
 stage; it does not claim a live profitable flashloan execution. See
 [`docs/sui-flashloan/`](docs/sui-flashloan/) for the route, schema, and E2E
 requirements.
@@ -113,6 +115,28 @@ unverified protocol package or bypass the per-route simulation and receipt
 checks. The checked-in example is intentionally disabled and contains no live
 package or pool identifiers.
 
+## Recorded deployment addresses
+
+Select an address by ABI, not by deployment recency. These records do not
+authorize sending or establish liquidity-pattern production admission.
+
+| Network / contract | Recorded address | Scope |
+| --- | --- | --- |
+| Arbitrum One / multi-split | `0xb1aac2079c52fd31e038ec348505a0f55859d60f` | Separate `executeMultiSplitPairArbitrage` ABI; not the repaired multi-lender ABI |
+| Arbitrum One / historical multi-venue | `0xd130b45b7e7d08fb7dbb1c79fa5d9b95ea8e27b2` | V4 revoked; V2/V3 require their existing gates |
+| Arbitrum One / historical V4-only | `0xfcd8f1257d8f37f4c51b4e6ac923137e5b6a2a16` | Execution revoked |
+| Sui mainnet / active guard | `0x96859191011298474c3e9944d52237083ce2b5a7065797036543fb8be9ed0c81` | Terminal profit guard only; not a lender or route executor |
+
+The multi-split record references deployment transaction
+[`0x0996…0f5ef`](https://arbiscan.io/tx/0x0996d0328a43ae3f23cb5d0297c76292d910f59a88a1276c928578a52010f5ef).
+Its code was reread at Arbitrum block `514628150`, with runtime hash
+`0xa3f091893cee71a89509cf51c1ef49828a5a1850e72b88691924c824c80dd81e`.
+This is a code-identity observation, not verification of every capability or
+of the recorded historical deployment receipt. No corrected production
+multi-lender deployment is recorded; fork-test deployments are not production
+addresses. Sui Move call targets use the active package, while guard type/event
+origins retain the original package from the deployment record.
+
 ## Deployed Arbitrum multi-venue executor
 
 The reviewed multi-venue executor is deployed on Arbitrum One at
@@ -123,6 +147,12 @@ The reviewed multi-venue executor is deployed on Arbitrum One at
 the Aave V3 provider, and the V2, V3, and V4 roots. Its V4 configuration
 explicitly disallows hooks. The deployed owner is the configured operator
 wallet; no private key is stored in this repository.
+
+V4 execution on this immutable deployment is revoked: its deployed bytecode
+retains the reversed BalanceDelta decoder. Plan validation rejects V4 legs
+on this address and rejects the recorded V4-only executor. V2/V3 multi-venue
+routes remain subject to the existing gates. Do not treat deployment/root
+proofs as admission of the broken V4 path.
 
 The state-adapter layer reads block-pinned V3, Algebra Integral, and no-hook
 V4 pool state for simulation. It verifies code hashes and rereads the pinned
@@ -145,6 +175,167 @@ schema-valid, profitable route, final relay simulation, a fresh estimate, and
 the existing execution risk checks. Start in private-relay canary mode with
 the configured executor address in local `FLASH_EXECUTOR_ADDRESS`; do not
 send a public-mempool canary.
+
+## Liquidity-pattern foundation
+
+### How flashloans use a liquidity pattern
+
+A liquidity pattern is a validated, versioned view of pool state, not a signal
+to borrow automatically. Ingest pinned observations, construct a complete
+protocol snapshot, quote circular routes in integer token units, and simulate
+the exact transaction. Within one atomic transaction, borrow, swap, repay the
+principal plus the lender's actual fee, and prove remaining profit custody.
+Failure to repay or meet minimum output/profit bounds reverts the route;
+transaction gas can still be lost.
+
+Start without a wallet:
+
+```sh
+npm install
+npm run build
+npm run liquidity -- sources
+npm run liquidity:test
+```
+
+For an Arbitrum V2 observation, create a secret-free local `source-config.json`
+using this template. Replace both placeholders with a reviewed V2 pool and
+its independently verified runtime code hash; this template is not runnable
+until those pins are supplied. `cursor` is your source sequence; optional
+`blockNumber` selects an exact archive block instead of the current head.
+
+```json
+{
+  "schemaVersion": "3.0",
+  "rpcUrl": "https://arbitrum-one-rpc.publicnode.com",
+  "sourceId": "arbitrum-reviewed-v2",
+  "cursor": "1",
+  "pools": [{
+    "address": "<reviewed-v2-pool-address>",
+    "expectedCodeHash": "<verified-runtime-code-hash>"
+  }]
+}
+```
+
+```sh
+npm run liquidity -- snapshot-arbitrum ./source-config.json
+```
+
+The output is `{snapshot,pools,parentHash}`. Snapshot amounts are integer
+strings in native token units; identity, provenance and state digest bind
+them to their source. For continuous capture, use the follower variant of the
+[source configuration schema](schemas/liquidity-source-config.schema.json):
+add `network: "42161"`, `journalPath`, `start`, `maxFrames`, `maxGap`,
+`pollIntervalMs`, and `maxIdlePolls`, and remove `cursor`/`blockNumber`.
+Store the journal in a local ignored directory such as `.flashloan-agent/`.
+
+```sh
+npm run liquidity -- follow-arbitrum ./follow-config.json
+```
+
+For Sui, `checkpoint-sui` accepts `schemaVersion`, a gRPC `rpcUrl`, `network`,
+the full `expectedChainIdentifier`, and a decimal-string `checkpoint`.
+Use `ingest-sui`/`follow-sui` for journal capture and `state-sui` for declared
+object recovery. Effects do not by themselves supply complete CLMM tick state.
+Never put private keys or authenticated RPC credentials in shareable inputs.
+
+Execution integration is currently library-only: see
+[`runtime.ts`](src/liquidity/runtime.ts),
+[`arbitrum-execution.ts`](src/liquidity/arbitrum-execution.ts), and
+[`sui-execution.ts`](src/liquidity/sui-execution.ts), with executable examples
+in their [Arbitrum](src/test/liquidity-arbitrum-execution.test.ts) and
+[Sui](src/test/liquidity-sui-execution.test.ts) tests. Feed a frozen snapshot
+and registered exact payload into bounded simulations, enforce admission and
+gas/loss budgets, reserve nonce/gas-object custody, sign only after fresh
+checks, then reconcile confirmed receipts before releasing the attempt.
+Simulation can overlap across candidates and independent chain lanes;
+exclusive custody prevents conflicting sends. There is no liquidity `run`
+or `auto` CLI. Do not connect a signer until the deployment, protocol revision,
+complete state coverage and operator-approved canary have been admitted.
+
+Local validation is `npm test` and
+`forge test --no-match-contract Fork`. Real lender callback/debt proofs require
+an archive fork explicitly:
+
+```sh
+forge test --fork-url "$ARBITRUM_RPC_URL" \
+  --match-contract MultiVenueRealLenderDebtForkProof -vv
+```
+
+Those tests use real Aave/Morpho/Balancer lenders with synthetic venues, not
+a profitable live trade. Full E2E production admission remains incomplete.
+
+The new liquidity pipeline is a local foundation, not a production trading
+command. It provides block-pinned V2 observations, chain-pinned Sui checkpoint
+effects, parent-linked durable source backfill, checkpoint-bound object references,
+snapshot validation, bounded simulation, independent chain lanes, durable attempt
+exclusion, and gas-loss accounting. Protocol-wide math,
+native feed streaming, complete per-protocol compilers, and canary admission remain
+release gates.
+
+```sh
+npm run liquidity -- sources
+npm run liquidity -- snapshot-arbitrum ./source-config.json
+npm run liquidity -- checkpoint-sui ./source-config.json
+npm run liquidity -- ingest-arbitrum ./source-config.json
+npm run liquidity -- ingest-sui ./source-config.json
+npm run liquidity -- follow-arbitrum ./source-config.json
+npm run liquidity -- follow-sui ./source-config.json
+npm run liquidity -- state-sui ./source-config.json
+npm run liquidity -- replay ./snapshots.jsonl
+npm run liquidity:test
+```
+
+Source configurations require `schemaVersion: "3.0"` and follow
+[`liquidity-source-config.schema.json`](schemas/liquidity-source-config.schema.json).
+Arbitrum output wraps `{snapshot,pools}`; extract the flat `snapshot` records
+for replay. Sui configuration must pin `expectedChainIdentifier` to the
+endpoint's full Base58 genesis digest, not its legacy shortened hex identifier.
+Checkpoint effects alone are not complete liquidity-state evidence. These CLI
+commands never sign or submit transactions.
+
+Range ingestion uses a configured `journalPath` and `maxFrames` (1–1000),
+then resumes after the last complete fsynced observation. Source/genesis pins,
+consecutive heights, parent links and record hashes are checked on recovery.
+Torn records and stale writer locks fail closed; they are never silently
+truncated or unlocked. `state-sui` replays committed checkpoint effects without
+an RPC URL. Its `completeForDeclaredObjectSet` flag covers only configured
+object IDs, not every tick/dynamic-field dependency of a liquidity protocol.
+Exact-version object reads never substitute latest objects when history is
+unavailable. See the [source record schema](schemas/liquidity-source-record.schema.json)
+and [Sui object-reference schema](schemas/liquidity-sui-object-state.schema.json).
+
+`follow-arbitrum` and `follow-sui` poll pinned network heads and capture every
+height from `start` (or the recovered cursor). Configure `maxFrames`, `maxGap`,
+and `maxIdlePolls` in 1–1000, and `pollIntervalMs` in 100–60000. A missing range
+larger than `maxGap`, a regressed head, or divergent parents stops the follower.
+Each `source-frame-committed` notification follows journal fsync. SIGINT/SIGTERM
+stop between bounded reads; an active RPC may take its 15-second timeout.
+These are read-only polling connectors, not sequencer or native gRPC streams.
+Consumers must replay the durable journal after a crash between commit and
+notification; stdout is not an exactly-once downstream delivery queue.
+
+The repaired local V4 executors do not change previously deployed immutable
+bytecode. A corrected deployment and fresh admission are required before V4
+production use.
+
+Exact V3 bitmap/tick-crossing quotes and static no-hook ERC-20 V4 quotes are
+available in `src/liquidity/clmm.ts`. Quotes fail when the proven tick horizon
+is exhausted; Algebra, hooks and dynamic V4 fees are not silently treated as V3.
+The module retains the upstream TickMath GPL-2.0-or-later notice.
+Its versioned output follows the [CLMM quote schema](schemas/liquidity-clmm-quote.schema.json).
+
+`ArbitrumLiquidityExecutionAdapter` and `SuiLiquidityExecutionAdapter` implement
+separate exact-payload simulation, final local signing, raw submission and
+receipt/effects reconciliation for the durable runtime. These library exports
+are not a CLI auto-send feature and are not production-admitted. Arbitrum
+requires a corrected pinned multi-lender executor and accounts gas in WETH;
+Sui requires fully resolved review-admitted native-SUI PTBs, package/state pins,
+an exclusive gas-object version, a matched opaque loan receipt and a terminal
+guard. Unsupported profit assets require a separate pinned oracle adapter.
+Tests use real EIP-1559/BCS signatures but synthetic protocol responses, not
+live canary transactions. Signed transaction bytes are never written to the
+attempt journal. Registered exact payloads support receipt recovery without
+resigning or resubmission.
 
 ## Read-only real-time scanning
 

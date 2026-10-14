@@ -139,6 +139,7 @@ function asAddress(value: unknown): Address {
 }
 
 function asBigInt(value: unknown): bigint {
+  if (typeof value === 'string' && value.length <= 79 && /^-?(0|[1-9][0-9]*)$/.test(value) && value !== '-0') return BigInt(value);
   if (typeof value === 'bigint') return value;
   if (typeof value === 'number' && Number.isSafeInteger(value)) return BigInt(value);
   return fail('ADAPTER_INVALID_INTEGER');
@@ -173,11 +174,47 @@ function ticksFromBitmaps(words: ReadonlyMap<number, bigint>, tickSpacing: numbe
   if (!Number.isInteger(tickSpacing) || tickSpacing <= 0) fail('ADAPTER_INVALID_TICK_SPACING');
   const result: number[] = [];
   for (const [wordPosition, bitmap] of words) {
+    if (bitmap < 0n || bitmap >= 1n << 256n) fail('ADAPTER_INVALID_BITMAP_WORD');
     for (let bit = 0; bit < 256; bit++) {
       if ((bitmap & (1n << BigInt(bit))) !== 0n) result.push((wordPosition * 256 + bit) * tickSpacing);
     }
   }
   return result.sort((left, right) => left - right);
+}
+
+function initializedTick(tick: number, grossValue: unknown, netValue: unknown, initialized = true): TickState {
+  const gross = asBigInt(grossValue), net = asBigInt(netValue);
+  const absNet = net < 0n ? -net : net;
+  if (!initialized || gross <= 0n || gross >= 1n << 128n || net < -(1n << 127n) || net >= 1n << 127n || absNet > gross) fail('ADAPTER_BITMAP_TICK_MISMATCH');
+  return { tick, liquidityGross: gross.toString(), liquidityNet: net.toString() };
+}
+
+/** A quote horizon needs every bitmap word and initialized tick in its interval. */
+export function assertTickWindowCoverage(snapshot: Pick<V3Snapshot, 'tick' | 'tickSpacing' | 'bitmapWords' | 'initializedTicks'>, lowerTick: number, upperTick: number): void {
+  if (!Number.isInteger(lowerTick) || !Number.isInteger(upperTick) || lowerTick < -887272 || upperTick > 887272 || lowerTick >= upperTick || snapshot.tick < lowerTick || snapshot.tick > upperTick || !Number.isInteger(snapshot.tickSpacing) || snapshot.tickSpacing <= 0) fail('ADAPTER_INVALID_QUOTE_HORIZON');
+  const firstWord = Math.floor(Math.floor(lowerTick / snapshot.tickSpacing) / 256);
+  const lastWord = Math.floor(Math.floor(upperTick / snapshot.tickSpacing) / 256);
+  const words = new Map(snapshot.bitmapWords.map(word => [word.wordPosition, BigInt(word.bitmap)]));
+  if (words.size !== snapshot.bitmapWords.length) fail('ADAPTER_INVALID_BITMAP_WORD');
+  for (let position = firstWord; position <= lastWord; position++) {
+    const value = words.get(position);
+    if (value === undefined || value < 0n || value >= 1n << 256n) fail('ADAPTER_TICK_COVERAGE_INCOMPLETE');
+  }
+  const ticks = new Map(snapshot.initializedTicks.map(tick => [tick.tick, tick]));
+  if (ticks.size !== snapshot.initializedTicks.length) fail('ADAPTER_BITMAP_TICK_MISMATCH');
+  for (const [tick, state] of ticks) {
+    if (!Number.isInteger(tick) || tick % snapshot.tickSpacing !== 0) fail('ADAPTER_BITMAP_TICK_MISMATCH');
+    if (tick < lowerTick || tick > upperTick) continue;
+    const compressed = tick / snapshot.tickSpacing, wordPosition = Math.floor(compressed / 256), bit = compressed - wordPosition * 256;
+    if (((words.get(wordPosition) ?? 0n) & (1n << BigInt(bit))) === 0n) fail('ADAPTER_BITMAP_TICK_MISMATCH');
+    initializedTick(tick, state.liquidityGross, state.liquidityNet);
+  }
+  for (const tick of ticksFromBitmaps(words, snapshot.tickSpacing)) {
+    if (tick < lowerTick || tick > upperTick) continue;
+    const state = ticks.get(tick);
+    if (!state) fail('ADAPTER_TICK_COVERAGE_INCOMPLETE');
+    initializedTick(tick, state.liquidityGross, state.liquidityNet);
+  }
 }
 
 async function pinBlock(client: StateClient, policy: AdapterPolicy): Promise<PinnedBlock> {
@@ -218,9 +255,9 @@ export async function snapshotUniswapV3(client: StateClient, pool: Address, bitm
   const ticks = ticksFromBitmaps(bitmaps, spacing);
   const tickValues = await Promise.all(ticks.map((tick) => read(client, pool, V3_ABI, 'ticks', block, [tick])));
   const state = asTuple(slot0, 7);
-  const initializedTicks = ticks.flatMap((tick, index) => {
+  const initializedTicks = ticks.map((tick, index) => {
     const value = asTuple(tickValues[index], 8);
-    return value[7] === true ? [{ tick, liquidityGross: asBigInt(value[0]).toString(), liquidityNet: asBigInt(value[1]).toString() }] : [];
+    return initializedTick(tick, value[0], value[1], value[7] === true);
   });
   await verifyHead(client, block);
   return { protocol: 'uniswap-v3', block, pool, runtimeCodeHash, token0: asAddress(token0), token1: asAddress(token1), feePips: asNumber(fee), tickSpacing: spacing, sqrtPriceX96: asBigInt(state[0]).toString(), tick: asNumber(state[1]), liquidity: asBigInt(liquidity).toString(), unlocked: state[6] === true, bitmapWords: bitmapWordPositions.map((word) => ({ wordPosition: word, bitmap: bitmaps.get(word)!.toString() })), initializedTicks };
@@ -240,9 +277,9 @@ export async function snapshotAlgebraIntegral(client: StateClient, pool: Address
   const ticks = ticksFromBitmaps(bitmaps, spacing);
   const tickValues = await Promise.all(ticks.map((tick) => read(client, pool, ALGEBRA_ABI, 'ticks', block, [tick])));
   const state = asTuple(globalState, 7);
-  const initializedTicks = ticks.flatMap((tick, index) => {
+  const initializedTicks = ticks.map((tick, index) => {
     const value = asTuple(tickValues[index], 8);
-    return value[7] === true ? [{ tick, liquidityGross: asBigInt(value[0]).toString(), liquidityNet: asBigInt(value[1]).toString() }] : [];
+    return initializedTick(tick, value[0], value[1], value[7] === true);
   });
   await verifyHead(client, block);
   return { protocol: 'algebra-integral', block, pool, runtimeCodeHash, token0: asAddress(token0), token1: asAddress(token1), feePips: asNumber(state[2]), tickSpacing: spacing, sqrtPriceX96: asBigInt(state[0]).toString(), tick: asNumber(state[1]), liquidity: asBigInt(liquidity).toString(), unlocked: state[6] === true, bitmapWords: bitmapWordPositions.map((word) => ({ wordPosition: word, bitmap: bitmaps.get(word)!.toString() })), initializedTicks };
@@ -272,10 +309,10 @@ export async function snapshotUniswapV4(client: StateClient, poolManager: Addres
   const bitmaps = new Map(bitmapWordPositions.map((word, index) => [word, BigInt(bitmapValues[index] as Hex)]));
   const ticks = ticksFromBitmaps(bitmaps, spacing);
   const tickWords = await Promise.all(ticks.map((tick) => read(client, poolManager, V4_ABI, 'extsload', block, [v4MappingSlot(BigInt(tick), slotAdd(stateSlot, V4_TICKS_OFFSET))])));
-  const initializedTicks = ticks.flatMap((tick, index) => {
+  const initializedTicks = ticks.map((tick, index) => {
     const word = BigInt(tickWords[index] as Hex);
     const gross = word & MASK_128;
-    return gross === 0n ? [] : [{ tick, liquidityGross: gross.toString(), liquidityNet: signed(word >> 128n, 128n).toString() }];
+    return initializedTick(tick, gross, signed(word >> 128n, 128n));
   });
   await verifyHead(client, block);
   return { protocol: 'uniswap-v4', block, poolManager, poolId, runtimeCodeHash, key, sqrtPriceX96: (slot0 & MASK_160).toString(), tick: Number(signed((slot0 >> 160n) & MASK_24, 24n)), protocolFeePips: Number((slot0 >> 184n) & MASK_24), lpFeePips: Number((slot0 >> 208n) & MASK_24), liquidity: (BigInt(liquidityWord as Hex) & MASK_128).toString(), bitmapWords: bitmapWordPositions.map((word) => ({ wordPosition: word, bitmap: bitmaps.get(word)!.toString() })), initializedTicks };

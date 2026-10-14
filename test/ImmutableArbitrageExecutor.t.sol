@@ -49,8 +49,10 @@ contract TestV4PoolManager is IUniswapV4PoolManager {
     TestToken public immutable tokenB;
     uint256 public firstAmountIn;
     uint256 public swaps;
+    uint256 public swapBonus = 10;
 
     constructor(TestToken assetA, TestToken assetB) { tokenA = assetA; tokenB = assetB; }
+    function setSwapBonus(uint256 amount) external { swapBonus = amount; }
     function unlock(bytes calldata data) external returns (bytes memory) { return ImmutableArbitrageExecutor(msg.sender).unlockCallback(data); }
     function swap(PoolKey calldata key, SwapParams calldata params, bytes calldata) external returns (BalanceDelta delta) {
         uint256 amount = uint256(-params.amountSpecified);
@@ -58,12 +60,12 @@ contract TestV4PoolManager is IUniswapV4PoolManager {
             require(params.zeroForOne && key.currency0 == address(tokenA) && key.currency1 == address(tokenB), "first swap");
             firstAmountIn = amount;
             delta = BalanceDelta.wrap(
-                int256(uint256(uint128(int128(-int256(amount))))) | (int256(int128(int256(amount + 10))) << 128)
+                (int256(int128(-int256(amount))) << 128) | int256(uint256(uint128(amount + swapBonus)))
             );
         } else {
             require(!params.zeroForOne && key.currency0 == address(tokenA) && key.currency1 == address(tokenB), "second swap");
             delta = BalanceDelta.wrap(
-                int256(uint256(uint128(int128(int256(amount + 10))))) | (int256(int128(-int256(amount))) << 128)
+                (int256(int128(int256(amount + swapBonus))) << 128) | int256(uint256(uint128(int128(-int256(amount)))))
             );
         }
         swaps++;
@@ -115,6 +117,7 @@ contract ImmutableArbitrageExecutorArbitrumForkTest {
     address private constant V4_POOL_MANAGER = 0x360E68faCcca8cA495c1B759Fd9EEe466db9FB32;
     address private constant USDC = 0xaf88d065e77c8cC2239327C5EDb3A432268e5831;
     address private constant OTHER_ASSET = 0x2F714d7b9A035d4ce24af8d9b6091c07E37f43Fb;
+    address private constant WETH = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
     bytes32 private constant AAVE_PROVIDER_CODE_HASH = 0x1a95f317ee56e0b9aedc4f4b7abd9e546dc45c26d1d77e95bcf62b789d9a5486;
     bytes32 private constant V4_MANAGER_CODE_HASH = 0xe4b2759e456c9c4ef763e3b4e257c5105e1ba283d7de8b131dd321197de794a4;
     bytes32 private constant POOL_ID = 0xd876b021bf6200cd65472c4783443b1b12d589c77bf181a10b6173731b91208a;
@@ -136,5 +139,33 @@ contract ImmutableArbitrageExecutorArbitrumForkTest {
         catch (bytes memory reason) {
             require(reason.length >= 4 && bytes4(reason) == ImmutableArbitrageExecutor.InvalidRoute.selector, "unexpected live V4 failure");
         }
+    }
+
+    /// Both signed delta directions must settle against the real PoolManager.
+    /// Round-tripping one pool loses its fees, so the final debt/profit check
+    /// must revert after both swaps, restoring the entire flash-loan state.
+    function testForkCanonicalV4RoundTripSettlesThenRejectsLoss() external {
+        if (block.chainid != 42161) return;
+        require(AAVE_PROVIDER.codehash == AAVE_PROVIDER_CODE_HASH, "Aave provider code drift");
+        require(V4_POOL_MANAGER.codehash == V4_MANAGER_CODE_HASH, "V4 manager code drift");
+        ImmutableArbitrageExecutor executor = new ImmutableArbitrageExecutor();
+        executor.configureAaveProvider(AAVE_PROVIDER, AAVE_PROVIDER_CODE_HASH, true);
+        executor.configurePoolManager(V4_POOL_MANAGER, V4_MANAGER_CODE_HASH, true, false);
+        // WETH/USDC 500/10 had nonzero on-chain liquidity at proof block
+        // 514484539. The older OTHER_ASSET fixture has zero liquidity and
+        // can only prove rejection, never canonical delta settlement.
+        PoolKey memory key = PoolKey({ currency0: WETH, currency1: USDC, fee: 500, tickSpacing: 10, hooks: address(0) });
+        bytes32 fundedPoolId = keccak256(abi.encode(key));
+        require(fundedPoolId == 0xfc7b3ad139daaf1e9c3637ed921c154d1b04286f8a82b805a6c352da57028653, "funded pool identity mismatch");
+        ImmutableArbitrageExecutor.V4Hop[] memory hops = new ImmutableArbitrageExecutor.V4Hop[](2);
+        hops[0] = ImmutableArbitrageExecutor.V4Hop(key, fundedPoolId, false, MAX_SQRT_PRICE_LIMIT, bytes(""));
+        hops[1] = ImmutableArbitrageExecutor.V4Hop(key, fundedPoolId, true, 4295128740, bytes(""));
+        ImmutableArbitrageExecutor.V4Route memory route = ImmutableArbitrageExecutor.V4Route(AAVE_PROVIDER, V4_POOL_MANAGER, USDC, 1_000_000, hops, 1, block.timestamp + 1);
+        uint256 beforeBalance = IERC20(USDC).balanceOf(address(executor));
+        try executor.executeV4Arbitrage(route) { revert("loss-making round trip unexpectedly completed"); }
+        catch (bytes memory reason) {
+            require(reason.length >= 4 && bytes4(reason) == ImmutableArbitrageExecutor.Unprofitable.selector, "round trip failed before final profit check");
+        }
+        require(IERC20(USDC).balanceOf(address(executor)) == beforeBalance, "rollback changed executor funds");
     }
 }
