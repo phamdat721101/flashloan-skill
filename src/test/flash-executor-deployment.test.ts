@@ -1,12 +1,41 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { readFileSync } from 'node:fs';
 import { encodeFunctionData, toFunctionSelector } from 'viem';
 import { validateExecutorPlan } from '../arbitrum.js';
 import type { AllocationPlan, SkillConfig } from '../types.js';
-import { DYNAMIC_V4_EXECUTOR_DEPLOYMENT, FLASH_EXECUTOR_ABI, FLASH_EXECUTOR_ADDRESS, FLASH_EXECUTOR_SELECTORS, MULTI_SPLIT_EXECUTOR_DEPLOYMENT, MULTI_VENUE_EXECUTOR_DEPLOYMENT } from '../contracts/flash-executor.js';
+import { DYNAMIC_V4_EXECUTOR_DEPLOYMENT, FLASH_EXECUTOR_ABI, FLASH_EXECUTOR_ADDRESS, FLASH_EXECUTOR_SELECTORS, LIQUIDITY_UPGRADE_DEPLOYMENT, MULTI_SPLIT_EXECUTOR_DEPLOYMENT, MULTI_VENUE_EXECUTOR_DEPLOYMENT } from '../contracts/flash-executor.js';
 
 const address = /^0x[0-9a-fA-F]{40}$/;
 const hash = /^0x[0-9a-fA-F]{64}$/;
+
+test('latest liquidity pins match confirmed deployment evidence without admitting trading', () => {
+  const evidence = JSON.parse(readFileSync(new URL('../../docs/deployments/arbitrum-one-liquidity-upgrade.json', import.meta.url), 'utf8'));
+  const deployment = LIQUIDITY_UPGRADE_DEPLOYMENT;
+  assert.equal(evidence.status, 'deployed-and-verified');
+  assert.equal(deployment.owner.toLowerCase(), evidence.from.toLowerCase());
+  assert.equal(deployment.tradingAdmission, 'not-admitted');
+  assert.equal(evidence.productionTradingEnabled, false);
+  for (const [name, pin] of [['MultiVenueArbitrageExecutor', deployment.executor], ['V4StateQuoter', deployment.v4StateQuoter]] as const) {
+    const record = evidence.contracts.find((contract: { name: string }) => contract.name === name);
+    assert.equal(pin.address, record.address);
+    assert.equal(pin.runtimeCodeHash, record.runtimeCodeHash);
+    assert.equal(pin.deployTxHash, evidence.transactions[name].hash);
+    assert.equal(evidence.transactions[name].status, 'confirmed');
+    assert.equal(record.runtimeVerified, true);
+  }
+  assert.equal(Object.keys(evidence.transactions).length, 8);
+  for (const [name, pin] of Object.entries(deployment.rootPins)) {
+    const record = evidence.rootConfiguration.find((root: { name: string }) => root.name === name);
+    assert.equal(pin.address, record.address);
+    assert.equal(pin.runtimeCodeHash, record.codeHash);
+    assert.equal(pin.configureTxHash, record.transactionHash);
+    assert.equal(record.verified, true);
+    assert.equal(evidence.transactions[`configure-${name}`].status, 'confirmed');
+  }
+  assert.notEqual(deployment.executor.address, MULTI_VENUE_EXECUTOR_DEPLOYMENT.address as string);
+  assert.equal(MULTI_VENUE_EXECUTOR_DEPLOYMENT.v4ExecutionAdmission, 'revoked-reversed-balance-delta');
+});
 
 test('multi-split code identity remains separate from multi-venue admission', () => {
   const deployment = MULTI_SPLIT_EXECUTOR_DEPLOYMENT;

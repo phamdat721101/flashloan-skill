@@ -24,14 +24,19 @@
     "rust:check": "cargo check --workspace --locked",
     "rust:test": "cargo test --workspace --locked",
     "liquidity:test": "npm run build && node --test dist/test/liquid-pattern-e2e.test.js dist/test/liquidity-*.test.js dist/test/state-adapters.test.js dist/test/sui-flash-lenders.test.js",
-    "liquidity": "tsx src/liquidity/cli.ts"
+    "liquidity": "tsx src/liquidity/cli.ts",
+    "liquidity:benchmark": "npm run build && node dist/liquidity/benchmark.js",
+    "liquidity:cetus-reference": "npm run build && node dist/liquidity/cetus-reference.js",
+    "liquidity:proof": "npm run build && node dist/liquidity/local-proof.js"
   },
   "dependencies": {
     "@mysten/sui": "^2.0.0",
+    "@noble/hashes": "1.8.0",
     "viem": "^2.28.1"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
+    "ajv": "8.20.0",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2"
   }

@@ -1,0 +1,2540 @@
+{
+  "source": "@cetusprotocol/cetus-sui-clmm-sdk@5.1.8",
+  "reference": "computeSwapStep and TickMath",
+  "seed": "1729",
+  "vectors": 10000,
+  "quoted": 9908,
+  "exhausted": 92,
+  "crossed": 2406,
+  "fixtureCount": 79,
+  "fixtures": [
+    {
+      "state": {
+        "sqrtPriceX64": "16048170354593436099",
+        "tick": -2786,
+        "liquidity": "184467440737095516160",
+        "feePips": 8661,
+        "tickSpacing": 1,
+        "lowerTick": -2986,
+        "upperTick": -2586,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": -2846,
+            "liquidityGross": "92233720368547758080",
+            "liquidityNet": "92233720368547758080"
+          },
+          {
+            "tick": -2726,
+            "liquidityGross": "92233720368547758080",
+            "liquidityNet": "92233720368547758080"
+          }
+        ]
+      },
+      "aToB": true,
+      "amount": "18",
+      "expected": {
+        "amountOut": "10",
+        "feeAmount": "1",
+        "sqrtPriceAfterX64": "16048170354593436098",
+        "liquidityAfter": "184467440737095516160"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "17020898356843645978",
+        "tick": -1609,
+        "liquidity": "184467440737095516160",
+        "feePips": 3338,
+        "tickSpacing": 1,
+        "lowerTick": -1809,
+        "upperTick": -1409,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": -1669,
+            "liquidityGross": "92233720368547758080",
+            "liquidityNet": "92233720368547758080"
+          },
+          {
+            "tick": -1549,
+            "liquidityGross": "92233720368547758080",
+            "liquidityNet": "92233720368547758080"
+          }
+        ]
+      },
+      "aToB": false,
+      "amount": "59",
+      "expected": {
+        "amountOut": "58",
+        "feeAmount": "1",
+        "sqrtPriceAfterX64": "17020898356843645983",
+        "liquidityAfter": "184467440737095516160"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "19498452620544207555",
+        "tick": 1109,
+        "liquidity": "184467440737095516160",
+        "feePips": 3001,
+        "tickSpacing": 1,
+        "lowerTick": 909,
+        "upperTick": 1309,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": 1049,
+            "liquidityGross": "92233720368547758080",
+            "liquidityNet": "92233720368547758080"
+          },
+          {
+            "tick": 1169,
+            "liquidityGross": "92233720368547758080",
+            "liquidityNet": "92233720368547758080"
+          }
+        ]
+      },
+      "aToB": true,
+      "amount": "10",
+      "expected": {
+        "amountOut": "10",
+        "feeAmount": "1",
+        "sqrtPriceAfterX64": "19498452620544207554",
+        "liquidityAfter": "184467440737095516160"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "19343095026238859054",
+        "tick": 949,
+        "liquidity": "184467440737095516160",
+        "feePips": 9607,
+        "tickSpacing": 1,
+        "lowerTick": 749,
+        "upperTick": 1149,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": 889,
+            "liquidityGross": "92233720368547758080",
+            "liquidityNet": "92233720368547758080"
+          },
+          {
+            "tick": 1009,
+            "liquidityGross": "92233720368547758080",
+            "liquidityNet": "92233720368547758080"
+          }
+        ]
+      },
+      "aToB": false,
+      "amount": "22",
+      "expected": {
+        "amountOut": "18",
+        "feeAmount": "1",
+        "sqrtPriceAfterX64": "19343095026238859056",
+        "liquidityAfter": "184467440737095516160"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "23346010318894913323",
+        "tick": 4711,
+        "liquidity": "184467440737095516160",
+        "feePips": 2696,
+        "tickSpacing": 1,
+        "lowerTick": 4511,
+        "upperTick": 4911,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": 4651,
+            "liquidityGross": "92233720368547758080",
+            "liquidityNet": "92233720368547758080"
+          },
+          {
+            "tick": 4771,
+            "liquidityGross": "92233720368547758080",
+            "liquidityNet": "92233720368547758080"
+          }
+        ]
+      },
+      "aToB": true,
+      "amount": "69",
+      "expected": {
+        "amountOut": "100",
+        "feeAmount": "1",
+        "sqrtPriceAfterX64": "23346010318894913313",
+        "liquidityAfter": "184467440737095516160"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "20308369155660431261",
+        "tick": 1923,
+        "liquidity": "184467440737095516160",
+        "feePips": 2986,
+        "tickSpacing": 1,
+        "lowerTick": 1723,
+        "upperTick": 2123,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": 1863,
+            "liquidityGross": "92233720368547758080",
+            "liquidityNet": "92233720368547758080"
+          },
+          {
+            "tick": 1983,
+            "liquidityGross": "92233720368547758080",
+            "liquidityNet": "92233720368547758080"
+          }
+        ]
+      },
+      "aToB": false,
+      "amount": "97",
+      "expected": {
+        "amountOut": "74",
+        "feeAmount": "1",
+        "sqrtPriceAfterX64": "20308369155660431270",
+        "liquidityAfter": "184467440737095516160"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "19231235374530039527",
+        "tick": 833,
+        "liquidity": "184467440737095516160",
+        "feePips": 277,
+        "tickSpacing": 1,
+        "lowerTick": 633,
+        "upperTick": 1033,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": 773,
+            "liquidityGross": "92233720368547758080",
+            "liquidityNet": "92233720368547758080"
+          },
+          {
+            "tick": 893,
+            "liquidityGross": "92233720368547758080",
+            "liquidityNet": "92233720368547758080"
+          }
+        ]
+      },
+      "aToB": true,
+      "amount": "19",
+      "expected": {
+        "amountOut": "10",
+        "feeAmount": "1",
+        "sqrtPriceAfterX64": "19231235374530039526",
+        "liquidityAfter": "184467440737095516160"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "14985727846355088224",
+        "tick": -4156,
+        "liquidity": "184467440737095516160",
+        "feePips": 8960,
+        "tickSpacing": 1,
+        "lowerTick": -4356,
+        "upperTick": -3956,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": -4216,
+            "liquidityGross": "92233720368547758080",
+            "liquidityNet": "92233720368547758080"
+          },
+          {
+            "tick": -4096,
+            "liquidityGross": "92233720368547758080",
+            "liquidityNet": "92233720368547758080"
+          }
+        ]
+      },
+      "aToB": false,
+      "amount": "36",
+      "expected": {
+        "amountOut": "45",
+        "feeAmount": "1",
+        "sqrtPriceAfterX64": "14985727846355088227",
+        "liquidityAfter": "184467440737095516160"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "16863345635287854592",
+        "tick": -1795,
+        "liquidity": "184467440737095516160",
+        "feePips": 6822,
+        "tickSpacing": 1,
+        "lowerTick": -1995,
+        "upperTick": -1595,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": -1855,
+            "liquidityGross": "92233720368547758080",
+            "liquidityNet": "92233720368547758080"
+          },
+          {
+            "tick": -1735,
+            "liquidityGross": "92233720368547758080",
+            "liquidityNet": "92233720368547758080"
+          }
+        ]
+      },
+      "aToB": true,
+      "amount": "99",
+      "expected": {
+        "amountOut": "80",
+        "feeAmount": "1",
+        "sqrtPriceAfterX64": "16863345635287854584",
+        "liquidityAfter": "184467440737095516160"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "21779726880348858316",
+        "tick": 3322,
+        "liquidity": "184467440737095516160",
+        "feePips": 1287,
+        "tickSpacing": 1,
+        "lowerTick": 3122,
+        "upperTick": 3522,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": 3262,
+            "liquidityGross": "92233720368547758080",
+            "liquidityNet": "92233720368547758080"
+          },
+          {
+            "tick": 3382,
+            "liquidityGross": "92233720368547758080",
+            "liquidityNet": "92233720368547758080"
+          }
+        ]
+      },
+      "aToB": false,
+      "amount": "27",
+      "expected": {
+        "amountOut": "14",
+        "feeAmount": "1",
+        "sqrtPriceAfterX64": "21779726880348858318",
+        "liquidityAfter": "184467440737095516160"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "17137029056142026295",
+        "tick": -1473,
+        "liquidity": "184467440737095516160",
+        "feePips": 1872,
+        "tickSpacing": 1,
+        "lowerTick": -1673,
+        "upperTick": -1273,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": -1533,
+            "liquidityGross": "92233720368547758080",
+            "liquidityNet": "92233720368547758080"
+          },
+          {
+            "tick": -1413,
+            "liquidityGross": "92233720368547758080",
+            "liquidityNet": "92233720368547758080"
+          }
+        ]
+      },
+      "aToB": true,
+      "amount": "57",
+      "expected": {
+        "amountOut": "40",
+        "feeAmount": "1",
+        "sqrtPriceAfterX64": "17137029056142026291",
+        "liquidityAfter": "184467440737095516160"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "22588202464113068053",
+        "tick": 4051,
+        "liquidity": "184467440737095516160",
+        "feePips": 7388,
+        "tickSpacing": 1,
+        "lowerTick": 3851,
+        "upperTick": 4251,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": 3991,
+            "liquidityGross": "92233720368547758080",
+            "liquidityNet": "92233720368547758080"
+          },
+          {
+            "tick": 4111,
+            "liquidityGross": "92233720368547758080",
+            "liquidityNet": "92233720368547758080"
+          }
+        ]
+      },
+      "aToB": false,
+      "amount": "44",
+      "expected": {
+        "amountOut": "26",
+        "feeAmount": "1",
+        "sqrtPriceAfterX64": "22588202464113068057",
+        "liquidityAfter": "184467440737095516160"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "22751416225797075485",
+        "tick": 4195,
+        "liquidity": "184467440737095516160",
+        "feePips": 7155,
+        "tickSpacing": 1,
+        "lowerTick": 3995,
+        "upperTick": 4395,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": 4135,
+            "liquidityGross": "92233720368547758080",
+            "liquidityNet": "92233720368547758080"
+          },
+          {
+            "tick": 4255,
+            "liquidityGross": "92233720368547758080",
+            "liquidityNet": "92233720368547758080"
+          }
+        ]
+      },
+      "aToB": true,
+      "amount": "63",
+      "expected": {
+        "amountOut": "90",
+        "feeAmount": "1",
+        "sqrtPriceAfterX64": "22751416225797075476",
+        "liquidityAfter": "184467440737095516160"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "17118189629719971709",
+        "tick": -1495,
+        "liquidity": "184467440737095516160",
+        "feePips": 8689,
+        "tickSpacing": 1,
+        "lowerTick": -1695,
+        "upperTick": -1295,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": -1555,
+            "liquidityGross": "92233720368547758080",
+            "liquidityNet": "92233720368547758080"
+          },
+          {
+            "tick": -1435,
+            "liquidityGross": "92233720368547758080",
+            "liquidityNet": "92233720368547758080"
+          }
+        ]
+      },
+      "aToB": false,
+      "amount": "8",
+      "expected": {
+        "amountOut": "0",
+        "feeAmount": "1",
+        "sqrtPriceAfterX64": "17118189629719971709",
+        "liquidityAfter": "184467440737095516160"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "19761477062906529060",
+        "tick": 1377,
+        "liquidity": "184467440737095516160",
+        "feePips": 3011,
+        "tickSpacing": 1,
+        "lowerTick": 1177,
+        "upperTick": 1577,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": 1317,
+            "liquidityGross": "92233720368547758080",
+            "liquidityNet": "92233720368547758080"
+          },
+          {
+            "tick": 1437,
+            "liquidityGross": "92233720368547758080",
+            "liquidityNet": "92233720368547758080"
+          }
+        ]
+      },
+      "aToB": true,
+      "amount": "34",
+      "expected": {
+        "amountOut": "30",
+        "feeAmount": "1",
+        "sqrtPriceAfterX64": "19761477062906529057",
+        "liquidityAfter": "184467440737095516160"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "19241814934129076961",
+        "tick": 844,
+        "liquidity": "184467440737095516160",
+        "feePips": 3515,
+        "tickSpacing": 1,
+        "lowerTick": 644,
+        "upperTick": 1044,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": 784,
+            "liquidityGross": "92233720368547758080",
+            "liquidityNet": "92233720368547758080"
+          },
+          {
+            "tick": 904,
+            "liquidityGross": "92233720368547758080",
+            "liquidityNet": "92233720368547758080"
+          }
+        ]
+      },
+      "aToB": false,
+      "amount": "79",
+      "expected": {
+        "amountOut": "64",
+        "feeAmount": "1",
+        "sqrtPriceAfterX64": "19241814934129076968",
+        "liquidityAfter": "184467440737095516160"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "14785529170560055532",
+        "tick": -4425,
+        "liquidity": "184467440737095516160",
+        "feePips": 7531,
+        "tickSpacing": 1,
+        "lowerTick": -4625,
+        "upperTick": -4225,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": -4485,
+            "liquidityGross": "92233720368547758080",
+            "liquidityNet": "92233720368547758080"
+          },
+          {
+            "tick": -4365,
+            "liquidityGross": "92233720368547758080",
+            "liquidityNet": "92233720368547758080"
+          }
+        ]
+      },
+      "aToB": false,
+      "amount": "52",
+      "expected": {
+        "amountOut": "77",
+        "feeAmount": "1",
+        "sqrtPriceAfterX64": "14785529170560055537",
+        "liquidityAfter": "184467440737095516160"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "14792923413846115298",
+        "tick": -4415,
+        "liquidity": "184467440737095516160",
+        "feePips": 5171,
+        "tickSpacing": 1,
+        "lowerTick": -4615,
+        "upperTick": -4215,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": -4475,
+            "liquidityGross": "92233720368547758080",
+            "liquidityNet": "92233720368547758080"
+          },
+          {
+            "tick": -4355,
+            "liquidityGross": "92233720368547758080",
+            "liquidityNet": "92233720368547758080"
+          }
+        ]
+      },
+      "aToB": true,
+      "amount": "21",
+      "expected": {
+        "amountOut": "10",
+        "feeAmount": "1",
+        "sqrtPriceAfterX64": "14792923413846115297",
+        "liquidityAfter": "184467440737095516160"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "18944933788514156623",
+        "tick": 533,
+        "liquidity": "184467440737095516160",
+        "feePips": 8335,
+        "tickSpacing": 1,
+        "lowerTick": 333,
+        "upperTick": 733,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": 473,
+            "liquidityGross": "92233720368547758080",
+            "liquidityNet": "92233720368547758080"
+          },
+          {
+            "tick": 593,
+            "liquidityGross": "92233720368547758080",
+            "liquidityNet": "92233720368547758080"
+          }
+        ]
+      },
+      "aToB": false,
+      "amount": "84",
+      "expected": {
+        "amountOut": "75",
+        "feeAmount": "1",
+        "sqrtPriceAfterX64": "18944933788514156631",
+        "liquidityAfter": "184467440737095516160"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "14741241262483255051",
+        "tick": -4485,
+        "liquidity": "184467440737095516160",
+        "feePips": 3611,
+        "tickSpacing": 1,
+        "lowerTick": -4685,
+        "upperTick": -4285,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": -4545,
+            "liquidityGross": "92233720368547758080",
+            "liquidityNet": "92233720368547758080"
+          },
+          {
+            "tick": -4425,
+            "liquidityGross": "92233720368547758080",
+            "liquidityNet": "92233720368547758080"
+          }
+        ]
+      },
+      "aToB": true,
+      "amount": "39",
+      "expected": {
+        "amountOut": "20",
+        "feeAmount": "1",
+        "sqrtPriceAfterX64": "14741241262483255049",
+        "liquidityAfter": "184467440737095516160"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "18704931150573750837",
+        "tick": 278,
+        "liquidity": "184467440737095516160",
+        "feePips": 4877,
+        "tickSpacing": 1,
+        "lowerTick": 78,
+        "upperTick": 478,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": 218,
+            "liquidityGross": "92233720368547758080",
+            "liquidityNet": "92233720368547758080"
+          },
+          {
+            "tick": 338,
+            "liquidityGross": "92233720368547758080",
+            "liquidityNet": "92233720368547758080"
+          }
+        ]
+      },
+      "aToB": false,
+      "amount": "47",
+      "expected": {
+        "amountOut": "38",
+        "feeAmount": "1",
+        "sqrtPriceAfterX64": "18704931150573750841",
+        "liquidityAfter": "184467440737095516160"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "17547129613991598777",
+        "tick": -1000,
+        "liquidity": "184467440737095516160",
+        "feePips": 3490,
+        "tickSpacing": 1,
+        "lowerTick": -1200,
+        "upperTick": -800,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": -1060,
+            "liquidityGross": "92233720368547758080",
+            "liquidityNet": "92233720368547758080"
+          },
+          {
+            "tick": -940,
+            "liquidityGross": "92233720368547758080",
+            "liquidityNet": "92233720368547758080"
+          }
+        ]
+      },
+      "aToB": true,
+      "amount": "57",
+      "expected": {
+        "amountOut": "50",
+        "feeAmount": "1",
+        "sqrtPriceAfterX64": "17547129613991598772",
+        "liquidityAfter": "184467440737095516160"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "18317158333603454004",
+        "tick": -141,
+        "liquidity": "1715777995000",
+        "feePips": 345,
+        "tickSpacing": 1,
+        "lowerTick": -341,
+        "upperTick": 59,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": -201,
+            "liquidityGross": "857888997500",
+            "liquidityNet": "857888997500"
+          },
+          {
+            "tick": -81,
+            "liquidityGross": "857888997500",
+            "liquidityNet": "857888997500"
+          }
+        ]
+      },
+      "aToB": false,
+      "amount": "1820801248",
+      "expected": {
+        "amountOut": "1844047910",
+        "feeAmount": "628177",
+        "sqrtPriceAfterX64": "18336727454380407997",
+        "liquidityAfter": "1715777995000"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "17824779515542942820",
+        "tick": -686,
+        "liquidity": "2825160919000",
+        "feePips": 2445,
+        "tickSpacing": 1,
+        "lowerTick": -886,
+        "upperTick": -486,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": -746,
+            "liquidityGross": "1412580459500",
+            "liquidityNet": "1412580459500"
+          },
+          {
+            "tick": -626,
+            "liquidityGross": "1412580459500",
+            "liquidityNet": "1412580459500"
+          }
+        ]
+      },
+      "aToB": true,
+      "amount": "7304412496",
+      "expected": {
+        "amountOut": "6786565188",
+        "feeAmount": "17859289",
+        "sqrtPriceAfterX64": "17780466984410332259",
+        "liquidityAfter": "2825160919000"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "17470095694220465884",
+        "tick": -1088,
+        "liquidity": "3131369728000",
+        "feePips": 4596,
+        "tickSpacing": 1,
+        "lowerTick": -1288,
+        "upperTick": -888,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": -1148,
+            "liquidityGross": "1565684864000",
+            "liquidityNet": "1565684864000"
+          },
+          {
+            "tick": -1028,
+            "liquidityGross": "1565684864000",
+            "liquidityNet": "1565684864000"
+          }
+        ]
+      },
+      "aToB": false,
+      "amount": "6806320248",
+      "expected": {
+        "amountOut": "7536498199",
+        "feeAmount": "31281848",
+        "sqrtPriceAfterX64": "17510007110089641279",
+        "liquidityAfter": "3131369728000"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "15084201589606463333",
+        "tick": -4025,
+        "liquidity": "1628799944000",
+        "feePips": 4383,
+        "tickSpacing": 1,
+        "lowerTick": -4225,
+        "upperTick": -3825,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": -4085,
+            "liquidityGross": "814399972000",
+            "liquidityNet": "814399972000"
+          },
+          {
+            "tick": -3965,
+            "liquidityGross": "814399972000",
+            "liquidityNet": "814399972000"
+          }
+        ]
+      },
+      "aToB": true,
+      "amount": "1072921504",
+      "expected": {
+        "amountOut": "713892173",
+        "feeAmount": "4702615",
+        "sqrtPriceAfterX64": "15076116504464677522",
+        "liquidityAfter": "1628799944000"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "14624518816923773148",
+        "tick": -4644,
+        "liquidity": "2282022076000",
+        "feePips": 1372,
+        "tickSpacing": 1,
+        "lowerTick": -4844,
+        "upperTick": -4444,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": -4704,
+            "liquidityGross": "1141011038000",
+            "liquidityNet": "1141011038000"
+          },
+          {
+            "tick": -4584,
+            "liquidityGross": "1141011038000",
+            "liquidityNet": "1141011038000"
+          }
+        ]
+      },
+      "aToB": false,
+      "amount": "1805500988",
+      "expected": {
+        "amountOut": "2865795138",
+        "feeAmount": "2477148",
+        "sqrtPriceAfterX64": "14639093574847927882",
+        "liquidityAfter": "2282022076000"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "18710543191085562410",
+        "tick": 284,
+        "liquidity": "1652172932000",
+        "feePips": 2941,
+        "tickSpacing": 1,
+        "lowerTick": 84,
+        "upperTick": 484,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": 224,
+            "liquidityGross": "826086466000",
+            "liquidityNet": "826086466000"
+          },
+          {
+            "tick": 344,
+            "liquidityGross": "826086466000",
+            "liquidityNet": "826086466000"
+          }
+        ]
+      },
+      "aToB": true,
+      "amount": "4307277796",
+      "expected": {
+        "amountOut": "4406700730",
+        "feeAmount": "12667704",
+        "sqrtPriceAfterX64": "18661341755198288125",
+        "liquidityAfter": "1652172932000"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "17010689391265238837",
+        "tick": -1621,
+        "liquidity": "2016378853000",
+        "feePips": 1881,
+        "tickSpacing": 1,
+        "lowerTick": -1821,
+        "upperTick": -1421,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": -1681,
+            "liquidityGross": "1008189426500",
+            "liquidityNet": "1008189426500"
+          },
+          {
+            "tick": -1561,
+            "liquidityGross": "1008189426500",
+            "liquidityNet": "1008189426500"
+          }
+        ]
+      },
+      "aToB": false,
+      "amount": "848856204",
+      "expected": {
+        "amountOut": "995896530",
+        "feeAmount": "1596699",
+        "sqrtPriceAfterX64": "17018440503725826043",
+        "liquidityAfter": "2016378853000"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "19017057879754442287",
+        "tick": 609,
+        "liquidity": "1316590271000",
+        "feePips": 3612,
+        "tickSpacing": 1,
+        "lowerTick": 409,
+        "upperTick": 809,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": 549,
+            "liquidityGross": "658295135500",
+            "liquidityNet": "658295135500"
+          },
+          {
+            "tick": 669,
+            "liquidityGross": "658295135500",
+            "liquidityNet": "658295135500"
+          }
+        ]
+      },
+      "aToB": true,
+      "amount": "2541358556",
+      "expected": {
+        "amountOut": "2685847804",
+        "feeAmount": "9179388",
+        "sqrtPriceAfterX64": "18979426470678159233",
+        "liquidityAfter": "1316590271000"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "17187655397723781916",
+        "tick": -1414,
+        "liquidity": "2233348535000",
+        "feePips": 7828,
+        "tickSpacing": 1,
+        "lowerTick": -1614,
+        "upperTick": -1214,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": -1474,
+            "liquidityGross": "1116674267500",
+            "liquidityNet": "1116674267500"
+          },
+          {
+            "tick": -1354,
+            "liquidityGross": "1116674267500",
+            "liquidityNet": "1116674267500"
+          }
+        ]
+      },
+      "aToB": false,
+      "amount": "1111949816",
+      "expected": {
+        "amountOut": "1270129878",
+        "feeAmount": "8704344",
+        "sqrtPriceAfterX64": "17196767852207946384",
+        "liquidityAfter": "2233348535000"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "14743452503951360982",
+        "tick": -4482,
+        "liquidity": "1179362869000",
+        "feePips": 4378,
+        "tickSpacing": 1,
+        "lowerTick": -4682,
+        "upperTick": -4282,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": -4542,
+            "liquidityGross": "589681434500",
+            "liquidityNet": "589681434500"
+          },
+          {
+            "tick": -4422,
+            "liquidityGross": "589681434500",
+            "liquidityNet": "589681434500"
+          }
+        ]
+      },
+      "aToB": true,
+      "amount": "6073874768",
+      "expected": {
+        "amountOut": "3846071008",
+        "feeAmount": "26591425",
+        "sqrtPriceAfterX64": "14667299435464088368",
+        "liquidityAfter": "589681434500"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "18472586308666313795",
+        "tick": 28,
+        "liquidity": "1532771388000",
+        "feePips": 9887,
+        "tickSpacing": 1,
+        "lowerTick": -172,
+        "upperTick": 228,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": -32,
+            "liquidityGross": "766385694000",
+            "liquidityNet": "766385694000"
+          },
+          {
+            "tick": 88,
+            "liquidityGross": "766385694000",
+            "liquidityNet": "766385694000"
+          }
+        ]
+      },
+      "aToB": false,
+      "amount": "5163990292",
+      "expected": {
+        "amountOut": "5081764811",
+        "feeAmount": "51056373",
+        "sqrtPriceAfterX64": "18532108123497382684",
+        "liquidityAfter": "2299157082000"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "14450082026688061920",
+        "tick": -4884,
+        "liquidity": "2620275027000",
+        "feePips": 5847,
+        "tickSpacing": 1,
+        "lowerTick": -5084,
+        "upperTick": -4684,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": -4944,
+            "liquidityGross": "1310137513500",
+            "liquidityNet": "1310137513500"
+          },
+          {
+            "tick": -4824,
+            "liquidityGross": "1310137513500",
+            "liquidityNet": "1310137513500"
+          }
+        ]
+      },
+      "aToB": true,
+      "amount": "3765619308",
+      "expected": {
+        "amountOut": "2294589725",
+        "feeAmount": "22017577",
+        "sqrtPriceAfterX64": "14433928108114348517",
+        "liquidityAfter": "2620275027000"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "21401916036569483664",
+        "tick": 2972,
+        "liquidity": "2183888830000",
+        "feePips": 2018,
+        "tickSpacing": 1,
+        "lowerTick": 2772,
+        "upperTick": 3172,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": 2912,
+            "liquidityGross": "1091944415000",
+            "liquidityNet": "1091944415000"
+          },
+          {
+            "tick": 3032,
+            "liquidityGross": "1091944415000",
+            "liquidityNet": "1091944415000"
+          }
+        ]
+      },
+      "aToB": false,
+      "amount": "3241531452",
+      "expected": {
+        "amountOut": "2400230470",
+        "feeAmount": "6541411",
+        "sqrtPriceAfterX64": "21429241160700150227",
+        "liquidityAfter": "2183888830000"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "18301596141984868815",
+        "tick": -158,
+        "liquidity": "1047745740000",
+        "feePips": 7321,
+        "tickSpacing": 1,
+        "lowerTick": -358,
+        "upperTick": 42,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": -218,
+            "liquidityGross": "523872870000",
+            "liquidityNet": "523872870000"
+          },
+          {
+            "tick": -98,
+            "liquidityGross": "523872870000",
+            "liquidityNet": "523872870000"
+          }
+        ]
+      },
+      "aToB": true,
+      "amount": "1938650236",
+      "expected": {
+        "amountOut": "1890845695",
+        "feeAmount": "14192859",
+        "sqrtPriceAfterX64": "18268305673416149125",
+        "liquidityAfter": "1047745740000"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "18289704564242984401",
+        "tick": -171,
+        "liquidity": "1393777678000",
+        "feePips": 5972,
+        "tickSpacing": 1,
+        "lowerTick": -371,
+        "upperTick": 29,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": -231,
+            "liquidityGross": "696888839000",
+            "liquidityNet": "696888839000"
+          },
+          {
+            "tick": -111,
+            "liquidityGross": "696888839000",
+            "liquidityNet": "696888839000"
+          }
+        ]
+      },
+      "aToB": false,
+      "amount": "2658141564",
+      "expected": {
+        "amountOut": "2682706702",
+        "feeAmount": "15874422",
+        "sqrtPriceAfterX64": "18324675152818335350",
+        "liquidityAfter": "1393777678000"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "17864035233181022175",
+        "tick": -642,
+        "liquidity": "3033795280000",
+        "feePips": 3649,
+        "tickSpacing": 1,
+        "lowerTick": -842,
+        "upperTick": -442,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": -702,
+            "liquidityGross": "1516897640000",
+            "liquidityNet": "1516897640000"
+          },
+          {
+            "tick": -582,
+            "liquidityGross": "1516897640000",
+            "liquidityNet": "1516897640000"
+          }
+        ]
+      },
+      "aToB": true,
+      "amount": "4468154100",
+      "expected": {
+        "amountOut": "4169111107",
+        "feeAmount": "16304295",
+        "sqrtPriceAfterX64": "17838685294072527382",
+        "liquidityAfter": "3033795280000"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "20598790589231721116",
+        "tick": 2207,
+        "liquidity": "2632185554000",
+        "feePips": 3331,
+        "tickSpacing": 1,
+        "lowerTick": 2007,
+        "upperTick": 2407,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": 2147,
+            "liquidityGross": "1316092777000",
+            "liquidityNet": "1316092777000"
+          },
+          {
+            "tick": 2267,
+            "liquidityGross": "1316092777000",
+            "liquidityNet": "1316092777000"
+          }
+        ]
+      },
+      "aToB": false,
+      "amount": "1395344992",
+      "expected": {
+        "amountOut": "1114764454",
+        "feeAmount": "4647895",
+        "sqrtPriceAfterX64": "20608536799332078587",
+        "liquidityAfter": "2632185554000"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "19516008248983756463",
+        "tick": 1127,
+        "liquidity": "2650657141000",
+        "feePips": 3861,
+        "tickSpacing": 1,
+        "lowerTick": 927,
+        "upperTick": 1327,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": 1067,
+            "liquidityGross": "1325328570500",
+            "liquidityNet": "1325328570500"
+          },
+          {
+            "tick": 1187,
+            "liquidityGross": "1325328570500",
+            "liquidityNet": "1325328570500"
+          }
+        ]
+      },
+      "aToB": true,
+      "amount": "3140395280",
+      "expected": {
+        "amountOut": "3497074466",
+        "feeAmount": "12125067",
+        "sqrtPriceAfterX64": "19491671024566444776",
+        "liquidityAfter": "2650657141000"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "21811328810117647294",
+        "tick": 3351,
+        "liquidity": "1117416796000",
+        "feePips": 3685,
+        "tickSpacing": 1,
+        "lowerTick": 3151,
+        "upperTick": 3551,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": 3291,
+            "liquidityGross": "558708398000",
+            "liquidityNet": "558708398000"
+          },
+          {
+            "tick": 3411,
+            "liquidityGross": "558708398000",
+            "liquidityNet": "558708398000"
+          }
+        ]
+      },
+      "aToB": false,
+      "amount": "2467262132",
+      "expected": {
+        "amountOut": "1755011208",
+        "feeAmount": "9091861",
+        "sqrtPriceAfterX64": "21851909225626936141",
+        "liquidityAfter": "1117416796000"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "18414492112848038744",
+        "tick": -35,
+        "liquidity": "2215548392000",
+        "feePips": 2016,
+        "tickSpacing": 1,
+        "lowerTick": -235,
+        "upperTick": 165,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": -95,
+            "liquidityGross": "1107774196000",
+            "liquidityNet": "1107774196000"
+          },
+          {
+            "tick": 25,
+            "liquidityGross": "1107774196000",
+            "liquidityNet": "1107774196000"
+          }
+        ]
+      },
+      "aToB": true,
+      "amount": "162974004",
+      "expected": {
+        "amountOut": "162065335",
+        "feeAmount": "328556",
+        "sqrtPriceAfterX64": "18413142750413442980",
+        "liquidityAfter": "2215548392000"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "19674721902825578777",
+        "tick": 1289,
+        "liquidity": "1840930631000",
+        "feePips": 8037,
+        "tickSpacing": 1,
+        "lowerTick": 1089,
+        "upperTick": 1489,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": 1229,
+            "liquidityGross": "920465315500",
+            "liquidityNet": "920465315500"
+          },
+          {
+            "tick": 1349,
+            "liquidityGross": "920465315500",
+            "liquidityNet": "920465315500"
+          }
+        ]
+      },
+      "aToB": false,
+      "amount": "3306374628",
+      "expected": {
+        "amountOut": "2878358812",
+        "feeAmount": "26573333",
+        "sqrtPriceAfterX64": "19707586614880818713",
+        "liquidityAfter": "1840930631000"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "18432914893692463368",
+        "tick": -15,
+        "liquidity": "1825403111000",
+        "feePips": 8078,
+        "tickSpacing": 1,
+        "lowerTick": -215,
+        "upperTick": 185,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": -75,
+            "liquidityGross": "912701555500",
+            "liquidityNet": "912701555500"
+          },
+          {
+            "tick": 45,
+            "liquidityGross": "912701555500",
+            "liquidityNet": "912701555500"
+          }
+        ]
+      },
+      "aToB": true,
+      "amount": "3077874160",
+      "expected": {
+        "amountOut": "3043349010",
+        "feeAmount": "24863068",
+        "sqrtPriceAfterX64": "18402160108629782973",
+        "liquidityAfter": "1825403111000"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "15713903581636709918",
+        "tick": -3207,
+        "liquidity": "2966767466000",
+        "feePips": 8066,
+        "tickSpacing": 1,
+        "lowerTick": -3407,
+        "upperTick": -3007,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": -3267,
+            "liquidityGross": "1483383733000",
+            "liquidityNet": "1483383733000"
+          },
+          {
+            "tick": -3147,
+            "liquidityGross": "1483383733000",
+            "liquidityNet": "1483383733000"
+          }
+        ]
+      },
+      "aToB": false,
+      "amount": "7501139840",
+      "expected": {
+        "amountOut": "10223616712",
+        "feeAmount": "60504194",
+        "sqrtPriceAfterX64": "15760167909084165667",
+        "liquidityAfter": "2966767466000"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "19694405480714640474",
+        "tick": 1309,
+        "liquidity": "2779511374000",
+        "feePips": 3086,
+        "tickSpacing": 1,
+        "lowerTick": 1109,
+        "upperTick": 1509,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": 1249,
+            "liquidityGross": "1389755687000",
+            "liquidityNet": "1389755687000"
+          },
+          {
+            "tick": 1369,
+            "liquidityGross": "1389755687000",
+            "liquidityNet": "1389755687000"
+          }
+        ]
+      },
+      "aToB": true,
+      "amount": "6380553004",
+      "expected": {
+        "amountOut": "7232734419",
+        "feeAmount": "19690387",
+        "sqrtPriceAfterX64": "19646404093837178557",
+        "liquidityAfter": "2779511374000"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "19663904321756537501",
+        "tick": 1278,
+        "liquidity": "2987778587000",
+        "feePips": 4471,
+        "tickSpacing": 1,
+        "lowerTick": 1078,
+        "upperTick": 1478,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": 1218,
+            "liquidityGross": "1493889293500",
+            "liquidityNet": "1493889293500"
+          },
+          {
+            "tick": 1338,
+            "liquidityGross": "1493889293500",
+            "liquidityNet": "1493889293500"
+          }
+        ]
+      },
+      "aToB": false,
+      "amount": "1373366880",
+      "expected": {
+        "amountOut": "1202690916",
+        "feeAmount": "6140324",
+        "sqrtPriceAfterX64": "19672345669612449194",
+        "liquidityAfter": "2987778587000"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "18879689639963883633",
+        "tick": 464,
+        "liquidity": "2605060443000",
+        "feePips": 402,
+        "tickSpacing": 1,
+        "lowerTick": 264,
+        "upperTick": 664,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": 404,
+            "liquidityGross": "1302530221500",
+            "liquidityNet": "1302530221500"
+          },
+          {
+            "tick": 524,
+            "liquidityGross": "1302530221500",
+            "liquidityNet": "1302530221500"
+          }
+        ]
+      },
+      "aToB": true,
+      "amount": "3830511348",
+      "expected": {
+        "amountOut": "4004788290",
+        "feeAmount": "1539866",
+        "sqrtPriceAfterX64": "18851331255858928683",
+        "liquidityAfter": "2605060443000"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "18154867006474257107",
+        "tick": -319,
+        "liquidity": "1091485533000",
+        "feePips": 7216,
+        "tickSpacing": 1,
+        "lowerTick": -519,
+        "upperTick": -119,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": -379,
+            "liquidityGross": "545742766500",
+            "liquidityNet": "545742766500"
+          },
+          {
+            "tick": -259,
+            "liquidityGross": "545742766500",
+            "liquidityNet": "545742766500"
+          }
+        ]
+      },
+      "aToB": false,
+      "amount": "3487141844",
+      "expected": {
+        "amountOut": "3562725983",
+        "feeAmount": "25163216",
+        "sqrtPriceAfterX64": "18212054532095353506",
+        "liquidityAfter": "1637228299500"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "18613505734318195734",
+        "tick": 180,
+        "liquidity": "2406503194000",
+        "feePips": 1119,
+        "tickSpacing": 1,
+        "lowerTick": -20,
+        "upperTick": 380,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": 120,
+            "liquidityGross": "1203251597000",
+            "liquidityNet": "1203251597000"
+          },
+          {
+            "tick": 240,
+            "liquidityGross": "1203251597000",
+            "liquidityNet": "1203251597000"
+          }
+        ]
+      },
+      "aToB": true,
+      "amount": "2480711676",
+      "expected": {
+        "amountOut": "2520321584",
+        "feeAmount": "2775917",
+        "sqrtPriceAfterX64": "18594186529855212902",
+        "liquidityAfter": "2406503194000"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "23226093412559785833",
+        "tick": 4608,
+        "liquidity": "1373204522000",
+        "feePips": 850,
+        "tickSpacing": 1,
+        "lowerTick": 4408,
+        "upperTick": 4808,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": 4548,
+            "liquidityGross": "686602261000",
+            "liquidityNet": "686602261000"
+          },
+          {
+            "tick": 4668,
+            "liquidityGross": "686602261000",
+            "liquidityNet": "686602261000"
+          }
+        ]
+      },
+      "aToB": false,
+      "amount": "7450602704",
+      "expected": {
+        "amountOut": "4676273154",
+        "feeAmount": "6333013",
+        "sqrtPriceAfterX64": "23316020894452634162",
+        "liquidityAfter": "2059806783000"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "16291509687311280188",
+        "tick": -2485,
+        "liquidity": "2065482303000",
+        "feePips": 8439,
+        "tickSpacing": 1,
+        "lowerTick": -2685,
+        "upperTick": -2285,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": -2545,
+            "liquidityGross": "1032741151500",
+            "liquidityNet": "1032741151500"
+          },
+          {
+            "tick": -2425,
+            "liquidityGross": "1032741151500",
+            "liquidityNet": "1032741151500"
+          }
+        ]
+      },
+      "aToB": true,
+      "amount": "7241545440",
+      "expected": {
+        "amountOut": "5583441404",
+        "feeAmount": "61111403",
+        "sqrtPriceAfterX64": "16240577534940410191",
+        "liquidityAfter": "1032741151500"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "17506819605624973405",
+        "tick": -1046,
+        "liquidity": "1748868648000",
+        "feePips": 8167,
+        "tickSpacing": 1,
+        "lowerTick": -1246,
+        "upperTick": -846,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": -1106,
+            "liquidityGross": "874434324000",
+            "liquidityNet": "874434324000"
+          },
+          {
+            "tick": -986,
+            "liquidityGross": "874434324000",
+            "liquidityNet": "874434324000"
+          }
+        ]
+      },
+      "aToB": false,
+      "amount": "185111628",
+      "expected": {
+        "amountOut": "203821102",
+        "feeAmount": "1511807",
+        "sqrtPriceAfterX64": "17508756182688001573",
+        "liquidityAfter": "1748868648000"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "15805304458772030659",
+        "tick": -3091,
+        "liquidity": "2228557534000",
+        "feePips": 9364,
+        "tickSpacing": 1,
+        "lowerTick": -3291,
+        "upperTick": -2891,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": -3151,
+            "liquidityGross": "1114278767000",
+            "liquidityNet": "1114278767000"
+          },
+          {
+            "tick": -3031,
+            "liquidityGross": "1114278767000",
+            "liquidityNet": "1114278767000"
+          }
+        ]
+      },
+      "aToB": true,
+      "amount": "3759248236",
+      "expected": {
+        "amountOut": "2729983557",
+        "feeAmount": "35201601",
+        "sqrtPriceAfterX64": "15782707192492663258",
+        "liquidityAfter": "2228557534000"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "23250492397939815929",
+        "tick": 4629,
+        "liquidity": "2255267769000",
+        "feePips": 3262,
+        "tickSpacing": 1,
+        "lowerTick": 4429,
+        "upperTick": 4829,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": 4569,
+            "liquidityGross": "1127633884500",
+            "liquidityNet": "1127633884500"
+          },
+          {
+            "tick": 4689,
+            "liquidityGross": "1127633884500",
+            "liquidityNet": "1127633884500"
+          }
+        ]
+      },
+      "aToB": false,
+      "amount": "7117510176",
+      "expected": {
+        "amountOut": "4454528213",
+        "feeAmount": "23217319",
+        "sqrtPriceAfterX64": "23308519478588891951",
+        "liquidityAfter": "2255267769000"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "16625590074203182437",
+        "tick": -2079,
+        "liquidity": "2033251051000",
+        "feePips": 4545,
+        "tickSpacing": 1,
+        "lowerTick": -2279,
+        "upperTick": -1879,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": -2139,
+            "liquidityGross": "1016625525500",
+            "liquidityNet": "1016625525500"
+          },
+          {
+            "tick": -2019,
+            "liquidityGross": "1016625525500",
+            "liquidityNet": "1016625525500"
+          }
+        ]
+      },
+      "aToB": true,
+      "amount": "3015125984",
+      "expected": {
+        "amountOut": "2434806042",
+        "feeAmount": "13703748",
+        "sqrtPriceAfterX64": "16603500207874293980",
+        "liquidityAfter": "2033251051000"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "22358985254627363077",
+        "tick": 3847,
+        "liquidity": "2139662756000",
+        "feePips": 3459,
+        "tickSpacing": 1,
+        "lowerTick": 3647,
+        "upperTick": 4047,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": 3787,
+            "liquidityGross": "1069831378000",
+            "liquidityNet": "1069831378000"
+          },
+          {
+            "tick": 3907,
+            "liquidityGross": "1069831378000",
+            "liquidityNet": "1069831378000"
+          }
+        ]
+      },
+      "aToB": false,
+      "amount": "2289239708",
+      "expected": {
+        "amountOut": "1551457378",
+        "feeAmount": "7918481",
+        "sqrtPriceAfterX64": "22378653283482088841",
+        "liquidityAfter": "2139662756000"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "20756967684535321094",
+        "tick": 2360,
+        "liquidity": "2085986945000",
+        "feePips": 867,
+        "tickSpacing": 1,
+        "lowerTick": 2160,
+        "upperTick": 2560,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": 2300,
+            "liquidityGross": "1042993472500",
+            "liquidityNet": "1042993472500"
+          },
+          {
+            "tick": 2420,
+            "liquidityGross": "1042993472500",
+            "liquidityNet": "1042993472500"
+          }
+        ]
+      },
+      "aToB": true,
+      "amount": "6399996300",
+      "expected": {
+        "amountOut": "8068098446",
+        "feeAmount": "5548798",
+        "sqrtPriceAfterX64": "20676446984889073783",
+        "liquidityAfter": "1042993472500"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "18780835929989040813",
+        "tick": 359,
+        "liquidity": "2954419581000",
+        "feePips": 6613,
+        "tickSpacing": 1,
+        "lowerTick": 159,
+        "upperTick": 559,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": 299,
+            "liquidityGross": "1477209790500",
+            "liquidityNet": "1477209790500"
+          },
+          {
+            "tick": 419,
+            "liquidityGross": "1477209790500",
+            "liquidityNet": "1477209790500"
+          }
+        ]
+      },
+      "aToB": false,
+      "amount": "2733993376",
+      "expected": {
+        "amountOut": "2617782633",
+        "feeAmount": "18079899",
+        "sqrtPriceAfterX64": "18797793494567461352",
+        "liquidityAfter": "2954419581000"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "15750872828474351415",
+        "tick": -3160,
+        "liquidity": "1994292297000",
+        "feePips": 2295,
+        "tickSpacing": 1,
+        "lowerTick": -3360,
+        "upperTick": -2960,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": -3220,
+            "liquidityGross": "997146148500",
+            "liquidityNet": "997146148500"
+          },
+          {
+            "tick": -3100,
+            "liquidityGross": "997146148500",
+            "liquidityNet": "997146148500"
+          }
+        ]
+      },
+      "aToB": true,
+      "amount": "5485767736",
+      "expected": {
+        "amountOut": "3981006253",
+        "feeAmount": "12589837",
+        "sqrtPriceAfterX64": "15714049438228806845",
+        "liquidityAfter": "1994292297000"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "20245513830080550091",
+        "tick": 1861,
+        "liquidity": "1329809967000",
+        "feePips": 8595,
+        "tickSpacing": 1,
+        "lowerTick": 1661,
+        "upperTick": 2061,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": 1801,
+            "liquidityGross": "664904983500",
+            "liquidityNet": "664904983500"
+          },
+          {
+            "tick": 1921,
+            "liquidityGross": "664904983500",
+            "liquidityNet": "664904983500"
+          }
+        ]
+      },
+      "aToB": false,
+      "amount": "3842568384",
+      "expected": {
+        "amountOut": "3154441142",
+        "feeAmount": "33026876",
+        "sqrtPriceAfterX64": "20298358701889402722",
+        "liquidityAfter": "1329809967000"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "19009452957928053877",
+        "tick": 601,
+        "liquidity": "2868833375000",
+        "feePips": 4484,
+        "tickSpacing": 1,
+        "lowerTick": 401,
+        "upperTick": 801,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": 541,
+            "liquidityGross": "1434416687500",
+            "liquidityNet": "1434416687500"
+          },
+          {
+            "tick": 661,
+            "liquidityGross": "1434416687500",
+            "liquidityNet": "1434416687500"
+          }
+        ]
+      },
+      "aToB": true,
+      "amount": "4441141384",
+      "expected": {
+        "amountOut": "4687631520",
+        "feeAmount": "19914078",
+        "sqrtPriceAfterX64": "18979311249553325636",
+        "liquidityAfter": "2868833375000"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "20722748637256749970",
+        "tick": 2327,
+        "liquidity": "2457204083000",
+        "feePips": 8998,
+        "tickSpacing": 1,
+        "lowerTick": 2127,
+        "upperTick": 2527,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": 2267,
+            "liquidityGross": "1228602041500",
+            "liquidityNet": "1228602041500"
+          },
+          {
+            "tick": 2387,
+            "liquidityGross": "1228602041500",
+            "liquidityNet": "1228602041500"
+          }
+        ]
+      },
+      "aToB": false,
+      "amount": "8075667620",
+      "expected": {
+        "amountOut": "6323250565",
+        "feeAmount": "72664858",
+        "sqrtPriceAfterX64": "20782828849882623534",
+        "liquidityAfter": "2457204083000"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "19103778296503601288",
+        "tick": 700,
+        "liquidity": "2728206569000",
+        "feePips": 6647,
+        "tickSpacing": 1,
+        "lowerTick": 500,
+        "upperTick": 900,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": 640,
+            "liquidityGross": "1364103284500",
+            "liquidityNet": "1364103284500"
+          },
+          {
+            "tick": 760,
+            "liquidityGross": "1364103284500",
+            "liquidityNet": "1364103284500"
+          }
+        ]
+      },
+      "aToB": true,
+      "amount": "4438164348",
+      "expected": {
+        "amountOut": "4720411845",
+        "feeAmount": "29500479",
+        "sqrtPriceAfterX64": "19071861274445699227",
+        "liquidityAfter": "2728206569000"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "17695138871039314802",
+        "tick": -832,
+        "liquidity": "1997997632000",
+        "feePips": 2054,
+        "tickSpacing": 1,
+        "lowerTick": -1032,
+        "upperTick": -632,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": -892,
+            "liquidityGross": "998998816000",
+            "liquidityNet": "998998816000"
+          },
+          {
+            "tick": -772,
+            "liquidityGross": "998998816000",
+            "liquidityNet": "998998816000"
+          }
+        ]
+      },
+      "aToB": false,
+      "amount": "7962100072",
+      "expected": {
+        "amountOut": "8600319551",
+        "feeAmount": "16354155",
+        "sqrtPriceAfterX64": "17761766370205920818",
+        "liquidityAfter": "2996996448000"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "18921268598343410006",
+        "tick": 508,
+        "liquidity": "1548471924000",
+        "feePips": 9886,
+        "tickSpacing": 1,
+        "lowerTick": 308,
+        "upperTick": 708,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": 448,
+            "liquidityGross": "774235962000",
+            "liquidityNet": "774235962000"
+          },
+          {
+            "tick": 568,
+            "liquidityGross": "774235962000",
+            "liquidityNet": "774235962000"
+          }
+        ]
+      },
+      "aToB": true,
+      "amount": "4439373752",
+      "expected": {
+        "amountOut": "4611108129",
+        "feeAmount": "43887649",
+        "sqrtPriceAfterX64": "18866337068590533597",
+        "liquidityAfter": "1548471924000"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "14922922912274944440",
+        "tick": -4240,
+        "liquidity": "1774434449000",
+        "feePips": 5627,
+        "tickSpacing": 1,
+        "lowerTick": -4440,
+        "upperTick": -4040,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": -4300,
+            "liquidityGross": "887217224500",
+            "liquidityNet": "887217224500"
+          },
+          {
+            "tick": -4180,
+            "liquidityGross": "887217224500",
+            "liquidityNet": "887217224500"
+          }
+        ]
+      },
+      "aToB": false,
+      "amount": "5909778400",
+      "expected": {
+        "amountOut": "8943748465",
+        "feeAmount": "33254324",
+        "sqrtPriceAfterX64": "14978595112782731907",
+        "liquidityAfter": "2661651673500"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "21934905414351635041",
+        "tick": 3464,
+        "liquidity": "2457593303000",
+        "feePips": 8566,
+        "tickSpacing": 1,
+        "lowerTick": 3264,
+        "upperTick": 3664,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": 3404,
+            "liquidityGross": "1228796651500",
+            "liquidityNet": "1228796651500"
+          },
+          {
+            "tick": 3524,
+            "liquidityGross": "1228796651500",
+            "liquidityNet": "1228796651500"
+          }
+        ]
+      },
+      "aToB": true,
+      "amount": "5918410808",
+      "expected": {
+        "amountOut": "8273128317",
+        "feeAmount": "50697107",
+        "sqrtPriceAfterX64": "21872807149121515481",
+        "liquidityAfter": "2457593303000"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "15537344735077807536",
+        "tick": -3433,
+        "liquidity": "1067549857000",
+        "feePips": 2395,
+        "tickSpacing": 1,
+        "lowerTick": -3633,
+        "upperTick": -3233,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": -3493,
+            "liquidityGross": "533774928500",
+            "liquidityNet": "533774928500"
+          },
+          {
+            "tick": -3373,
+            "liquidityGross": "533774928500",
+            "liquidityNet": "533774928500"
+          }
+        ]
+      },
+      "aToB": false,
+      "amount": "3275885404",
+      "expected": {
+        "amountOut": "4590006503",
+        "feeAmount": "7845746",
+        "sqrtPriceAfterX64": "15590551390822484944",
+        "liquidityAfter": "1601324785500"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "17455253163963481715",
+        "tick": -1105,
+        "liquidity": "1548585885000",
+        "feePips": 6843,
+        "tickSpacing": 1,
+        "lowerTick": -1305,
+        "upperTick": -905,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": -1165,
+            "liquidityGross": "774292942500",
+            "liquidityNet": "774292942500"
+          },
+          {
+            "tick": -1045,
+            "liquidityGross": "774292942500",
+            "liquidityNet": "774292942500"
+          }
+        ]
+      },
+      "aToB": true,
+      "amount": "673615712",
+      "expected": {
+        "amountOut": "598777504",
+        "feeAmount": "4609553",
+        "sqrtPriceAfterX64": "17448120530582977498",
+        "liquidityAfter": "1548585885000"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "16263025900106850291",
+        "tick": -2520,
+        "liquidity": "1598923400000",
+        "feePips": 4419,
+        "tickSpacing": 1,
+        "lowerTick": -2720,
+        "upperTick": -2320,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": -2580,
+            "liquidityGross": "799461700000",
+            "liquidityNet": "799461700000"
+          },
+          {
+            "tick": -2460,
+            "liquidityGross": "799461700000",
+            "liquidityNet": "799461700000"
+          }
+        ]
+      },
+      "aToB": false,
+      "amount": "4826342944",
+      "expected": {
+        "amountOut": "6161132713",
+        "feeAmount": "21327610",
+        "sqrtPriceAfterX64": "16316269433515408427",
+        "liquidityAfter": "2398385100000"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "14538492484365344846",
+        "tick": -4762,
+        "liquidity": "2175499324000",
+        "feePips": 1114,
+        "tickSpacing": 1,
+        "lowerTick": -4962,
+        "upperTick": -4562,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": -4822,
+            "liquidityGross": "1087749662000",
+            "liquidityNet": "1087749662000"
+          },
+          {
+            "tick": -4702,
+            "liquidityGross": "1087749662000",
+            "liquidityNet": "1087749662000"
+          }
+        ]
+      },
+      "aToB": true,
+      "amount": "6859792080",
+      "expected": {
+        "amountOut": "4245701330",
+        "feeAmount": "7641809",
+        "sqrtPriceAfterX64": "14502491845339518911",
+        "liquidityAfter": "2175499324000"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "15275455335553183076",
+        "tick": -3773,
+        "liquidity": "1496524198000",
+        "feePips": 7016,
+        "tickSpacing": 1,
+        "lowerTick": -3973,
+        "upperTick": -3573,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": -3833,
+            "liquidityGross": "748262099000",
+            "liquidityNet": "748262099000"
+          },
+          {
+            "tick": -3713,
+            "liquidityGross": "748262099000",
+            "liquidityNet": "748262099000"
+          }
+        ]
+      },
+      "aToB": false,
+      "amount": "7208245552",
+      "expected": {
+        "amountOut": "10382757715",
+        "feeAmount": "50573052",
+        "sqrtPriceAfterX64": "15349571812891671462",
+        "liquidityAfter": "2244786297000"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "15792665903218503108",
+        "tick": -3107,
+        "liquidity": "1048038247000",
+        "feePips": 4695,
+        "tickSpacing": 1,
+        "lowerTick": -3307,
+        "upperTick": -2907,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": -3167,
+            "liquidityGross": "524019123500",
+            "liquidityNet": "524019123500"
+          },
+          {
+            "tick": -3047,
+            "liquidityGross": "524019123500",
+            "liquidityNet": "524019123500"
+          }
+        ]
+      },
+      "aToB": true,
+      "amount": "6877464296",
+      "expected": {
+        "amountOut": "4983332100",
+        "feeAmount": "32289696",
+        "sqrtPriceAfterX64": "15664545167037434813",
+        "liquidityAfter": "524019123500"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "15251035369176701181",
+        "tick": -3805,
+        "liquidity": "1355350624000",
+        "feePips": 9005,
+        "tickSpacing": 1,
+        "lowerTick": -4005,
+        "upperTick": -3605,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": -3865,
+            "liquidityGross": "677675312000",
+            "liquidityNet": "677675312000"
+          },
+          {
+            "tick": -3745,
+            "liquidityGross": "677675312000",
+            "liquidityNet": "677675312000"
+          }
+        ]
+      },
+      "aToB": false,
+      "amount": "4712331060",
+      "expected": {
+        "amountOut": "6804379986",
+        "feeAmount": "42434542",
+        "sqrtPriceAfterX64": "15308681036466074961",
+        "liquidityAfter": "2033025936000"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "21118113245793080787",
+        "tick": 2705,
+        "liquidity": "2209015192000",
+        "feePips": 3714,
+        "tickSpacing": 1,
+        "lowerTick": 2505,
+        "upperTick": 2905,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": 2645,
+            "liquidityGross": "1104507596000",
+            "liquidityNet": "1104507596000"
+          },
+          {
+            "tick": 2765,
+            "liquidityGross": "1104507596000",
+            "liquidityNet": "1104507596000"
+          }
+        ]
+      },
+      "aToB": true,
+      "amount": "1426969640",
+      "expected": {
+        "amountOut": "1861871415",
+        "feeAmount": "5299766",
+        "sqrtPriceAfterX64": "21102565382820846542",
+        "liquidityAfter": "2209015192000"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "20774617724784350771",
+        "tick": 2377,
+        "liquidity": "2200040220000",
+        "feePips": 5054,
+        "tickSpacing": 1,
+        "lowerTick": 2177,
+        "upperTick": 2577,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": 2317,
+            "liquidityGross": "1100020110000",
+            "liquidityNet": "1100020110000"
+          },
+          {
+            "tick": 2437,
+            "liquidityGross": "1100020110000",
+            "liquidityNet": "1100020110000"
+          }
+        ]
+      },
+      "aToB": false,
+      "amount": "3670262768",
+      "expected": {
+        "amountOut": "2874950810",
+        "feeAmount": "18549509",
+        "sqrtPriceAfterX64": "20805236355892533349",
+        "liquidityAfter": "2200040220000"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "18453201241220755940",
+        "tick": 7,
+        "liquidity": "2384462966000",
+        "feePips": 432,
+        "tickSpacing": 1,
+        "lowerTick": -193,
+        "upperTick": 207,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": -53,
+            "liquidityGross": "1192231483000",
+            "liquidityNet": "1192231483000"
+          },
+          {
+            "tick": 67,
+            "liquidityGross": "1192231483000",
+            "liquidityNet": "1192231483000"
+          }
+        ]
+      },
+      "aToB": true,
+      "amount": "7472884172",
+      "expected": {
+        "amountOut": "7451495535",
+        "feeAmount": "3228287",
+        "sqrtPriceAfterX64": "18393182224003732659",
+        "liquidityAfter": "1192231483000"
+      }
+    },
+    {
+      "state": {
+        "sqrtPriceX64": "18885354113265441687",
+        "tick": 470,
+        "liquidity": "1067972915000",
+        "feePips": 3269,
+        "tickSpacing": 1,
+        "lowerTick": 270,
+        "upperTick": 670,
+        "complete": true,
+        "initializedTicks": [
+          {
+            "tick": 410,
+            "liquidityGross": "533986457500",
+            "liquidityNet": "533986457500"
+          },
+          {
+            "tick": 530,
+            "liquidityGross": "533986457500",
+            "liquidityNet": "533986457500"
+          }
+        ]
+      },
+      "aToB": false,
+      "amount": "7652204984",
+      "expected": {
+        "amountOut": "7232010735",
+        "feeAmount": "25015059",
+        "sqrtPriceAfterX64": "18992094834753234395",
+        "liquidityAfter": "1601959372500"
+      }
+    }
+  ]
+}

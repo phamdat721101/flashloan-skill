@@ -188,6 +188,14 @@ principal plus the lender's actual fee, and prove remaining profit custody.
 Failure to repay or meet minimum output/profit bounds reverts the route;
 transaction gas can still be lost.
 
+The liquidity upgrade is deployed on Arbitrum One: executor
+`0xba4681b7cae1a67c703f43f1476b25fef2635b0a` and V4 state quoter
+`0x552d73e6b424b98a9d74fb335e62ee198d0601ad`. Both runtime artifacts,
+owner and Aave/V2/V3/V4/Morpho/Balancer pins passed on-chain readback.
+`LIQUIDITY_UPGRADE_DEPLOYMENT` exports the public addresses and code hashes;
+historical revoked deployments remain separate. Deployment does not grant trading
+admission. V4 hooks and unverified Algebra factories remain disabled.
+
 Start without a wallet:
 
 ```sh
@@ -196,6 +204,146 @@ npm run build
 npm run liquidity -- sources
 npm run liquidity:test
 ```
+
+The v4 analytics commands run without a wallet:
+
+```sh
+npm run liquidity -- project schemas/examples/liquidity-project-v4.json
+npm run liquidity -- size schemas/examples/liquidity-sizing-v4.json
+npm run liquidity -- compare schemas/examples/liquidity-sizing-v4.json
+npm run liquidity -- prepare-arbitrum schemas/examples/liquidity-prepare-v4.json
+npm run liquidity:benchmark
+```
+
+The examples use synthetic, unadmitted pools. `project` returns exact native
+output, rational price and a separately labelled projected state; `size` reports
+the best exactly quoted amount found within at most 512 evaluations. It reports
+`certified` only when every quantum in the declared domain was evaluated.
+`inspect` exposes actual V2 reserves or CLMM virtual liquidity/covered ranges;
+`target-price` finds the smallest V2 input reaching a raw price fraction.
+`compare` evaluates both circular directions, at most 512 quotes per direction.
+`prepare-arbitrum` produces unsigned Morpho/Balancer calldata and a bound runtime
+candidate for V2/V3/static V4, including exact leg output floors and covered price
+limits. It uses no RPC or wallet; adapter admission and fresh simulation remain
+mandatory before execution. The example deliberately has expired fixture timestamps.
+Inputs/results follow [the v4 JSON Schema](schemas/liquidity-analytics.schema.json).
+Existing v3 source/runtime contracts remain compatible.
+
+### Use a liquid pattern to prepare a flashloan
+
+A liquid pattern is a conditional change to a pool's reserves, tick liquidity or
+price range. Project that change to screen a circular route, then prepare execution
+from a fresh canonical snapshot. Projected state is not executable evidence, and
+already-executed feed events must not be applied twice.
+
+1. Capture the pools at one block with `snapshot-analytics-arbitrum`. Its v4 source
+   configuration supplies `rpcUrl`, `sourceId`, `cursor`, and `pools`; each pool
+   pins `address`, `expectedCodeHash`, `adapterRevision`, and its protocol-specific
+   fee or tick coverage. Keep the returned `{snapshot,pools}` together.
+2. Use `project` to inspect a hypothetical swap and its resulting price/range.
+   Use `compare` on canonical pools to size both circular directions. Supply the
+   borrow asset, 2–6 route legs, amount bounds/quantum, lender liquidity, actual
+   lender fee, conservative gas/cost evidence, and minimum net profit in native units.
+3. Assemble a prepare input using the checked-in fixture's structure:
+   `{schemaVersion:"4.0",pools,request,snapshot,binding}`. Match
+   `request.snapshotDigest` to `snapshot.stateDigest`. The binding supplies the
+   real lender, verified roots/revisions, adapter identity, fresh deadline/expiry,
+   and gas ceiling. `deadline * 1000` must not exceed `expiresAtMs`.
+4. Run `prepare-arbitrum`. Read `comparison`, `unsignedPayload` and `candidate`.
+   A null payload/candidate means no eligible trade was selected. Successful
+   preparation includes exact swap output floors and a repayment/profit guard.
+5. Pass the exact payload/candidate to the execution adapter and durable runtime.
+   Begin in `shadow` mode. Live execution requires admitted evidence, a fresh
+   executor-context simulation, signer/resource custody and explicit loss budgets.
+
+These commands demonstrate the offline flow; the fixtures contain synthetic pools
+and expired timestamps, so they cannot be used for live execution:
+
+```sh
+node dist/liquidity/cli.js project schemas/examples/liquidity-project-v4.json
+node dist/liquidity/cli.js compare schemas/examples/liquidity-sizing-v4.json
+node dist/liquidity/cli.js prepare-arbitrum schemas/examples/liquidity-prepare-v4.json
+```
+
+For real capture and preparation, provide reviewed source pins and freshly assembled
+inputs instead of the fixtures:
+
+```sh
+node dist/liquidity/cli.js snapshot-analytics-arbitrum ./capture-config.json > ./captured-state.json
+node dist/liquidity/cli.js prepare-arbitrum ./fresh-prepare-input.json > ./prepared-trade.json
+```
+
+The deployed lender pins are Morpho Blue
+`0x6c247b1F6182318877311737BaC0844bAa518F5e` and Balancer V2
+`0xBA12222222228d8Ba445958a75a0704d566BF2C8`. Morpho preparation requires
+a zero flashloan fee; Balancer preparation requires the current verified fee.
+`ArbitrumLiquidityExecutionAdapter` currently accounts gas/profit in WETH, so
+its circular route must start and finish in WETH. A quoted gross profit must
+cover exact debt, conservative gas/costs and the configured net profit floor.
+
+An application can bind the prepared payload to the deployed executor as follows.
+`admission`, `operatorAccount`, endpoints, policy and pool code pins are supplied
+by the reviewed operator integration; no signer or admission is fabricated here:
+
+```js
+import { LIQUIDITY_UPGRADE_DEPLOYMENT as deployment } from './dist/contracts/flash-executor.js';
+import { prepareArbitrumTrade } from './dist/liquidity/arbitrum.js';
+import { ArbitrumLiquidityExecutionAdapter } from './dist/liquidity/arbitrum-execution.js';
+import { SnapshotStore } from './dist/liquidity/state.js';
+import { AttemptJournal } from './dist/liquidity/journal.js';
+import { LiquidityRuntime } from './dist/liquidity/runtime.js';
+
+export async function simulateLiquidPattern(input, admission, operatorAccount,
+  endpoints, poolCodePins, policy) {
+  const prepared = prepareArbitrumTrade(input.pools, input.request,
+    input.snapshot, input.binding);
+  if (!prepared.candidate) return prepared;
+  const codePins = Object.fromEntries(Object.values(deployment.rootPins)
+    .map(pin => [pin.address.toLowerCase(), pin.runtimeCodeHash]));
+  const adapter = new ArbitrumLiquidityExecutionAdapter({
+    rpcUrl: endpoints.rpcUrl, submissionUrl: endpoints.submissionUrl,
+    executor: deployment.executor.address,
+    executorCodeHash: deployment.executor.runtimeCodeHash,
+    codePins: { ...codePins, ...poolCodePins }, admission, confirmations: 1
+  }, operatorAccount, [{ candidate: prepared.candidate,
+    calldata: prepared.unsignedPayload }]);
+  const snapshots = new SnapshotStore(60000);
+  snapshots.apply(input.snapshot);
+  const runtime = new LiquidityRuntime(snapshots,
+    new AttemptJournal('.flashloan-agent/liquidity-attempts.jsonl'),
+    new Map([[prepared.candidate.adapterId, adapter]]));
+  return runtime.run([prepared.candidate], { ...policy, mode: 'shadow' });
+}
+```
+
+The runtime requires matching, unexpired schema/math/simulation/canary admission
+evidence even in shadow mode. It rejects changed heads, missing coverage/pins,
+stale payloads and insufficient net profit. After actual canary admission, an
+authorized host integration can use `mode: 'auto'`; there is no liquidity auto-send
+CLI. See the [deployment receipt record](docs/deployments/arbitrum-one-liquidity-upgrade.json)
+and [detailed formula spec](docs/liquid-formula.md) for the exact supported profiles.
+
+`snapshot-analytics-arbitrum` captures V2/V3/V4 envelopes at one reconciled block.
+V2 fee profiles still require independent revision admission.
+`snapshot-algebra-arbitrum` captures Integral linked ticks; `simulate-v4` returns
+rollback-only hook-aware quotes with pinned manager/quoter/hook revisions.
+`snapshot-analytics-sui` verifies Cetus BCS, object digests and table coverage;
+`stream-sui` reconciles checkpoint gaps with cancellation. `prepare-sui` builds
+unsigned Cetus lender PTBs. `size-conditional` sizes supported Algebra/DeepBook
+profiles; DeepBook currently supports input-token fees only.
+Analytics does not grant permission to sign or send: the runtime re-quotes the
+selected amount and retains its deployment, simulation, custody and budget gates.
+Hook quotes require fresh executor-context simulation; Algebra plugins require
+input-bound fee evidence. New contracts require reviewed deployment pins.
+Production admission remains disabled; local PTB construction is not live Move proof.
+Default verification uses recorded fixtures and loopback RPC servers only;
+public fork tests require explicit opt-in environment configuration.
+
+Independent Cetus SDK reference fixtures run in the offline test suite. To
+regenerate all 10,000 vectors, install pinned SDK5.1.8 with its compatible Sui1.21.2
+and tslib2.8.1 in a separate temporary directory, then run
+`npm run liquidity:cetus-reference -- <SDK-directory>`. That SDK is not a runtime
+dependency. Detailed local specification: `docs/liquid-formula.md`.
 
 For an Arbitrum V2 observation, create a secret-free local `source-config.json`
 using this template. Replace both placeholders with a reviewed V2 pool and
@@ -269,7 +417,7 @@ command. It provides block-pinned V2 observations, chain-pinned Sui checkpoint
 effects, parent-linked durable source backfill, checkpoint-bound object references,
 snapshot validation, bounded simulation, independent chain lanes, durable attempt
 exclusion, and gas-loss accounting. Protocol-wide math,
-native feed streaming, complete per-protocol compilers, and canary admission remain
+additional protocol revisions, complete per-protocol compilers, and canary admission remain
 release gates.
 
 ```sh
@@ -314,9 +462,9 @@ These are read-only polling connectors, not sequencer or native gRPC streams.
 Consumers must replay the durable journal after a crash between commit and
 notification; stdout is not an exactly-once downstream delivery queue.
 
-The repaired local V4 executors do not change previously deployed immutable
-bytecode. A corrected deployment and fresh admission are required before V4
-production use.
+The corrected liquidity executor and V4 quoter are deployed at the addresses
+above. Historical immutable V4 deployments remain revoked. Fresh execution
+admission is still required before production use.
 
 Exact V3 bitmap/tick-crossing quotes and static no-hook ERC-20 V4 quotes are
 available in `src/liquidity/clmm.ts`. Quotes fail when the proven tick horizon

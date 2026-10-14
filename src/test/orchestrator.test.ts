@@ -17,7 +17,7 @@ function plan(tier: number): AllocationPlan {
     strategy: 'dex-pair-arbitrage',
     borrowTierUsd: tier,
     priceImpactBps: 20,
-    quotedNetProfitUsd: tier / 100_000,
+    quotedNetProfitUsd: 10 + tier / 100_000,
     legs: [{ venue: 'uniswap-v3', path: [address, address], allocationBps: 10_000, minAmountOut: 1n }],
     transaction: { to: address, data: '0x' }
   };
@@ -29,7 +29,7 @@ const config: SkillConfig = {
   privateRelayUrl: 'https://relay.example',
   executorAddress: address,
   operatorPrivateKey: key,
-  risk: { borrowTiersUsd: [100_000, 200_000, 500_000], maxGasUsd: 2_000, maxDailyLossUsd: 10_000, maxPriceImpactBps: 200, minNetProfitUsd: 1, maxProposalBlockAge: 1, rpcConcurrency: 2 }
+  risk: { borrowTiersUsd: [100_000, 200_000, 500_000], maxGasUsd: 2_000, maxDailyLossUsd: 10_000, maxPriceImpactBps: 200, minNetProfitUsd: 10, maxProposalBlockAge: 1, rpcConcurrency: 2 }
 };
 
 test('simulates every configured tier and broadcasts the best allowed allocation', async () => {

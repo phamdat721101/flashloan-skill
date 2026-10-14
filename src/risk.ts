@@ -1,5 +1,8 @@
 import type { AllocationPlan, ExecutionDecision, RiskPolicy, SimulationResult } from './types.js';
 
+/** A broadcastable plan must retain at least this much net USD profit after gas. */
+export const MINIMUM_NET_PROFIT_USD = 10;
+
 export function evaluateRisk(
   plan: AllocationPlan,
   simulation: SimulationResult,
@@ -13,7 +16,7 @@ export function evaluateRisk(
   if (Number.isNaN(Date.parse(now.toISOString()))) reasons.push('clock is invalid');
   if (plan.priceImpactBps > risk.maxPriceImpactBps) reasons.push('price impact exceeds limit');
   if ((simulation.gasCostUsd ?? Number.POSITIVE_INFINITY) > risk.maxGasUsd) reasons.push('gas cost exceeds limit');
-  if ((simulation.expectedNetProfitUsd ?? Number.NEGATIVE_INFINITY) < risk.minNetProfitUsd) reasons.push('net profit is below floor');
+  if ((simulation.expectedNetProfitUsd ?? Number.NEGATIVE_INFINITY) < Math.max(risk.minNetProfitUsd, MINIMUM_NET_PROFIT_USD)) reasons.push('net profit is below floor');
   if (dailyRealizedLossUsd >= risk.maxDailyLossUsd) reasons.push('daily loss stop is active');
   if (executionHalted) reasons.push('execution is halted pending realized P&L review');
   const allocated = plan.legs.reduce((total, leg) => total + leg.allocationBps, 0);

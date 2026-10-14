@@ -25,7 +25,54 @@ contract TestBalancerLender {
     }
 }
 
+contract TestAlgebraFactory {
+    address public pool;
+    function setPool(address value) external { pool = value; }
+    function poolByPair(address, address) external view returns (address) { return pool; }
+}
+
+contract TestAlgebraPool {
+    address public token0;
+    address public token1;
+    bool public duplicate;
+    constructor(address a, address b) { token0 = a; token1 = b; }
+    function setDuplicate() external { duplicate = true; }
+    function swap(address recipient, bool zeroForOne, int256 input, uint160, bytes calldata) external returns (int256, int256) {
+        require(input > 0, "positive exact input required");
+        uint256 output = uint256(input) * 11 / 10;
+        TestToken(zeroForOne ? token1 : token0).transfer(recipient, output);
+        MultiVenueArbitrageExecutor(msg.sender).algebraSwapCallback(zeroForOne ? input : -int256(output), zeroForOne ? -int256(output) : input, bytes(""));
+        if (duplicate) MultiVenueArbitrageExecutor(msg.sender).algebraSwapCallback(input, 0, bytes(""));
+        return zeroForOne ? (input, -int256(output)) : (-int256(output), input);
+    }
+}
+
 contract MultiVenueArbitrageExecutorTest {
+    function testAlgebraFactoryPinAndCallbackRepayLoanWithoutUsingOpeningFunds() external {
+        TestToken a = new TestToken(); TestToken b = new TestToken();
+        (TestToken token0, TestToken token1) = address(a) < address(b) ? (a, b) : (b, a);
+        TestAlgebraPool pool = new TestAlgebraPool(address(token0), address(token1));
+        TestAlgebraFactory factory = new TestAlgebraFactory(); factory.setPool(address(pool));
+        token0.mint(address(pool), 1000); token1.mint(address(pool), 1000);
+        TestMorphoLender lender = new TestMorphoLender(); token0.mint(address(lender), 1000);
+        MultiVenueArbitrageExecutor executor = new MultiVenueArbitrageExecutor(); token0.mint(address(executor), 7);
+        executor.configureRoot(5, address(factory), address(factory).codehash, true, false);
+        executor.configureLender(1, address(lender), address(lender).codehash, true);
+        MultiVenueArbitrageExecutor.Leg[] memory legs = new MultiVenueArbitrageExecutor.Leg[](2);
+        legs[0] = MultiVenueArbitrageExecutor.Leg(5, address(factory), address(pool), address(token0), address(token1), 110, 0, 1, 0, address(0), bytes(""));
+        legs[1] = MultiVenueArbitrageExecutor.Leg(5, address(factory), address(pool), address(token1), address(token0), 120, 0, 1, 0, address(0), bytes(""));
+        MultiVenueArbitrageExecutor.LenderRoute memory route = MultiVenueArbitrageExecutor.LenderRoute(1, address(lender), address(token0), 100, legs, 20, block.timestamp + 1);
+        executor.executeLenderArbitrage(route);
+        require(token0.balanceOf(address(lender)) == 1000 && token0.balanceOf(address(executor)) == 28, "Algebra debt/custody mismatch");
+        pool.setDuplicate();
+        (bool ok,) = address(executor).call(abi.encodeCall(executor.executeLenderArbitrage, route));
+        require(!ok, "duplicate Algebra callback accepted");
+        executor.configureRoot(5, address(factory), bytes32(0), false, false);
+        (ok,) = address(executor).call(abi.encodeCall(executor.executeLenderArbitrage, route));
+        require(!ok, "untrusted Algebra factory accepted");
+        (ok,) = address(executor).call(abi.encodeCall(executor.algebraSwapCallback, (int256(1), int256(0), bytes(""))));
+        require(!ok, "unauthenticated Algebra callback accepted");
+    }
     function lenderFixture(uint8 kind, uint256 floor) private returns (MultiVenueArbitrageExecutor executor, TestToken token, address lender, MultiVenueArbitrageExecutor.LenderRoute memory route) {
         TestToken a = new TestToken(); TestToken b = new TestToken();
         (TestToken token0, TestToken token1) = address(a) < address(b) ? (a, b) : (b, a);

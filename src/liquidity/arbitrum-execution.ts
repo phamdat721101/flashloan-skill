@@ -51,7 +51,7 @@ export class ArbitrumLiquidityExecutionAdapter implements LiquidityExecutionAdap
     if (!calldata || digest(calldata) !== candidate.payloadDigest || candidate.identity.chain !== 'arbitrum' || candidate.identity.network !== '42161' || candidate.profitAsset.toLowerCase() !== `arbitrum:42161:${WETH}`) throw new Error('PAYLOAD_BINDING_MISMATCH');
     const route = decodeFunctionData({ abi: MULTI_LENDER_ROUTE_ABI, data: calldata }).args[0];
     if (![1, 2].includes(route.kind) || route.flashAsset.toLowerCase() !== WETH || route.flashAmount !== uint(candidate.borrowAmount) || route.minProfit < uint(candidate.minProfit) + uint(candidate.maxGasCost) || route.deadline * 1000n > BigInt(candidate.expiresAtMs) || !route.legs.length) throw new Error('EXECUTOR_PROFIT_GUARD_MISMATCH');
-    if (route.legs.some(leg => ![2, 3, 4].includes(leg.venueVersion) || leg.hooks !== '0x0000000000000000000000000000000000000000' || leg.hookData !== '0x')) throw new Error('UNSUPPORTED_EXECUTION_HOOK');
+    if (route.legs.some(leg => ![2, 3, 4, 5].includes(leg.venueVersion) || leg.hooks !== '0x0000000000000000000000000000000000000000' || leg.hookData !== '0x')) throw new Error('UNSUPPORTED_EXECUTION_HOOK');
     return { calldata, route };
   }
   private async verify(candidate: RouteCandidate, signal?: AbortSignal) {

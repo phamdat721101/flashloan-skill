@@ -7,7 +7,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { encodeFunctionResult, keccak256, parseAbi } from 'viem';
-import { readArbitrumHead, readArbitrumV2Snapshot, readSuiCheckpoint, readSuiHead, SOURCE_CAPABILITIES } from '../liquidity/sources.js';
+import { readArbitrumHead, readArbitrumV2Snapshot, readArbitrumAnalyticsSnapshot, readSuiCheckpoint, readSuiHead, SOURCE_CAPABILITIES } from '../liquidity/sources.js';
+import { digest } from '../liquidity/state.js';
+import { projectPool } from '../liquidity/projection.js';
 
 test('source catalogue exposes only implemented connectors as implemented', () => {
   assert.deepEqual(SOURCE_CAPABILITIES.filter(s => s.implemented).map(s => s.id), ['arbitrum-v2-rpc', 'sui-checkpoint-grpc']);
@@ -18,7 +20,7 @@ test('Arbitrum capture pins every read and rejects a reorg or changed pool code'
   const pool = '0x0000000000000000000000000000000000000001';
   const token0 = '0x0000000000000000000000000000000000000002';
   const token1 = '0x0000000000000000000000000000000000000003';
-  const abi = parseAbi(['function token0() view returns(address)', 'function token1() view returns(address)', 'function getReserves() view returns(uint112,uint112,uint32)']);
+  const abi = parseAbi(['function token0() view returns(address)', 'function token1() view returns(address)', 'function getReserves() view returns(uint112,uint112,uint32)', 'function decimals() view returns(uint8)']);
   let blockReads = 0, reorg = false, changedCode = false;
   const pinnedReads: string[] = [];
   const server = createServer(async (request, response) => {
@@ -37,6 +39,7 @@ test('Arbitrum capture pins every read and rejects a reorg or changed pool code'
       const data = (rpc.params[0] as { data: string }).data;
       result = data === '0x0dfe1681' ? encodeFunctionResult({ abi, functionName: 'token0', result: token0 })
         : data === '0xd21220a7' ? encodeFunctionResult({ abi, functionName: 'token1', result: token1 })
+        : data === '0x313ce567' ? encodeFunctionResult({ abi,functionName: 'decimals',result: 6 })
         : encodeFunctionResult({ abi, functionName: 'getReserves', result: [100n, 200n, 1] });
     } else { response.writeHead(400); response.end(); return; }
     response.setHeader('content-type', 'application/json');
@@ -49,6 +52,13 @@ test('Arbitrum capture pins every read and rejects a reorg or changed pool code'
     const captured = await readArbitrumV2Snapshot(url, 'local-rpc-fixture', pools, '1');
     assert.equal(captured.pools[0].reserve1, '200');
     assert.deepEqual(pinnedReads, ['0x1', '0x1', '0x1', '0x1']);
+    const analyticsConfig = [{ ...pools[0],protocol: 'uniswap-v2' as const,adapterRevision: 'fixture-v2-code-pin',feeNumerator: '997',feeDenominator: '1000' }];
+    const analytics = await readArbitrumAnalyticsSnapshot(url,'local-rpc-fixture','1',analyticsConfig);
+    assert.equal(analytics.snapshot.stateDigest,digest(analytics.pools));
+    assert.equal(analytics.pools[0].decimals0,6); assert.equal(analytics.pools[0].decimals1,6);
+    assert.equal(projectPool(analytics.pools[0],{ schemaVersion: '4.0',snapshotDigest: digest(analytics.pools[0]),operationId: 'fixture-swap',operationClass: 'hypothetical',tokenIn: token0,amountIn: '5' }).amountOut,'9');
+    await assert.rejects(readArbitrumAnalyticsSnapshot(url,'local-rpc-fixture','1',[analyticsConfig[0],analyticsConfig[0]]),/DUPLICATE_ANALYTICS_POOL/);
+    assert.ok(pinnedReads.every(height => height === '0x1'));
     assert.equal(await readArbitrumHead(url, '42161'), '1');
     await assert.rejects(readArbitrumHead(url, '421614'), /SOURCE_CHAIN_MISMATCH/);
     const directory = await mkdtemp(join(tmpdir(), 'liquid-source-follow-'));
@@ -62,8 +72,11 @@ test('Arbitrum capture pins every read and rejects a reorg or changed pool code'
     } finally { await rm(directory, { recursive: true, force: true }); }
     reorg = true; blockReads = 0;
     await assert.rejects(() => readArbitrumV2Snapshot(url, 'local-rpc-fixture', pools, '2'), /BLOCK_REORG/);
+    blockReads = 0;
+    await assert.rejects(() => readArbitrumAnalyticsSnapshot(url,'local-rpc-fixture','2',analyticsConfig),/BLOCK_REORG/);
     reorg = false; changedCode = true; blockReads = 0;
     await assert.rejects(() => readArbitrumV2Snapshot(url, 'local-rpc-fixture', pools, '2'), /POOL_CODE_CHANGED/);
+    await assert.rejects(() => readArbitrumAnalyticsSnapshot(url,'local-rpc-fixture','2',analyticsConfig),/POOL_CODE_CHANGED/);
   } finally { await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve())); }
 });
 test('invalid source inputs fail before network access or signing', async () => {

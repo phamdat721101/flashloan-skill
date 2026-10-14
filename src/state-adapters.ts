@@ -31,6 +31,7 @@ export interface AdapterPolicy {
   chainId: number;
   expectedRuntimeCodeHash: Hex;
   maxBitmapWords: number;
+  readConcurrency?: number;
 }
 
 export interface TickState {
@@ -241,6 +242,21 @@ async function read(client: StateClient, address: Address, abi: readonly unknown
   return client.readContract({ address, abi, functionName, args, blockNumber: block.number });
 }
 
+/** Bound bitmap/tick fan-out while preserving order and the exact pinned block. */
+async function boundedReads<T,R>(values: readonly T[], policy: AdapterPolicy, operation: (value: T) => Promise<R>): Promise<R[]> {
+  const concurrency = policy.readConcurrency ?? 8;
+  if (!Number.isSafeInteger(concurrency) || concurrency < 1 || concurrency > 16) fail('ADAPTER_INVALID_READ_CONCURRENCY');
+  const output = new Array<R>(values.length); let cursor = 0, stopped = false;
+  await Promise.all(Array.from({ length: Math.min(concurrency,values.length) },async () => {
+    while (!stopped && cursor < values.length) {
+      const index = cursor++;
+      try { output[index] = await operation(values[index]); }
+      catch (error) { stopped = true; throw error; }
+    }
+  }));
+  return output;
+}
+
 export async function snapshotUniswapV3(client: StateClient, pool: Address, bitmapWordPositions: readonly number[], policy: AdapterPolicy): Promise<V3Snapshot> {
   assertBitmapWords(bitmapWordPositions, policy.maxBitmapWords);
   const block = await pinBlock(client, policy);
@@ -248,12 +264,12 @@ export async function snapshotUniswapV3(client: StateClient, pool: Address, bitm
   const [token0, token1, fee, tickSpacing, slot0, liquidity, bitmapValues] = await Promise.all([
     read(client, pool, V3_ABI, 'token0', block), read(client, pool, V3_ABI, 'token1', block), read(client, pool, V3_ABI, 'fee', block),
     read(client, pool, V3_ABI, 'tickSpacing', block), read(client, pool, V3_ABI, 'slot0', block), read(client, pool, V3_ABI, 'liquidity', block),
-    Promise.all(bitmapWordPositions.map((word) => read(client, pool, V3_ABI, 'tickBitmap', block, [word])))
+    boundedReads(bitmapWordPositions,policy,word => read(client, pool, V3_ABI, 'tickBitmap', block, [word]))
   ]);
   const spacing = asNumber(tickSpacing);
   const bitmaps = new Map(bitmapWordPositions.map((word, index) => [word, asBigInt(bitmapValues[index])]));
   const ticks = ticksFromBitmaps(bitmaps, spacing);
-  const tickValues = await Promise.all(ticks.map((tick) => read(client, pool, V3_ABI, 'ticks', block, [tick])));
+  const tickValues = await boundedReads(ticks,policy,tick => read(client, pool, V3_ABI, 'ticks', block, [tick]));
   const state = asTuple(slot0, 7);
   const initializedTicks = ticks.map((tick, index) => {
     const value = asTuple(tickValues[index], 8);
@@ -270,12 +286,12 @@ export async function snapshotAlgebraIntegral(client: StateClient, pool: Address
   const [token0, token1, globalState, liquidity, tickSpacing, bitmapValues] = await Promise.all([
     read(client, pool, ALGEBRA_ABI, 'token0', block), read(client, pool, ALGEBRA_ABI, 'token1', block), read(client, pool, ALGEBRA_ABI, 'globalState', block),
     read(client, pool, ALGEBRA_ABI, 'liquidity', block), read(client, pool, ALGEBRA_ABI, 'tickSpacing', block),
-    Promise.all(bitmapWordPositions.map((word) => read(client, pool, ALGEBRA_ABI, 'tickTable', block, [word])))
+    boundedReads(bitmapWordPositions,policy,word => read(client, pool, ALGEBRA_ABI, 'tickTable', block, [word]))
   ]);
   const spacing = asNumber(tickSpacing);
   const bitmaps = new Map(bitmapWordPositions.map((word, index) => [word, asBigInt(bitmapValues[index])]));
   const ticks = ticksFromBitmaps(bitmaps, spacing);
-  const tickValues = await Promise.all(ticks.map((tick) => read(client, pool, ALGEBRA_ABI, 'ticks', block, [tick])));
+  const tickValues = await boundedReads(ticks,policy,tick => read(client, pool, ALGEBRA_ABI, 'ticks', block, [tick]));
   const state = asTuple(globalState, 7);
   const initializedTicks = ticks.map((tick, index) => {
     const value = asTuple(tickValues[index], 8);
@@ -287,28 +303,34 @@ export async function snapshotAlgebraIntegral(client: StateClient, pool: Address
 
 export function poolIdFromKey(key: V4PoolKey): Hex {
   if (key.currency0.toLowerCase() >= key.currency1.toLowerCase() || key.tickSpacing <= 0 || key.hooks.toLowerCase() !== zeroAddress) fail('V4_POOL_KEY_REJECTED');
+  return deriveV4PoolId(key);
+}
+
+/** Pure identifier derivation; hook execution policy belongs to the selected adapter. */
+export function deriveV4PoolId(key: V4PoolKey): Hex {
+  if (![key.currency0,key.currency1,key.hooks].every(address => /^0x[0-9a-fA-F]{40}$/.test(address)) || key.currency0.toLowerCase() >= key.currency1.toLowerCase() || !Number.isInteger(key.tickSpacing) || key.tickSpacing <= 0 || key.tickSpacing > 32767 || !Number.isInteger(key.fee) || key.fee < 0 || key.fee > 0xffffff) fail('V4_POOL_KEY_REJECTED');
   return keccak256(encodeAbiParameters([{ type: 'address' }, { type: 'address' }, { type: 'uint24' }, { type: 'int24' }, { type: 'address' }], [key.currency0, key.currency1, key.fee, key.tickSpacing, key.hooks]));
 }
 
 function v4PoolStateSlot(poolId: Hex): Hex { return keccak256(concatHex([poolId, hexWord(V4_POOLS_SLOT)])); }
 function v4MappingSlot(key: bigint, mappingSlot: Hex): Hex { return keccak256(encodePacked(['int256', 'bytes32'], [key, mappingSlot])); }
 
-export async function snapshotUniswapV4(client: StateClient, poolManager: Address, key: V4PoolKey, bitmapWordPositions: readonly number[], policy: AdapterPolicy): Promise<V4Snapshot> {
+export async function snapshotUniswapV4(client: StateClient, poolManager: Address, key: V4PoolKey, bitmapWordPositions: readonly number[], policy: AdapterPolicy, allowHookState = false): Promise<V4Snapshot> {
   assertBitmapWords(bitmapWordPositions, policy.maxBitmapWords);
-  const poolId = poolIdFromKey(key);
+  const poolId = allowHookState ? deriveV4PoolId(key) : poolIdFromKey(key);
   const block = await pinBlock(client, policy);
   const runtimeCodeHash = await runtimeHash(client, poolManager, block, policy.expectedRuntimeCodeHash);
   const stateSlot = v4PoolStateSlot(poolId);
   const [slot0Word, liquidityWord, bitmapValues] = await Promise.all([
     read(client, poolManager, V4_ABI, 'extsload', block, [stateSlot]),
     read(client, poolManager, V4_ABI, 'extsload', block, [slotAdd(stateSlot, V4_LIQUIDITY_OFFSET)]),
-    Promise.all(bitmapWordPositions.map((word) => read(client, poolManager, V4_ABI, 'extsload', block, [v4MappingSlot(BigInt(word), slotAdd(stateSlot, V4_TICK_BITMAP_OFFSET))])))
+    boundedReads(bitmapWordPositions,policy,word => read(client, poolManager, V4_ABI, 'extsload', block, [v4MappingSlot(BigInt(word), slotAdd(stateSlot, V4_TICK_BITMAP_OFFSET))]))
   ]);
   const slot0 = BigInt(slot0Word as Hex);
   const spacing = key.tickSpacing;
   const bitmaps = new Map(bitmapWordPositions.map((word, index) => [word, BigInt(bitmapValues[index] as Hex)]));
   const ticks = ticksFromBitmaps(bitmaps, spacing);
-  const tickWords = await Promise.all(ticks.map((tick) => read(client, poolManager, V4_ABI, 'extsload', block, [v4MappingSlot(BigInt(tick), slotAdd(stateSlot, V4_TICKS_OFFSET))])));
+  const tickWords = await boundedReads(ticks,policy,tick => read(client, poolManager, V4_ABI, 'extsload', block, [v4MappingSlot(BigInt(tick), slotAdd(stateSlot, V4_TICKS_OFFSET))]));
   const initializedTicks = ticks.map((tick, index) => {
     const word = BigInt(tickWords[index] as Hex);
     const gross = word & MASK_128;

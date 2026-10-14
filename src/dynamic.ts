@@ -4,6 +4,7 @@ import { FLASH_EXECUTOR_ABI, type ExecutorCapability } from './contracts/flash-e
 import type { Address, AllocationLeg, AllocationPlan, Hex, Opportunity, ProposalEvidence, SkillConfig } from './types.js';
 import { DEX_VENUE_ID, type DexPairCandidate } from './bridge/dex-pair.js';
 import { parseDecimal, usdFloorToTokenWei } from './fixed-point.js';
+import { MINIMUM_NET_PROFIT_USD } from './risk.js';
 
 export type DynamicProtocol = 'aave-v3' | 'morpho-blue' | 'balancer-v2' | 'uniswap-v4';
 
@@ -97,7 +98,7 @@ export function parseDynamicSolverConfig(value: unknown): DynamicSolverConfig {
       return [[name, { enabled: status.enabled === true, forkVerified: status.forkVerified === true }]];
     })) as DynamicSolverConfig['capabilities'] : {};
   if (typeof input.minNetProfitUsd !== 'string') throw new Error('minNetProfitUsd must be a decimal string');
-  parseDecimal(input.minNetProfitUsd, 8, 'minNetProfitUsd');
+  if (parseDecimal(input.minNetProfitUsd, 8, 'minNetProfitUsd') < BigInt(MINIMUM_NET_PROFIT_USD) * 100_000_000n) throw new Error(`minNetProfitUsd must be at least ${MINIMUM_NET_PROFIT_USD}`);
   if (input.minProfitWei !== undefined && (typeof input.minProfitWei !== 'string' || !/^\d+$/.test(input.minProfitWei))) throw new Error('minProfitWei must be an integer string');
   return { executorAddress: address(input.executorAddress, 'executorAddress'), minNetProfitUsd: input.minNetProfitUsd, minProfitWei: input.minProfitWei as string | undefined, maxPriceImpactBps: positiveNumber(input.maxPriceImpactBps, 'maxPriceImpactBps'), maxProposalBlockAge: positiveNumber(input.maxProposalBlockAge, 'maxProposalBlockAge'), capabilities };
 }
@@ -167,7 +168,9 @@ export function buildDynamicPlan(
   const quotedNetProfitText = typeof quotedNetProfitUsd === 'number' ? quotedNetProfitUsd.toFixed(8) : quotedNetProfitUsd;
   const profitTokenUsdText = typeof profitTokenUsd === 'number' ? profitTokenUsd.toFixed(8) : profitTokenUsd;
   if (!Number.isInteger(profitTokenDecimals) || profitTokenDecimals < 0) throw new Error('profit valuation is invalid');
-  const usdFloorE8 = parseDecimal(config.minNetProfitUsd, 8, 'minNetProfitUsd');
+  const configuredUsdFloorE8 = parseDecimal(config.minNetProfitUsd, 8, 'minNetProfitUsd');
+  const minimumUsdFloorE8 = BigInt(MINIMUM_NET_PROFIT_USD) * 100_000_000n;
+  const usdFloorE8 = configuredUsdFloorE8 > minimumUsdFloorE8 ? configuredUsdFloorE8 : minimumUsdFloorE8;
   const quotedNetProfitE8 = parseDecimal(quotedNetProfitText, 8, 'quotedNetProfitUsd');
   if (quotedNetProfitE8 < usdFloorE8) return undefined;
   if (quotes.length === 0 || quotes.some((quote) => quote.priceImpactBps > config.maxPriceImpactBps || quote.amountIn <= 0n || quote.minAmountOut <= 0n || !Number.isInteger(quote.fee) || quote.fee < 0)) return undefined;

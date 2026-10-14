@@ -135,6 +135,43 @@ export async function ingestSourceRange(journal: SourceJournal, start: string, e
   return { committed, lastHeight: latest.identity.height };
 }
 
+/** Journal first, then notify. A new native stream has no replay cursor: backfill bounded gaps explicitly. */
+export async function reconcileNativeCheckpoints(journal: SourceJournal,stream: AsyncIterable<{ height: string; digest: string }>,read: (height: string) => Promise<SourceFrame>,options: { start: string; maxFrames: number; maxGap: number; signal?: AbortSignal },notify?: (frame: SourceFrame) => Promise<void>): Promise<{ committed: number; lastHeight: string | null }> {
+  if (journal.binding.chain !== 'sui' || !Number.isSafeInteger(options.maxFrames) || options.maxFrames < 1 || options.maxFrames > 1000 || !Number.isSafeInteger(options.maxGap) || options.maxGap < 1 || options.maxGap > 1000) throw new Error('INVALID_NATIVE_CHECKPOINT_CONFIG');
+  let prior = await journal.latest(), next = prior ? uint(prior.identity.height,64) + 1n : uint(options.start,64), committed = 0;
+  if (options.signal?.aborted) return { committed,lastHeight: prior?.identity.height ?? null };
+  const iterator = stream[Symbol.asyncIterator]();
+  const wait = async <T>(operation: () => Promise<T>): Promise<T | undefined> => {
+    if (options.signal?.aborted) return undefined;
+    let abort: (() => void) | undefined;
+    const cancelled = new Promise<undefined>(resolve => { abort = () => resolve(undefined); options.signal?.addEventListener('abort',abort,{ once: true }); });
+    try { return await Promise.race([operation(),cancelled]); }
+    finally { if (abort) options.signal?.removeEventListener('abort',abort); }
+  };
+  try { while (true) {
+    const item = await wait(() => iterator.next());
+    if (!item || item.done) break;
+    const hint = item.value;
+    if (options.signal?.aborted) break;
+    const height = uint(hint.height,64);
+    if (height < next) {
+      if (!prior || height !== uint(prior.identity.height,64) || prior.identity.chain !== 'sui' || prior.identity.checkpointDigest !== hint.digest) throw new Error('SOURCE_GAP_OR_DIVERGENCE');
+      continue;
+    }
+    if (height - next + 1n > BigInt(options.maxGap)) throw new Error('SOURCE_BACKFILL_LIMIT');
+    for (; next <= height && committed < options.maxFrames; next++) {
+      if (options.signal?.aborted) return { committed,lastHeight: prior?.identity.height ?? null };
+      const frame = await wait(() => read(next.toString()));
+      if (!frame) return { committed,lastHeight: prior?.identity.height ?? null };
+      if (frame.identity.chain !== 'sui' || frame.identity.height !== next.toString() || (next === height && frame.identity.checkpointDigest !== hint.digest)) throw new Error('CHECKPOINT_RECORD_IDENTITY_MISMATCH');
+      if (options.signal?.aborted) return { committed,lastHeight: prior?.identity.height ?? null };
+      await journal.append(frame); prior = await journal.latest(); committed++; if (notify) await notify(frame);
+    }
+    if (committed >= options.maxFrames) break;
+  } } finally { if (iterator.return) void Promise.resolve(iterator.return()).catch(() => {}); }
+  return { committed,lastHeight: prior?.identity.height ?? null };
+}
+
 export interface FollowSourceOptions {
   start: string;
   maxFrames: number;

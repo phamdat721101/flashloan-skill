@@ -1,11 +1,12 @@
 import type { Address, Hex, RiskPolicy, SkillConfig } from './types.js';
+import { MINIMUM_NET_PROFIT_USD } from './risk.js';
 
 const DEFAULT_RISK: RiskPolicy = {
   borrowTiersUsd: [],
   maxGasUsd: 2_000,
   maxDailyLossUsd: 10_000,
   maxPriceImpactBps: 200,
-  minNetProfitUsd: 1,
+  minNetProfitUsd: MINIMUM_NET_PROFIT_USD,
   maxProposalBlockAge: 1,
   rpcConcurrency: 4
 };
@@ -26,6 +27,12 @@ function positive(value: string | undefined, fallback: number, name: string): nu
   if (!value) return fallback;
   const parsed = Number(value);
   if (!Number.isFinite(parsed) || parsed <= 0) throw new Error(`${name} must be a positive number`);
+  return parsed;
+}
+
+function minimumProfit(value: string | undefined): number {
+  const parsed = positive(value, DEFAULT_RISK.minNetProfitUsd, 'MIN_NET_PROFIT_USD');
+  if (parsed < MINIMUM_NET_PROFIT_USD) throw new Error(`MIN_NET_PROFIT_USD must be at least ${MINIMUM_NET_PROFIT_USD}`);
   return parsed;
 }
 
@@ -66,7 +73,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): SkillConfig {
       maxGasUsd: positive(env.MAX_GAS_USD, DEFAULT_RISK.maxGasUsd, 'MAX_GAS_USD'),
       maxDailyLossUsd: positive(env.MAX_DAILY_LOSS_USD, DEFAULT_RISK.maxDailyLossUsd, 'MAX_DAILY_LOSS_USD'),
       maxPriceImpactBps: positive(env.MAX_PRICE_IMPACT_BPS, DEFAULT_RISK.maxPriceImpactBps, 'MAX_PRICE_IMPACT_BPS'),
-      minNetProfitUsd: positive(env.MIN_NET_PROFIT_USD, DEFAULT_RISK.minNetProfitUsd, 'MIN_NET_PROFIT_USD'),
+      minNetProfitUsd: minimumProfit(env.MIN_NET_PROFIT_USD),
       maxProposalBlockAge: positive(env.MAX_PROPOSAL_BLOCK_AGE, DEFAULT_RISK.maxProposalBlockAge, 'MAX_PROPOSAL_BLOCK_AGE'),
       rpcConcurrency: positive(env.RPC_CONCURRENCY, DEFAULT_RISK.rpcConcurrency, 'RPC_CONCURRENCY')
     }

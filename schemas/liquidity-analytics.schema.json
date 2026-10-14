@@ -1,0 +1,3561 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Liquidity analytics v4",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/projectInput"
+    },
+    {
+      "$ref": "#/$defs/sizeInput"
+    },
+    {
+      "$ref": "#/$defs/targetInput"
+    },
+    {
+      "$ref": "#/$defs/projectionResult"
+    },
+    {
+      "$ref": "#/$defs/sizingResult"
+    },
+    {
+      "$ref": "#/$defs/targetResult"
+    },
+    {
+      "$ref": "#/$defs/inspectInput"
+    },
+    {
+      "$ref": "#/$defs/description"
+    },
+    {
+      "$ref": "#/$defs/comparison"
+    },
+    {
+      "$ref": "#/$defs/prepareInput"
+    },
+    {
+      "$ref": "#/$defs/preparedTrade"
+    },
+    {
+      "$ref": "#/$defs/decodeCetusInput"
+    },
+    {
+      "$ref": "#/$defs/decodedCetus"
+    },
+    {
+      "$ref": "#/$defs/prepareSuiInput"
+    },
+    {
+      "$ref": "#/$defs/preparedSui"
+    },
+    {
+      "$ref": "#/$defs/deepBookInput"
+    },
+    {
+      "$ref": "#/$defs/deepBookQuote"
+    },
+    {
+      "$ref": "#/$defs/algebraInput"
+    },
+    {
+      "$ref": "#/$defs/algebraQuote"
+    },
+    {
+      "$ref": "#/$defs/conditionalInput"
+    },
+    {
+      "$ref": "#/$defs/conditionalResult"
+    }
+  ],
+  "$defs": {
+    "pool": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "identity",
+        "poolId",
+        "poolAddress",
+        "adapterRevision",
+        "revisionHash",
+        "token0",
+        "token1",
+        "decimals0",
+        "decimals1",
+        "stateClass",
+        "appliedOperations",
+        "state"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "4.0"
+        },
+        "identity": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "chain",
+                "network",
+                "height",
+                "blockHash"
+              ],
+              "properties": {
+                "chain": {
+                  "const": "arbitrum"
+                },
+                "network": {
+                  "enum": [
+                    "42161",
+                    "421614"
+                  ]
+                },
+                "height": {
+                  "type": "string",
+                  "pattern": "^(0|[1-9][0-9]*)$",
+                  "maxLength": 78
+                },
+                "blockHash": {
+                  "type": "string",
+                  "pattern": "^0x[0-9a-f]{64}$"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "chain",
+                "network",
+                "height",
+                "checkpointDigest"
+              ],
+              "properties": {
+                "chain": {
+                  "const": "sui"
+                },
+                "network": {
+                  "enum": [
+                    "mainnet",
+                    "testnet",
+                    "localnet"
+                  ]
+                },
+                "height": {
+                  "type": "string",
+                  "pattern": "^(0|[1-9][0-9]*)$",
+                  "maxLength": 78
+                },
+                "checkpointDigest": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 44
+                }
+              }
+            }
+          ]
+        },
+        "poolId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "poolAddress": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "adapterRevision": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "revisionHash": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "token0": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "token1": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "decimals0": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "decimals1": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "stateClass": {
+          "enum": [
+            "canonical",
+            "projected"
+          ]
+        },
+        "appliedOperations": {
+          "type": "array",
+          "maxItems": 1000,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        },
+        "state": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "protocol",
+                "reserve0",
+                "reserve1",
+                "feeNumerator",
+                "feeDenominator"
+              ],
+              "properties": {
+                "protocol": {
+                  "const": "uniswap-v2"
+                },
+                "reserve0": {
+                  "type": "string",
+                  "pattern": "^(0|[1-9][0-9]*)$",
+                  "maxLength": 78
+                },
+                "reserve1": {
+                  "type": "string",
+                  "pattern": "^(0|[1-9][0-9]*)$",
+                  "maxLength": 78
+                },
+                "feeNumerator": {
+                  "type": "string",
+                  "pattern": "^(0|[1-9][0-9]*)$",
+                  "maxLength": 78
+                },
+                "feeDenominator": {
+                  "type": "string",
+                  "pattern": "^(0|[1-9][0-9]*)$",
+                  "maxLength": 78
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "protocol",
+                "sqrtPriceX96",
+                "tick",
+                "liquidity",
+                "tickSpacing",
+                "lowerTick",
+                "upperTick",
+                "bitmapWords",
+                "initializedTicks",
+                "unlocked",
+                "feePips"
+              ],
+              "properties": {
+                "protocol": {
+                  "const": "uniswap-v3"
+                },
+                "sqrtPriceX96": {
+                  "type": "string",
+                  "pattern": "^(0|[1-9][0-9]*)$",
+                  "maxLength": 78
+                },
+                "tick": {
+                  "type": "integer",
+                  "minimum": -887272,
+                  "maximum": 887272
+                },
+                "liquidity": {
+                  "type": "string",
+                  "pattern": "^(0|[1-9][0-9]*)$",
+                  "maxLength": 78
+                },
+                "tickSpacing": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 887272
+                },
+                "lowerTick": {
+                  "type": "integer",
+                  "minimum": -887272,
+                  "maximum": 887272
+                },
+                "upperTick": {
+                  "type": "integer",
+                  "minimum": -887272,
+                  "maximum": 887272
+                },
+                "bitmapWords": {
+                  "type": "array",
+                  "maxItems": 256,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "wordPosition",
+                      "bitmap"
+                    ],
+                    "properties": {
+                      "wordPosition": {
+                        "type": "integer",
+                        "minimum": -32768,
+                        "maximum": 32767
+                      },
+                      "bitmap": {
+                        "type": "string",
+                        "pattern": "^(0|[1-9][0-9]*)$",
+                        "maxLength": 78
+                      }
+                    }
+                  }
+                },
+                "initializedTicks": {
+                  "type": "array",
+                  "maxItems": 10000,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "tick",
+                      "liquidityGross",
+                      "liquidityNet"
+                    ],
+                    "properties": {
+                      "tick": {
+                        "type": "integer",
+                        "minimum": -887272,
+                        "maximum": 887272
+                      },
+                      "liquidityGross": {
+                        "type": "string",
+                        "pattern": "^(0|[1-9][0-9]*)$",
+                        "maxLength": 78
+                      },
+                      "liquidityNet": {
+                        "type": "string",
+                        "pattern": "^(0|-?[1-9][0-9]*)$",
+                        "maxLength": 40
+                      }
+                    }
+                  }
+                },
+                "unlocked": {
+                  "type": "boolean"
+                },
+                "feePips": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 999999
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "protocol",
+                "sqrtPriceX96",
+                "tick",
+                "liquidity",
+                "tickSpacing",
+                "lowerTick",
+                "upperTick",
+                "bitmapWords",
+                "initializedTicks",
+                "key",
+                "poolId",
+                "protocolFeePips",
+                "lpFeePips"
+              ],
+              "properties": {
+                "protocol": {
+                  "const": "uniswap-v4"
+                },
+                "sqrtPriceX96": {
+                  "type": "string",
+                  "pattern": "^(0|[1-9][0-9]*)$",
+                  "maxLength": 78
+                },
+                "tick": {
+                  "type": "integer",
+                  "minimum": -887272,
+                  "maximum": 887272
+                },
+                "liquidity": {
+                  "type": "string",
+                  "pattern": "^(0|[1-9][0-9]*)$",
+                  "maxLength": 78
+                },
+                "tickSpacing": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 887272
+                },
+                "lowerTick": {
+                  "type": "integer",
+                  "minimum": -887272,
+                  "maximum": 887272
+                },
+                "upperTick": {
+                  "type": "integer",
+                  "minimum": -887272,
+                  "maximum": 887272
+                },
+                "bitmapWords": {
+                  "type": "array",
+                  "maxItems": 256,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "wordPosition",
+                      "bitmap"
+                    ],
+                    "properties": {
+                      "wordPosition": {
+                        "type": "integer",
+                        "minimum": -32768,
+                        "maximum": 32767
+                      },
+                      "bitmap": {
+                        "type": "string",
+                        "pattern": "^(0|[1-9][0-9]*)$",
+                        "maxLength": 78
+                      }
+                    }
+                  }
+                },
+                "initializedTicks": {
+                  "type": "array",
+                  "maxItems": 10000,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "tick",
+                      "liquidityGross",
+                      "liquidityNet"
+                    ],
+                    "properties": {
+                      "tick": {
+                        "type": "integer",
+                        "minimum": -887272,
+                        "maximum": 887272
+                      },
+                      "liquidityGross": {
+                        "type": "string",
+                        "pattern": "^(0|[1-9][0-9]*)$",
+                        "maxLength": 78
+                      },
+                      "liquidityNet": {
+                        "type": "string",
+                        "pattern": "^(0|-?[1-9][0-9]*)$",
+                        "maxLength": 40
+                      }
+                    }
+                  }
+                },
+                "key": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "currency0",
+                    "currency1",
+                    "fee",
+                    "tickSpacing",
+                    "hooks"
+                  ],
+                  "properties": {
+                    "currency0": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    },
+                    "currency1": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    },
+                    "fee": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 16777215
+                    },
+                    "tickSpacing": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 887272
+                    },
+                    "hooks": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    }
+                  }
+                },
+                "poolId": {
+                  "type": "string",
+                  "pattern": "^0x[0-9a-fA-F]{64}$"
+                },
+                "protocolFeePips": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 16777215
+                },
+                "lpFeePips": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 999999
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "protocol",
+                "sqrtPriceX64",
+                "tick",
+                "liquidity",
+                "feePips",
+                "tickSpacing",
+                "lowerTick",
+                "upperTick",
+                "complete",
+                "initializedTicks"
+              ],
+              "properties": {
+                "protocol": {
+                  "const": "cetus"
+                },
+                "sqrtPriceX64": {
+                  "type": "string",
+                  "pattern": "^(0|[1-9][0-9]*)$",
+                  "maxLength": 78
+                },
+                "tick": {
+                  "type": "integer",
+                  "minimum": -443636,
+                  "maximum": 443636
+                },
+                "liquidity": {
+                  "type": "string",
+                  "pattern": "^(0|[1-9][0-9]*)$",
+                  "maxLength": 78
+                },
+                "feePips": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 999999
+                },
+                "tickSpacing": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 443636
+                },
+                "lowerTick": {
+                  "type": "integer",
+                  "minimum": -443636,
+                  "maximum": 443636
+                },
+                "upperTick": {
+                  "type": "integer",
+                  "minimum": -443636,
+                  "maximum": 443636
+                },
+                "complete": {
+                  "const": true
+                },
+                "initializedTicks": {
+                  "type": "array",
+                  "maxItems": 10000,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "tick",
+                      "liquidityGross",
+                      "liquidityNet"
+                    ],
+                    "properties": {
+                      "tick": {
+                        "type": "integer",
+                        "minimum": -887272,
+                        "maximum": 887272
+                      },
+                      "liquidityGross": {
+                        "type": "string",
+                        "pattern": "^(0|[1-9][0-9]*)$",
+                        "maxLength": 78
+                      },
+                      "liquidityNet": {
+                        "type": "string",
+                        "pattern": "^(0|-?[1-9][0-9]*)$",
+                        "maxLength": 40
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "projectionRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "snapshotDigest",
+        "operationId",
+        "operationClass",
+        "tokenIn",
+        "amountIn"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "4.0"
+        },
+        "snapshotDigest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "operationId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "operationClass": {
+          "enum": [
+            "hypothetical",
+            "ordered-replay"
+          ]
+        },
+        "tokenIn": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "amountIn": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "maxSteps": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4096
+        }
+      }
+    },
+    "projectionResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "status",
+        "snapshotDigest",
+        "operationDigest",
+        "tokenIn",
+        "tokenOut",
+        "amountIn",
+        "consumedInput",
+        "unspentInput",
+        "amountOut",
+        "feeAmount",
+        "feeSemantics",
+        "priceBefore",
+        "priceAfter",
+        "crossedTicks",
+        "steps",
+        "projectedState",
+        "projectedStateDigest"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "4.0"
+        },
+        "status": {
+          "const": "complete"
+        },
+        "snapshotDigest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "operationDigest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "tokenIn": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "tokenOut": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "amountIn": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "consumedInput": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "unspentInput": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "amountOut": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "feeAmount": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "feeSemantics": {
+          "enum": [
+            "input-retained-ceiling",
+            "swap-step"
+          ]
+        },
+        "priceBefore": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "numerator",
+            "denominator"
+          ],
+          "properties": {
+            "numerator": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]*)$",
+              "maxLength": 400
+            },
+            "denominator": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]*)$",
+              "maxLength": 400
+            }
+          }
+        },
+        "priceAfter": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "numerator",
+            "denominator"
+          ],
+          "properties": {
+            "numerator": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]*)$",
+              "maxLength": 400
+            },
+            "denominator": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]*)$",
+              "maxLength": 400
+            }
+          }
+        },
+        "crossedTicks": {
+          "type": "array",
+          "maxItems": 4096,
+          "uniqueItems": true,
+          "items": {
+            "type": "integer",
+            "minimum": -887272,
+            "maximum": 887272
+          }
+        },
+        "steps": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4096
+        },
+        "projectedState": {
+          "$ref": "#/$defs/pool"
+        },
+        "projectedStateDigest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "sizingRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "snapshotDigest",
+        "borrowAsset",
+        "route",
+        "minimum",
+        "maximum",
+        "quantum",
+        "lenderAvailable",
+        "flashFeeNumerator",
+        "flashFeeDenominator",
+        "costInBorrowAsset",
+        "costEvidenceDigest",
+        "minProfit"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "4.0"
+        },
+        "snapshotDigest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "borrowAsset": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "route": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 6,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "poolId",
+              "tokenIn"
+            ],
+            "properties": {
+              "poolId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "tokenIn": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1024
+              }
+            }
+          }
+        },
+        "minimum": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "maximum": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "quantum": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "lenderAvailable": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "flashFeeNumerator": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "flashFeeDenominator": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "costInBorrowAsset": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "costEvidenceDigest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "minProfit": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "maxEvaluations": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 512
+        },
+        "boundaryInputs": {
+          "type": "array",
+          "maxItems": 64,
+          "items": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]*)$",
+            "maxLength": 78
+          }
+        }
+      }
+    },
+    "sizingResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "status",
+        "optimality",
+        "snapshotDigest",
+        "requestDigest",
+        "stateClass",
+        "borrowAsset",
+        "feasibleMinimum",
+        "feasibleMaximum",
+        "quantum",
+        "evaluations",
+        "amountIn",
+        "amountOut",
+        "flashFee",
+        "repayment",
+        "costInBorrowAsset",
+        "netProfit",
+        "legs",
+        "rejectedQuotes"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "4.0"
+        },
+        "status": {
+          "enum": [
+            "selected",
+            "no-profitable-size"
+          ]
+        },
+        "optimality": {
+          "enum": [
+            "best-found",
+            "certified"
+          ]
+        },
+        "snapshotDigest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "requestDigest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "stateClass": {
+          "enum": [
+            "canonical",
+            "projected"
+          ]
+        },
+        "borrowAsset": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "feasibleMinimum": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "feasibleMaximum": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "quantum": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "evaluations": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 512
+        },
+        "amountIn": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "amountOut": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "flashFee": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "repayment": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "costInBorrowAsset": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "netProfit": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "legs": {
+          "type": "array",
+          "maxItems": 6,
+          "items": {
+            "$ref": "#/$defs/projectionResult"
+          }
+        },
+        "rejectedQuotes": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 512
+          }
+        }
+      }
+    },
+    "projectInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "pool",
+        "request"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "4.0"
+        },
+        "pool": {
+          "$ref": "#/$defs/pool"
+        },
+        "request": {
+          "$ref": "#/$defs/projectionRequest"
+        }
+      }
+    },
+    "sizeInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "pools",
+        "request"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "4.0"
+        },
+        "pools": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 6,
+          "items": {
+            "$ref": "#/$defs/pool"
+          }
+        },
+        "request": {
+          "$ref": "#/$defs/sizingRequest"
+        }
+      }
+    },
+    "targetInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "pool",
+        "tokenIn",
+        "target",
+        "maximum"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "4.0"
+        },
+        "pool": {
+          "$ref": "#/$defs/pool"
+        },
+        "tokenIn": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "target": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "numerator",
+            "denominator"
+          ],
+          "properties": {
+            "numerator": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]*)$",
+              "maxLength": 400
+            },
+            "denominator": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]*)$",
+              "maxLength": 400
+            }
+          }
+        },
+        "maximum": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        }
+      }
+    },
+    "targetResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "amountIn"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "4.0"
+        },
+        "amountIn": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        }
+      }
+    },
+    "inspectInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "pool"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "4.0"
+        },
+        "pool": {
+          "$ref": "#/$defs/pool"
+        }
+      }
+    },
+    "description": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "snapshotDigest",
+        "poolId",
+        "protocol",
+        "spotPrice",
+        "actualReserves",
+        "virtualReserves",
+        "coveredRange",
+        "activeInterval",
+        "initializedTickCount"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "4.0"
+        },
+        "snapshotDigest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "poolId": {
+          "type": "string"
+        },
+        "protocol": {
+          "enum": [
+            "uniswap-v2",
+            "uniswap-v3",
+            "uniswap-v4",
+            "cetus"
+          ]
+        },
+        "spotPrice": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "numerator",
+            "denominator"
+          ],
+          "properties": {
+            "numerator": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]*)$",
+              "maxLength": 400
+            },
+            "denominator": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]*)$",
+              "maxLength": 400
+            }
+          }
+        },
+        "actualReserves": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "reserve0",
+                "reserve1"
+              ],
+              "properties": {
+                "reserve0": {
+                  "type": "string",
+                  "pattern": "^(0|[1-9][0-9]*)$",
+                  "maxLength": 400
+                },
+                "reserve1": {
+                  "type": "string",
+                  "pattern": "^(0|[1-9][0-9]*)$",
+                  "maxLength": 400
+                }
+              }
+            }
+          ]
+        },
+        "virtualReserves": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "token0",
+                "token1"
+              ],
+              "properties": {
+                "token0": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "numerator",
+                    "denominator"
+                  ],
+                  "properties": {
+                    "numerator": {
+                      "type": "string",
+                      "pattern": "^(0|[1-9][0-9]*)$",
+                      "maxLength": 400
+                    },
+                    "denominator": {
+                      "type": "string",
+                      "pattern": "^(0|[1-9][0-9]*)$",
+                      "maxLength": 400
+                    }
+                  }
+                },
+                "token1": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "numerator",
+                    "denominator"
+                  ],
+                  "properties": {
+                    "numerator": {
+                      "type": "string",
+                      "pattern": "^(0|[1-9][0-9]*)$",
+                      "maxLength": 400
+                    },
+                    "denominator": {
+                      "type": "string",
+                      "pattern": "^(0|[1-9][0-9]*)$",
+                      "maxLength": 400
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "coveredRange": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "lowerTick",
+                "upperTick",
+                "lowerPrice",
+                "upperPrice"
+              ],
+              "properties": {
+                "lowerTick": {
+                  "type": "integer",
+                  "minimum": -887272,
+                  "maximum": 887272
+                },
+                "upperTick": {
+                  "type": "integer",
+                  "minimum": -887272,
+                  "maximum": 887272
+                },
+                "lowerPrice": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "numerator",
+                    "denominator"
+                  ],
+                  "properties": {
+                    "numerator": {
+                      "type": "string",
+                      "pattern": "^(0|[1-9][0-9]*)$",
+                      "maxLength": 400
+                    },
+                    "denominator": {
+                      "type": "string",
+                      "pattern": "^(0|[1-9][0-9]*)$",
+                      "maxLength": 400
+                    }
+                  }
+                },
+                "upperPrice": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "numerator",
+                    "denominator"
+                  ],
+                  "properties": {
+                    "numerator": {
+                      "type": "string",
+                      "pattern": "^(0|[1-9][0-9]*)$",
+                      "maxLength": 400
+                    },
+                    "denominator": {
+                      "type": "string",
+                      "pattern": "^(0|[1-9][0-9]*)$",
+                      "maxLength": 400
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "activeInterval": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "lowerTick",
+                "upperTick",
+                "token0InputFeeExclusive",
+                "token1InputFeeExclusive"
+              ],
+              "properties": {
+                "lowerTick": {
+                  "type": "integer",
+                  "minimum": -887272,
+                  "maximum": 887272
+                },
+                "upperTick": {
+                  "type": "integer",
+                  "minimum": -887272,
+                  "maximum": 887272
+                },
+                "token0InputFeeExclusive": {
+                  "type": "string",
+                  "pattern": "^(0|[1-9][0-9]*)$",
+                  "maxLength": 400
+                },
+                "token1InputFeeExclusive": {
+                  "type": "string",
+                  "pattern": "^(0|[1-9][0-9]*)$",
+                  "maxLength": 400
+                }
+              }
+            }
+          ]
+        },
+        "initializedTickCount": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000
+        }
+      }
+    },
+    "comparison": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "selectedDirection",
+        "selectedRequest",
+        "selected",
+        "forward",
+        "reverse",
+        "rejectedDirections"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "4.0"
+        },
+        "selectedDirection": {
+          "enum": [
+            "forward",
+            "reverse",
+            null
+          ]
+        },
+        "selectedRequest": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/sizingRequest"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "selected": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/sizingResult"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "forward": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/sizingResult"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reverse": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/sizingResult"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "rejectedDirections": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "forward": {
+              "const": "NO_FEASIBLE_SIZING_DOMAIN"
+            },
+            "reverse": {
+              "const": "NO_FEASIBLE_SIZING_DOMAIN"
+            }
+          }
+        }
+      }
+    },
+    "snapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "identity",
+        "sourceId",
+        "cursor",
+        "observedAtMs",
+        "complete",
+        "poolIds",
+        "stateDigest"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "3.0"
+        },
+        "identity": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "chain",
+                "network",
+                "height",
+                "blockHash"
+              ],
+              "properties": {
+                "chain": {
+                  "const": "arbitrum"
+                },
+                "network": {
+                  "enum": [
+                    "42161",
+                    "421614"
+                  ]
+                },
+                "height": {
+                  "type": "string",
+                  "pattern": "^(0|[1-9][0-9]*)$",
+                  "maxLength": 78
+                },
+                "blockHash": {
+                  "type": "string",
+                  "pattern": "^0x[0-9a-f]{64}$"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "chain",
+                "network",
+                "height",
+                "checkpointDigest"
+              ],
+              "properties": {
+                "chain": {
+                  "const": "sui"
+                },
+                "network": {
+                  "enum": [
+                    "mainnet",
+                    "testnet",
+                    "localnet"
+                  ]
+                },
+                "height": {
+                  "type": "string",
+                  "pattern": "^(0|[1-9][0-9]*)$",
+                  "maxLength": 78
+                },
+                "checkpointDigest": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 44
+                }
+              }
+            }
+          ]
+        },
+        "sourceId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "cursor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "observedAtMs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "complete": {
+          "type": "boolean"
+        },
+        "poolIds": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 6,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "stateDigest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "tradeBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "lender",
+        "deadline",
+        "roots",
+        "adapterId",
+        "adapterRevision",
+        "expiresAtMs",
+        "maxGasCost"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "morpho-blue",
+            "balancer-v2"
+          ]
+        },
+        "lender": {
+          "type": "string",
+          "pattern": "^0x[0-9a-fA-F]{40}$"
+        },
+        "deadline": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "roots": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 6,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "poolId",
+              "root",
+              "adapterRevision",
+              "revisionHash"
+            ],
+            "properties": {
+              "poolId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "root": {
+                "type": "string",
+                "pattern": "^0x[0-9a-fA-F]{40}$"
+              },
+              "adapterRevision": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "revisionHash": {
+                "type": "string",
+                "pattern": "^0x[0-9a-f]{64}$"
+              }
+            }
+          }
+        },
+        "adapterId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "adapterRevision": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "expiresAtMs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "maxGasCost": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        }
+      }
+    },
+    "candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "identity",
+        "stateDigest",
+        "poolIds",
+        "adapterId",
+        "adapterRevision",
+        "payloadDigest",
+        "borrowAmount",
+        "profitAsset",
+        "minProfit",
+        "maxGasCost",
+        "expiresAtMs"
+      ],
+      "properties": {
+        "identity": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "chain",
+                "network",
+                "height",
+                "blockHash"
+              ],
+              "properties": {
+                "chain": {
+                  "const": "arbitrum"
+                },
+                "network": {
+                  "enum": [
+                    "42161",
+                    "421614"
+                  ]
+                },
+                "height": {
+                  "type": "string",
+                  "pattern": "^(0|[1-9][0-9]*)$",
+                  "maxLength": 78
+                },
+                "blockHash": {
+                  "type": "string",
+                  "pattern": "^0x[0-9a-f]{64}$"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "chain",
+                "network",
+                "height",
+                "checkpointDigest"
+              ],
+              "properties": {
+                "chain": {
+                  "const": "sui"
+                },
+                "network": {
+                  "enum": [
+                    "mainnet",
+                    "testnet",
+                    "localnet"
+                  ]
+                },
+                "height": {
+                  "type": "string",
+                  "pattern": "^(0|[1-9][0-9]*)$",
+                  "maxLength": 78
+                },
+                "checkpointDigest": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 44
+                }
+              }
+            }
+          ]
+        },
+        "stateDigest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "poolIds": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 6,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "adapterId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "adapterRevision": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "payloadDigest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "borrowAmount": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "profitAsset": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1200
+        },
+        "minProfit": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "maxGasCost": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "expiresAtMs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      }
+    },
+    "prepareInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "pools",
+        "request",
+        "snapshot",
+        "binding"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "4.0"
+        },
+        "pools": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 6,
+          "items": {
+            "$ref": "#/$defs/pool"
+          }
+        },
+        "request": {
+          "$ref": "#/$defs/sizingRequest"
+        },
+        "snapshot": {
+          "$ref": "#/$defs/snapshot"
+        },
+        "binding": {
+          "$ref": "#/$defs/tradeBinding"
+        }
+      }
+    },
+    "preparedTrade": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "comparison",
+        "unsignedPayload",
+        "candidate"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "4.0"
+        },
+        "comparison": {
+          "$ref": "#/$defs/comparison"
+        },
+        "unsignedPayload": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^0x([0-9a-fA-F]{2})+$",
+              "maxLength": 2097152
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "candidate": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/candidate"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "objectRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "objectId",
+        "version",
+        "digest"
+      ],
+      "properties": {
+        "objectId": {
+          "type": "string",
+          "pattern": "^0x[0-9a-f]{64}$"
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^[1-9A-HJ-NP-Za-km-z]{32,44}$"
+        }
+      }
+    },
+    "pinnedSuiObject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "objectId",
+        "version",
+        "digest",
+        "objectType",
+        "objectBcsBase64"
+      ],
+      "properties": {
+        "objectId": {
+          "type": "string",
+          "pattern": "^0x[0-9a-f]{64}$"
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^[1-9A-HJ-NP-Za-km-z]{32,44}$"
+        },
+        "objectType": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "objectBcsBase64": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 350000,
+          "pattern": "^[A-Za-z0-9+/]+={0,2}$"
+        }
+      }
+    },
+    "checkpointObjects": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "identity",
+        "chainIdentifier",
+        "completeForDeclaredObjectSet",
+        "objects",
+        "missingObjectIds",
+        "stateDigest"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "3.0"
+        },
+        "identity": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "chain",
+                "network",
+                "height",
+                "blockHash"
+              ],
+              "properties": {
+                "chain": {
+                  "const": "arbitrum"
+                },
+                "network": {
+                  "enum": [
+                    "42161",
+                    "421614"
+                  ]
+                },
+                "height": {
+                  "type": "string",
+                  "pattern": "^(0|[1-9][0-9]*)$",
+                  "maxLength": 78
+                },
+                "blockHash": {
+                  "type": "string",
+                  "pattern": "^0x[0-9a-f]{64}$"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "chain",
+                "network",
+                "height",
+                "checkpointDigest"
+              ],
+              "properties": {
+                "chain": {
+                  "const": "sui"
+                },
+                "network": {
+                  "enum": [
+                    "mainnet",
+                    "testnet",
+                    "localnet"
+                  ]
+                },
+                "height": {
+                  "type": "string",
+                  "pattern": "^(0|[1-9][0-9]*)$",
+                  "maxLength": 78
+                },
+                "checkpointDigest": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 44
+                }
+              }
+            }
+          ]
+        },
+        "chainIdentifier": {
+          "type": "string",
+          "pattern": "^[1-9A-HJ-NP-Za-km-z]{32,44}$"
+        },
+        "completeForDeclaredObjectSet": {
+          "const": true
+        },
+        "objects": {
+          "type": "array",
+          "maxItems": 10000,
+          "items": {
+            "$ref": "#/$defs/objectRef"
+          }
+        },
+        "missingObjectIds": {
+          "type": "array",
+          "maxItems": 0,
+          "items": {
+            "type": "string",
+            "pattern": "^0x[0-9a-f]{64}$"
+          }
+        },
+        "stateDigest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "cetusDecodeConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "layout",
+        "packageId",
+        "typeOrigin",
+        "moveStlOrigin",
+        "packagePins",
+        "poolId",
+        "coinAType",
+        "coinBType",
+        "decimalsA",
+        "decimalsB",
+        "lowerTick",
+        "upperTick"
+      ],
+      "properties": {
+        "layout": {
+          "const": "cetus-interface-1.2.0"
+        },
+        "packageId": {
+          "type": "string",
+          "pattern": "^0x[0-9a-f]{64}$"
+        },
+        "typeOrigin": {
+          "type": "string",
+          "pattern": "^0x[0-9a-f]{64}$"
+        },
+        "moveStlOrigin": {
+          "type": "string",
+          "pattern": "^0x[0-9a-f]{64}$"
+        },
+        "packagePins": {
+          "type": "object",
+          "minProperties": 1,
+          "maxProperties": 16,
+          "propertyNames": {
+            "type": "string",
+            "pattern": "^0x[0-9a-f]{64}$"
+          },
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^[1-9A-HJ-NP-Za-km-z]{32,44}$"
+          }
+        },
+        "poolId": {
+          "type": "string",
+          "pattern": "^0x[0-9a-f]{64}$"
+        },
+        "coinAType": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "coinBType": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "decimalsA": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "decimalsB": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "lowerTick": {
+          "type": "integer",
+          "minimum": -443636,
+          "maximum": 443636
+        },
+        "upperTick": {
+          "type": "integer",
+          "minimum": -443636,
+          "maximum": 443636
+        }
+      }
+    },
+    "decodeCetusInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "checkpoint",
+        "objects",
+        "config"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "4.0"
+        },
+        "checkpoint": {
+          "$ref": "#/$defs/checkpointObjects"
+        },
+        "objects": {
+          "type": "array",
+          "maxItems": 10000,
+          "items": {
+            "$ref": "#/$defs/pinnedSuiObject"
+          }
+        },
+        "config": {
+          "$ref": "#/$defs/cetusDecodeConfig"
+        }
+      }
+    },
+    "decodedCetus": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "pool",
+        "stateRefs",
+        "coverageDigest"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "4.0"
+        },
+        "pool": {
+          "$ref": "#/$defs/pool"
+        },
+        "stateRefs": {
+          "type": "array",
+          "maxItems": 10000,
+          "items": {
+            "$ref": "#/$defs/objectRef"
+          }
+        },
+        "coverageDigest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "suiTradeObject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "objectId",
+        "version",
+        "digest"
+      ],
+      "properties": {
+        "objectId": {
+          "type": "string",
+          "pattern": "^0x[0-9a-f]{64}$"
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^[1-9A-HJ-NP-Za-km-z]{32,44}$"
+        },
+        "initialSharedVersion": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        }
+      }
+    },
+    "suiLender": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "packageId",
+            "poolId",
+            "baseType",
+            "quoteType",
+            "side"
+          ],
+          "properties": {
+            "kind": {
+              "const": "deepbook-v3"
+            },
+            "packageId": {
+              "type": "string",
+              "pattern": "^0x[0-9a-f]{64}$"
+            },
+            "poolId": {
+              "type": "string",
+              "pattern": "^0x[0-9a-f]{64}$"
+            },
+            "baseType": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1024
+            },
+            "quoteType": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1024
+            },
+            "side": {
+              "enum": [
+                "base",
+                "quote"
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "packageId",
+            "poolId",
+            "assetType",
+            "flashConfigId",
+            "storageId"
+          ],
+          "properties": {
+            "kind": {
+              "const": "navi"
+            },
+            "packageId": {
+              "type": "string",
+              "pattern": "^0x[0-9a-f]{64}$"
+            },
+            "poolId": {
+              "type": "string",
+              "pattern": "^0x[0-9a-f]{64}$"
+            },
+            "assetType": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1024
+            },
+            "flashConfigId": {
+              "type": "string",
+              "pattern": "^0x[0-9a-f]{64}$"
+            },
+            "storageId": {
+              "type": "string",
+              "pattern": "^0x[0-9a-f]{64}$"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "packageId",
+            "marketId",
+            "assetType",
+            "versionId"
+          ],
+          "properties": {
+            "kind": {
+              "const": "scallop"
+            },
+            "packageId": {
+              "type": "string",
+              "pattern": "^0x[0-9a-f]{64}$"
+            },
+            "marketId": {
+              "type": "string",
+              "pattern": "^0x[0-9a-f]{64}$"
+            },
+            "assetType": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1024
+            },
+            "versionId": {
+              "type": "string",
+              "pattern": "^0x[0-9a-f]{64}$"
+            }
+          }
+        }
+      ]
+    },
+    "suiTradeBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "lender",
+        "sender",
+        "gas",
+        "gasPrice",
+        "gasBudget",
+        "expirationEpoch",
+        "objects",
+        "venues",
+        "guard",
+        "adapterId",
+        "adapterRevision",
+        "expiresAtMs",
+        "maxGasCost"
+      ],
+      "properties": {
+        "lender": {
+          "$ref": "#/$defs/suiLender"
+        },
+        "sender": {
+          "type": "string",
+          "pattern": "^0x[0-9a-f]{64}$"
+        },
+        "gas": {
+          "$ref": "#/$defs/objectRef"
+        },
+        "gasPrice": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "gasBudget": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "expirationEpoch": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "objects": {
+          "type": "array",
+          "maxItems": 1000,
+          "items": {
+            "$ref": "#/$defs/suiTradeObject"
+          }
+        },
+        "venues": {
+          "type": "array",
+          "maxItems": 3,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "poolId",
+              "packageId",
+              "globalConfigId",
+              "adapterRevision",
+              "packageDigest"
+            ],
+            "properties": {
+              "poolId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1024
+              },
+              "packageId": {
+                "type": "string",
+                "pattern": "^0x[0-9a-f]{64}$"
+              },
+              "globalConfigId": {
+                "type": "string",
+                "pattern": "^0x[0-9a-f]{64}$"
+              },
+              "adapterRevision": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1024
+              },
+              "packageDigest": {
+                "type": "string",
+                "pattern": "^[1-9A-HJ-NP-Za-km-z]{32,44}$"
+              }
+            }
+          }
+        },
+        "guard": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "packageId",
+            "operatorCapId",
+            "pauseCapId"
+          ],
+          "properties": {
+            "packageId": {
+              "type": "string",
+              "pattern": "^0x[0-9a-f]{64}$"
+            },
+            "operatorCapId": {
+              "type": "string",
+              "pattern": "^0x[0-9a-f]{64}$"
+            },
+            "pauseCapId": {
+              "type": "string",
+              "pattern": "^0x[0-9a-f]{64}$"
+            }
+          }
+        },
+        "adapterId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "adapterRevision": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "expiresAtMs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "maxGasCost": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        }
+      }
+    },
+    "prepareSuiInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "pools",
+        "request",
+        "snapshot",
+        "binding"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "4.0"
+        },
+        "pools": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 6,
+          "items": {
+            "$ref": "#/$defs/pool"
+          }
+        },
+        "request": {
+          "$ref": "#/$defs/sizingRequest"
+        },
+        "snapshot": {
+          "$ref": "#/$defs/snapshot"
+        },
+        "binding": {
+          "$ref": "#/$defs/suiTradeBinding"
+        }
+      }
+    },
+    "preparedSui": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "comparison",
+        "transactionBytesBase64",
+        "routeHash",
+        "candidate"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "4.0"
+        },
+        "comparison": {
+          "$ref": "#/$defs/comparison"
+        },
+        "transactionBytesBase64": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 1398104
+        },
+        "routeHash": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "candidate": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/candidate"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "deepBookOrder": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "orderId",
+        "price",
+        "remainingBase",
+        "expiresAtMs"
+      ],
+      "properties": {
+        "orderId": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "price": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "remainingBase": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "expiresAtMs": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        }
+      }
+    },
+    "deepBookState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "revision",
+        "packageDigest",
+        "checkpointDigest",
+        "lotSize",
+        "minSize",
+        "tickSize",
+        "takerFee",
+        "timestampMs",
+        "complete",
+        "bids",
+        "asks"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "4.0"
+        },
+        "revision": {
+          "const": "deepbook-v3-input-fee"
+        },
+        "packageDigest": {
+          "type": "string",
+          "pattern": "^[1-9A-HJ-NP-Za-km-z]{32,44}$"
+        },
+        "checkpointDigest": {
+          "type": "string",
+          "pattern": "^[1-9A-HJ-NP-Za-km-z]{32,44}$"
+        },
+        "lotSize": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "minSize": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "tickSize": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "takerFee": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "timestampMs": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "complete": {
+          "const": true
+        },
+        "bids": {
+          "type": "array",
+          "maxItems": 10000,
+          "items": {
+            "$ref": "#/$defs/deepBookOrder"
+          }
+        },
+        "asks": {
+          "type": "array",
+          "maxItems": 10000,
+          "items": {
+            "$ref": "#/$defs/deepBookOrder"
+          }
+        }
+      }
+    },
+    "deepBookInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "state",
+        "baseToQuote",
+        "amountIn"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "4.0"
+        },
+        "state": {
+          "$ref": "#/$defs/deepBookState"
+        },
+        "baseToQuote": {
+          "type": "boolean"
+        },
+        "amountIn": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        }
+      }
+    },
+    "deepBookQuote": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "snapshotDigest",
+        "amountIn",
+        "amountOut",
+        "consumedInput",
+        "unspentInput",
+        "feeAsset",
+        "feeAmount",
+        "deepFeeAmount",
+        "fills",
+        "baseToQuote",
+        "nextState",
+        "nextStateDigest"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "4.0"
+        },
+        "snapshotDigest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "amountIn": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "amountOut": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "consumedInput": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "unspentInput": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "feeAsset": {
+          "const": "input"
+        },
+        "feeAmount": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "deepFeeAmount": {
+          "const": "0"
+        },
+        "fills": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "baseToQuote": {
+          "type": "boolean"
+        },
+        "nextState": {
+          "$ref": "#/$defs/deepBookState"
+        },
+        "nextStateDigest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "algebraTick": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tick",
+        "liquidityGross",
+        "liquidityNet",
+        "prevTick",
+        "nextTick"
+      ],
+      "properties": {
+        "tick": {
+          "type": "integer",
+          "minimum": -887272,
+          "maximum": 887272
+        },
+        "liquidityGross": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "liquidityNet": {
+          "type": "string",
+          "pattern": "^(0|-?[1-9][0-9]*)$",
+          "maxLength": 40
+        },
+        "prevTick": {
+          "type": "integer",
+          "minimum": -887272,
+          "maximum": 887272
+        },
+        "nextTick": {
+          "type": "integer",
+          "minimum": -887272,
+          "maximum": 887272
+        }
+      }
+    },
+    "algebraState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "revision",
+        "sqrtPriceX96",
+        "tick",
+        "liquidity",
+        "lastFee",
+        "communityFee",
+        "pluginConfig",
+        "plugin",
+        "unlocked",
+        "prevTickGlobal",
+        "nextTickGlobal",
+        "lowerTick",
+        "upperTick",
+        "ticks"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "4.0"
+        },
+        "revision": {
+          "const": "algebra-integral-linked-v1"
+        },
+        "sqrtPriceX96": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "tick": {
+          "type": "integer",
+          "minimum": -887272,
+          "maximum": 887272
+        },
+        "liquidity": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "lastFee": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 65535
+        },
+        "communityFee": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "pluginConfig": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "plugin": {
+          "type": "string",
+          "pattern": "^0x[0-9a-f]{40}$"
+        },
+        "unlocked": {
+          "const": true
+        },
+        "prevTickGlobal": {
+          "type": "integer",
+          "minimum": -887272,
+          "maximum": 887272
+        },
+        "nextTickGlobal": {
+          "type": "integer",
+          "minimum": -887272,
+          "maximum": 887272
+        },
+        "lowerTick": {
+          "type": "integer",
+          "minimum": -887272,
+          "maximum": 887272
+        },
+        "upperTick": {
+          "type": "integer",
+          "minimum": -887272,
+          "maximum": 887272
+        },
+        "ticks": {
+          "type": "array",
+          "maxItems": 10000,
+          "items": {
+            "$ref": "#/$defs/algebraTick"
+          }
+        }
+      }
+    },
+    "algebraResolution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "snapshotDigest",
+        "amountIn",
+        "zeroForOne",
+        "overrideFee",
+        "pluginFee",
+        "evidenceDigest"
+      ],
+      "properties": {
+        "snapshotDigest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "amountIn": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "zeroForOne": {
+          "type": "boolean"
+        },
+        "overrideFee": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 999999
+        },
+        "pluginFee": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 999999
+        },
+        "evidenceDigest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "algebraInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "state",
+        "zeroForOne",
+        "amountIn",
+        "feeResolution"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "4.0"
+        },
+        "state": {
+          "$ref": "#/$defs/algebraState"
+        },
+        "zeroForOne": {
+          "type": "boolean"
+        },
+        "amountIn": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "feeResolution": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/algebraResolution"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "algebraQuote": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "snapshotDigest",
+        "feeEvidenceDigest",
+        "amountIn",
+        "amountOut",
+        "feeAmount",
+        "communityFeeAmount",
+        "pluginFeeAmount",
+        "nextState",
+        "nextStateDigest",
+        "crossedTicks",
+        "steps"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "4.0"
+        },
+        "snapshotDigest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "feeEvidenceDigest": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "amountIn": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "amountOut": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "feeAmount": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "communityFeeAmount": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "pluginFeeAmount": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "nextState": {
+          "$ref": "#/$defs/algebraState"
+        },
+        "nextStateDigest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "crossedTicks": {
+          "type": "array",
+          "maxItems": 10000,
+          "items": {
+            "type": "integer",
+            "minimum": -887272,
+            "maximum": 887272
+          }
+        },
+        "steps": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4096
+        }
+      }
+    },
+    "conditionalVenue": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "poolId",
+            "identity",
+            "token0",
+            "token1",
+            "kind",
+            "state",
+            "feeResolutions"
+          ],
+          "properties": {
+            "poolId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1024
+            },
+            "identity": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "chain",
+                    "network",
+                    "height",
+                    "blockHash"
+                  ],
+                  "properties": {
+                    "chain": {
+                      "const": "arbitrum"
+                    },
+                    "network": {
+                      "enum": [
+                        "42161",
+                        "421614"
+                      ]
+                    },
+                    "height": {
+                      "type": "string",
+                      "pattern": "^(0|[1-9][0-9]*)$",
+                      "maxLength": 78
+                    },
+                    "blockHash": {
+                      "type": "string",
+                      "pattern": "^0x[0-9a-f]{64}$"
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "chain",
+                    "network",
+                    "height",
+                    "checkpointDigest"
+                  ],
+                  "properties": {
+                    "chain": {
+                      "const": "sui"
+                    },
+                    "network": {
+                      "enum": [
+                        "mainnet",
+                        "testnet",
+                        "localnet"
+                      ]
+                    },
+                    "height": {
+                      "type": "string",
+                      "pattern": "^(0|[1-9][0-9]*)$",
+                      "maxLength": 78
+                    },
+                    "checkpointDigest": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 44
+                    }
+                  }
+                }
+              ]
+            },
+            "token0": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1024
+            },
+            "token1": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1024
+            },
+            "kind": {
+              "const": "pool"
+            },
+            "state": {
+              "$ref": "#/$defs/pool"
+            },
+            "feeResolutions": {
+              "type": "array",
+              "maxItems": 512,
+              "items": {
+                "$ref": "#/$defs/algebraResolution"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "poolId",
+            "identity",
+            "token0",
+            "token1",
+            "kind",
+            "state",
+            "feeResolutions"
+          ],
+          "properties": {
+            "poolId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1024
+            },
+            "identity": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "chain",
+                    "network",
+                    "height",
+                    "blockHash"
+                  ],
+                  "properties": {
+                    "chain": {
+                      "const": "arbitrum"
+                    },
+                    "network": {
+                      "enum": [
+                        "42161",
+                        "421614"
+                      ]
+                    },
+                    "height": {
+                      "type": "string",
+                      "pattern": "^(0|[1-9][0-9]*)$",
+                      "maxLength": 78
+                    },
+                    "blockHash": {
+                      "type": "string",
+                      "pattern": "^0x[0-9a-f]{64}$"
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "chain",
+                    "network",
+                    "height",
+                    "checkpointDigest"
+                  ],
+                  "properties": {
+                    "chain": {
+                      "const": "sui"
+                    },
+                    "network": {
+                      "enum": [
+                        "mainnet",
+                        "testnet",
+                        "localnet"
+                      ]
+                    },
+                    "height": {
+                      "type": "string",
+                      "pattern": "^(0|[1-9][0-9]*)$",
+                      "maxLength": 78
+                    },
+                    "checkpointDigest": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 44
+                    }
+                  }
+                }
+              ]
+            },
+            "token0": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1024
+            },
+            "token1": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1024
+            },
+            "kind": {
+              "const": "algebra"
+            },
+            "state": {
+              "$ref": "#/$defs/algebraState"
+            },
+            "feeResolutions": {
+              "type": "array",
+              "maxItems": 512,
+              "items": {
+                "$ref": "#/$defs/algebraResolution"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "poolId",
+            "identity",
+            "token0",
+            "token1",
+            "kind",
+            "state",
+            "feeResolutions"
+          ],
+          "properties": {
+            "poolId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1024
+            },
+            "identity": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "chain",
+                    "network",
+                    "height",
+                    "blockHash"
+                  ],
+                  "properties": {
+                    "chain": {
+                      "const": "arbitrum"
+                    },
+                    "network": {
+                      "enum": [
+                        "42161",
+                        "421614"
+                      ]
+                    },
+                    "height": {
+                      "type": "string",
+                      "pattern": "^(0|[1-9][0-9]*)$",
+                      "maxLength": 78
+                    },
+                    "blockHash": {
+                      "type": "string",
+                      "pattern": "^0x[0-9a-f]{64}$"
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "chain",
+                    "network",
+                    "height",
+                    "checkpointDigest"
+                  ],
+                  "properties": {
+                    "chain": {
+                      "const": "sui"
+                    },
+                    "network": {
+                      "enum": [
+                        "mainnet",
+                        "testnet",
+                        "localnet"
+                      ]
+                    },
+                    "height": {
+                      "type": "string",
+                      "pattern": "^(0|[1-9][0-9]*)$",
+                      "maxLength": 78
+                    },
+                    "checkpointDigest": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 44
+                    }
+                  }
+                }
+              ]
+            },
+            "token0": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1024
+            },
+            "token1": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1024
+            },
+            "kind": {
+              "const": "deepbook"
+            },
+            "state": {
+              "$ref": "#/$defs/deepBookState"
+            },
+            "feeResolutions": {
+              "type": "array",
+              "maxItems": 512,
+              "items": {
+                "$ref": "#/$defs/algebraResolution"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "conditionalInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "venues",
+        "request"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "4.0"
+        },
+        "venues": {
+          "type": "array",
+          "maxItems": 6,
+          "items": {
+            "$ref": "#/$defs/conditionalVenue"
+          }
+        },
+        "request": {
+          "$ref": "#/$defs/sizingRequest"
+        }
+      }
+    },
+    "conditionalResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "eligibility",
+        "status",
+        "snapshotDigest",
+        "requestDigest",
+        "direction",
+        "amountIn",
+        "amountOut",
+        "repayment",
+        "netProfit",
+        "evaluations",
+        "optimality",
+        "quotes",
+        "rejectedQuotes",
+        "evidenceComplete"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "4.0"
+        },
+        "eligibility": {
+          "const": "simulation-required"
+        },
+        "status": {
+          "enum": [
+            "selected",
+            "no-profitable-size",
+            "incomplete-evidence"
+          ]
+        },
+        "snapshotDigest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "requestDigest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "direction": {
+          "enum": [
+            "forward",
+            "reverse",
+            null
+          ]
+        },
+        "amountIn": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "amountOut": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "repayment": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "netProfit": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "evaluations": {
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 1024
+        },
+        "optimality": {
+          "enum": [
+            "best-found",
+            "certified"
+          ]
+        },
+        "quotes": {
+          "type": "array",
+          "maxItems": 6,
+          "items": {
+            "oneOf": [
+              {
+                "$ref": "#/$defs/projectionResult"
+              },
+              {
+                "$ref": "#/$defs/algebraQuote"
+              },
+              {
+                "$ref": "#/$defs/deepBookQuote"
+              }
+            ]
+          }
+        },
+        "rejectedQuotes": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1024
+          }
+        },
+        "evidenceComplete": {
+          "type": "boolean"
+        }
+      }
+    }
+  },
+  "$comment": "Math artifacts are not execution admission. Runtime additionally enforces native integer widths, coherent identity, signed liquidity, complete coverage, operation idempotence and protocol-specific asset/revision rules. v3 schemas remain unchanged."
+}

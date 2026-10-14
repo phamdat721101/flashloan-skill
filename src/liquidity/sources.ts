@@ -1,11 +1,20 @@
 import { createPublicClient, http, keccak256, parseAbi, type Address } from 'viem';
 import { GrpcTypes, SuiGrpcClient } from '@mysten/sui/grpc';
+import { arbitrum,arbitrumSepolia } from 'viem/chains';
 import { normalizeSuiAddress } from '@mysten/sui/utils';
 import type { SuiVersionedRef } from './sui-state.js';
+import { decodeCetusCheckpoint, type CheckpointObjectSet, type CetusDecodeConfig, type PinnedSuiObject } from '../sui/cetus.js';
+import { snapshotUniswapV3, snapshotUniswapV4, type StateClient, type V4PoolKey } from '../state-adapters.js';
+import { parsePoolState, type PoolStateEnvelope } from './projection.js';
 import { digest, isSuiDigest, parseSnapshot, parseStateIdentity, uint, type LiquiditySnapshot } from './state.js';
 
 export interface V2SourcePool { address: Address; expectedCodeHash: `0x${string}` }
 export interface V2PoolObservation { poolId: string; token0: Address; token1: Address; reserve0: string; reserve1: string; runtimeCodeHash: string }
+export type AnalyticsPoolConfig = { address: Address; expectedCodeHash: `0x${string}`; adapterRevision: string } & (
+  | { protocol: 'uniswap-v2'; feeNumerator: string; feeDenominator: string }
+  | { protocol: 'uniswap-v3'; bitmapWordPositions: number[]; lowerTick: number; upperTick: number }
+  | { protocol: 'uniswap-v4'; bitmapWordPositions: number[]; lowerTick: number; upperTick: number; key: V4PoolKey }
+);
 export interface SuiCheckpointObservation {
   schemaVersion: '3.0'; chain: 'sui'; network: 'mainnet' | 'testnet' | 'localnet'; chainIdentifier: string;
   checkpoint: string; checkpointDigest: string; previousCheckpointDigest: string | null;
@@ -75,6 +84,55 @@ export async function readArbitrumV2Snapshot(url: string, sourceId: string, pool
   return { snapshot: parseSnapshot({ schemaVersion: '3.0', identity: { chain: 'arbitrum', network: String(chainId), height: head.number.toString(), blockHash: head.hash }, sourceId, cursor, complete: true, observedAtMs: Date.now(), poolIds: observed.map(p => p.poolId), stateDigest: digest(observed) }), pools: observed, parentHash: head.parentHash };
 }
 
+/** Common-head analytics capture. V2 fee profiles must be revision-admitted by the operator;
+ * V3/V4 fees are read from their own protocol state. This capture never signs or admits a route.
+ */
+export async function readArbitrumAnalyticsSnapshot(url: string, sourceId: string, cursor: string, configs: readonly AnalyticsPoolConfig[], blockNumber?: string): Promise<{ snapshot: LiquiditySnapshot; pools: PoolStateEnvelope[] }> {
+  uint(cursor,64); if (blockNumber !== undefined) uint(blockNumber,64);
+  if (!Array.isArray(configs) || !configs.length || configs.length > 6 || typeof sourceId !== 'string' || !sourceId || sourceId.length > 128) throw new Error('INVALID_ANALYTICS_CAPTURE');
+  for (const config of configs) {
+    if (!config || typeof config !== 'object' || Array.isArray(config)) throw new Error('INVALID_ANALYTICS_CAPTURE');
+    const expected = ['address','expectedCodeHash','adapterRevision','protocol',...(config.protocol === 'uniswap-v2' ? ['feeNumerator','feeDenominator'] : config.protocol === 'uniswap-v3' ? ['bitmapWordPositions','lowerTick','upperTick'] : config.protocol === 'uniswap-v4' ? ['bitmapWordPositions','lowerTick','upperTick','key'] : [])];
+    if (!config || !['uniswap-v2','uniswap-v3','uniswap-v4'].includes(config.protocol) || Object.keys(config).sort().join(',') !== expected.sort().join(',') || !/^0x[0-9a-fA-F]{40}$/.test(config.address) || !/^0x[0-9a-f]{64}$/.test(config.expectedCodeHash) || typeof config.adapterRevision !== 'string' || !config.adapterRevision || config.adapterRevision.length > 128) throw new Error('INVALID_ANALYTICS_CAPTURE');
+    if (config.protocol === 'uniswap-v2') { if (!uint(config.feeNumerator,32) || uint(config.feeNumerator,32) > uint(config.feeDenominator,32)) throw new Error('V2_INVALID_STATE'); }
+    else if (!Array.isArray(config.bitmapWordPositions) || config.bitmapWordPositions.length > 256) throw new Error('INVALID_ANALYTICS_CAPTURE');
+  }
+  const transport = http(endpoint(url), { timeout: 15000,retryCount: 0 });
+  const probe = createPublicClient({ transport });
+  const chainId = await probe.getChainId(); if (![42161,421614].includes(chainId)) throw new Error('UNSUPPORTED_CHAIN');
+  // Use viem's existing Multicall3 batching for view-only CLMM reads. Tick workers
+  // stay bounded, but no longer require one provider HTTP request per tick.
+  const client = createPublicClient({ chain: chainId === 42161 ? arbitrum : arbitrumSepolia,transport,batch: { multicall: { batchSize: 4096,wait: 10 } } });
+  const head = await client.getBlock(blockNumber === undefined ? { blockTag: 'latest' } : { blockNumber: uint(blockNumber,64) });
+  if (head.number === null || !head.hash) throw new Error('INCOMPLETE_BLOCK');
+  const identity = parseStateIdentity({ chain: 'arbitrum',network: String(chainId),height: head.number.toString(),blockHash: head.hash });
+  const pinned = { getChainId: () => Promise.resolve(chainId),getBlock: (args?: { blockNumber?: bigint }) => client.getBlock({ blockNumber: args?.blockNumber ?? head.number! }),getCode: client.getCode,readContract: client.readContract } as unknown as StateClient;
+  const pools: PoolStateEnvelope[] = [];
+  for (const config of configs) {
+    const policy = { chainId,expectedRuntimeCodeHash: config.expectedCodeHash,maxBitmapWords: 256 };
+    let token0: Address, token1: Address, state: PoolStateEnvelope['state'];
+    if (config.protocol === 'uniswap-v2') {
+      const captured = await readArbitrumV2Snapshot(url,sourceId,[{ address: config.address,expectedCodeHash: config.expectedCodeHash }],cursor,head.number.toString());
+      if (digest(captured.snapshot.identity) !== digest(identity)) throw new Error('BLOCK_REORG');
+      const pool = captured.pools[0]; token0 = pool.token0; token1 = pool.token1;
+      state = { protocol: 'uniswap-v2',reserve0: pool.reserve0,reserve1: pool.reserve1,feeNumerator: config.feeNumerator,feeDenominator: config.feeDenominator };
+    } else if (config.protocol === 'uniswap-v3') {
+      const pool = await snapshotUniswapV3(pinned,config.address,config.bitmapWordPositions,policy); token0 = pool.token0; token1 = pool.token1;
+      state = { protocol: 'uniswap-v3',sqrtPriceX96: pool.sqrtPriceX96,tick: pool.tick,liquidity: pool.liquidity,feePips: pool.feePips,tickSpacing: pool.tickSpacing,unlocked: pool.unlocked,bitmapWords: pool.bitmapWords,initializedTicks: pool.initializedTicks,lowerTick: config.lowerTick,upperTick: config.upperTick };
+    } else {
+      const pool = await snapshotUniswapV4(pinned,config.address,config.key,config.bitmapWordPositions,policy,true); token0 = config.key.currency0; token1 = config.key.currency1;
+      state = { protocol: 'uniswap-v4',sqrtPriceX96: pool.sqrtPriceX96,tick: pool.tick,liquidity: pool.liquidity,tickSpacing: pool.key.tickSpacing,bitmapWords: pool.bitmapWords,initializedTicks: pool.initializedTicks,lowerTick: config.lowerTick,upperTick: config.upperTick,key: pool.key,poolId: pool.poolId,protocolFeePips: pool.protocolFeePips,lpFeePips: pool.lpFeePips };
+    }
+    const decimalsAbi = parseAbi(['function decimals() view returns(uint8)']);
+    const tokenClient = config.protocol === 'uniswap-v2' ? probe : client;
+    const [decimals0,decimals1] = await Promise.all([token0,token1].map(address => address === '0x0000000000000000000000000000000000000000' ? Promise.resolve(18) : tokenClient.readContract({ address,abi: decimalsAbi,functionName: 'decimals',blockNumber: head.number! })));
+    pools.push(parsePoolState({ schemaVersion: '4.0',identity,poolId: `arbitrum:${chainId}:${config.address.toLowerCase()}${state.protocol === 'uniswap-v4' ? `:${state.poolId}` : ''}`,poolAddress: config.address,adapterRevision: config.adapterRevision,revisionHash: config.expectedCodeHash,token0,token1,decimals0,decimals1,stateClass: 'canonical',appliedOperations: [],state }));
+  }
+  if (new Set(pools.map(pool => pool.poolId)).size !== pools.length) throw new Error('DUPLICATE_ANALYTICS_POOL');
+  if ((await client.getBlock({ blockNumber: head.number })).hash !== head.hash) throw new Error('BLOCK_REORG');
+  return { snapshot: parseSnapshot({ schemaVersion: '3.0',identity,sourceId,cursor,observedAtMs: Date.now(),complete: true,poolIds: pools.map(pool => pool.poolId),stateDigest: digest(pools) }),pools };
+}
+
 /** Checkpoint-local effects, never incorrectly pairing latest objects with an unrelated checkpoint. */
 export async function readSuiCheckpoint(url: string, network: 'mainnet' | 'testnet' | 'localnet', sequence: string, expectedChainIdentifier: string): Promise<SuiCheckpointObservation> {
   const sequenceNumber = uint(sequence, 64);
@@ -123,12 +181,79 @@ export async function readSuiPinnedObjects(url: string, network: 'mainnet' | 'te
   for (const ref of refs) {
     if (!/^0x[0-9a-f]{64}$/.test(ref.objectId) || !isSuiDigest(ref.digest) || uint(ref.version, 64) === 0n) throw new Error('INVALID_PINNED_OBJECT_REF');
   }
-  const client = await pinnedSuiClient(url, network, expectedChainIdentifier), output = [];
+  const client = await pinnedSuiClient(url, network, expectedChainIdentifier), output = []; let totalBytes = 0;
   for (const ref of refs) {
     const result = await client.ledgerService.getObject({ objectId: ref.objectId, version: uint(ref.version, 64), readMask: { paths: ['object_id', 'version', 'digest', 'object_type', 'bcs'] } }, { timeout: 15000 }).response;
     const object = result.object;
     if (!object?.objectId || normalizeSuiAddress(object.objectId) !== ref.objectId || object.version?.toString() !== ref.version || object.digest !== ref.digest || !object.objectType || !object.bcs?.value?.length || object.bcs.value.length > 4 * 1024 * 1024) throw new Error('PINNED_OBJECT_MISMATCH_OR_INCOMPLETE');
+    totalBytes += object.bcs.value.length; if (totalBytes > 16 * 1024 * 1024) throw new Error('PINNED_OBJECT_BYTE_LIMIT');
     output.push({ ...ref, objectType: object.objectType, objectBcsBase64: Buffer.from(object.bcs.value).toString('base64') });
   }
   return output;
+}
+
+/** Explicit test/capture entry point: all object versions come from the recovered checkpoint set. */
+export async function readSuiCetusAnalyticsSnapshot(url: string, sourceId: string, checkpoint: CheckpointObjectSet, configs: CetusDecodeConfig[]): Promise<{ snapshot: LiquiditySnapshot; pools: PoolStateEnvelope[]; stateRefs: SuiVersionedRef[] }> {
+  const identity = parseStateIdentity(checkpoint.identity);
+  if (identity.chain !== 'sui' || !Array.isArray(configs) || !configs.length || configs.length > 3 || !Array.isArray(checkpoint.objects) || checkpoint.objects.length > 1000 || checkpoint.completeForDeclaredObjectSet !== true || typeof sourceId !== 'string' || !sourceId || sourceId.length > 128) throw new Error('INVALID_CETUS_CAPTURE');
+  const canonical = await readSuiCheckpoint(url,identity.network,identity.height,checkpoint.chainIdentifier);
+  if (canonical.checkpointDigest !== identity.checkpointDigest) throw new Error('CHECKPOINT_RECORD_IDENTITY_MISMATCH');
+  const client = await pinnedSuiClient(url,identity.network,checkpoint.chainIdentifier);
+  await assertSuiReferencesAtCheckpoint(checkpoint.objects,identity.height,{
+    latest: async objectId => {
+      const response = await client.ledgerService.getObject({ objectId,readMask: { paths: ['object_id','version','digest','previous_transaction'] } },{ timeout: 15000 }).response;
+      const value = response.object;
+      if (!value?.objectId || value.version === undefined || !value.digest || !value.previousTransaction) throw new Error('CHECKPOINT_VERSION_PROOF_UNAVAILABLE');
+      return { objectId: normalizeSuiAddress(value.objectId),version: value.version.toString(),digest: value.digest,previousTransaction: value.previousTransaction };
+    },
+    committedAt: async transactionDigest => {
+      const response = await client.ledgerService.getTransaction({ digest: transactionDigest,readMask: { paths: ['digest','checkpoint'] } },{ timeout: 15000 }).response;
+      if (response.transaction?.digest !== transactionDigest || response.transaction.checkpoint === undefined) throw new Error('CHECKPOINT_VERSION_PROOF_UNAVAILABLE');
+      return response.transaction.checkpoint.toString();
+    }
+  });
+  const objects: PinnedSuiObject[] = [];
+  for (let offset = 0; offset < checkpoint.objects.length; offset += 100) {
+    objects.push(...await readSuiPinnedObjects(url,identity.network,checkpoint.chainIdentifier,checkpoint.objects.slice(offset,offset + 100)));
+    if (objects.reduce((bytes,object) => bytes + object.objectBcsBase64.length,0) > 24 * 1024 * 1024) throw new Error('CETUS_CAPTURE_BYTE_LIMIT');
+  }
+  const pools = configs.map(config => decodeCetusCheckpoint(checkpoint,objects,config).pool);
+  if (new Set(pools.map(pool => pool.poolId)).size !== pools.length) throw new Error('DUPLICATE_ANALYTICS_POOL');
+  return { snapshot: parseSnapshot({ schemaVersion: '3.0',identity,sourceId,cursor: identity.height,observedAtMs: Date.now(),complete: true,poolIds: pools.map(pool => pool.poolId),stateDigest: digest(pools) }),pools,stateRefs: structuredClone(checkpoint.objects) };
+}
+
+export interface SuiReferenceProofReader {
+  latest(objectId: string): Promise<SuiVersionedRef & { previousTransaction: string }>;
+  committedAt(transactionDigest: string): Promise<string>;
+}
+/** Conservative proof: latest must equal the supplied version, whose last mutation
+ * was committed by the target checkpoint. Changed historical objects need an archive proof.
+ * Latest is used only as an upper bound, never as a substitute for historical bytes.
+ */
+export async function assertSuiReferencesAtCheckpoint(refs: readonly SuiVersionedRef[],height: string,reader: SuiReferenceProofReader): Promise<void> {
+  const checkpoint = uint(height,64), transactions = new Map<string,string>();
+  if (!refs.length || refs.length > 1000 || new Set(refs.map(ref => ref.objectId)).size !== refs.length) throw new Error('INVALID_PINNED_OBJECT_SET');
+  for (const ref of refs) {
+    const latest = await reader.latest(ref.objectId);
+    if (latest.objectId !== ref.objectId || latest.version !== ref.version || latest.digest !== ref.digest || !isSuiDigest(latest.previousTransaction)) throw new Error('CHECKPOINT_VERSION_PROOF_UNAVAILABLE');
+    let committed = transactions.get(latest.previousTransaction);
+    if (committed === undefined) { committed = await reader.committedAt(latest.previousTransaction); transactions.set(latest.previousTransaction,committed); }
+    if (uint(committed,64) > checkpoint) throw new Error('CHECKPOINT_VERSION_PROOF_UNAVAILABLE');
+  }
+}
+
+/** Unfiltered native gRPC cursor stream. Treat cursors as scheduling hints, then reconcile exact checkpoints. */
+export async function* readSuiNativeCheckpoints(url: string,network: 'mainnet' | 'testnet' | 'localnet',expectedChainIdentifier: string,signal?: AbortSignal): AsyncGenerator<{ height: string; digest: string }> {
+  const client = await pinnedSuiClient(url,network,expectedChainIdentifier), controller = new AbortController();
+  const abort = () => controller.abort(); signal?.addEventListener('abort',abort,{ once: true });
+  if (signal?.aborted) controller.abort();
+  try {
+    const stream = client.subscriptionService.subscribeCheckpoints({ readMask: { paths: ['sequence_number','digest'] } },{ abort: controller.signal });
+    for await (const frame of stream.responses) {
+      if (signal?.aborted) return;
+      if (frame.cursor === undefined || !frame.checkpoint || frame.checkpoint.sequenceNumber !== frame.cursor || !isSuiDigest(frame.checkpoint.digest)) throw new Error('INCOMPLETE_NATIVE_CHECKPOINT');
+      yield { height: uint(frame.cursor.toString(),64).toString(),digest: frame.checkpoint.digest };
+    }
+    if (!signal?.aborted) throw new Error('NATIVE_CHECKPOINT_STREAM_CLOSED');
+  } finally { controller.abort(); signal?.removeEventListener('abort',abort); }
 }

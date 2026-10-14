@@ -8,6 +8,60 @@ import type { Address, Hex } from '../types.js';
  */
 export const FLASH_EXECUTOR_ADDRESS = '0x093e98a6e2e278426adc7161b61bb2132e0ad192' as Address;
 
+/** Verified liquidity-upgrade deployment. Explicit admission and fresh simulation remain required. */
+export const LIQUIDITY_UPGRADE_DEPLOYMENT = {
+  "chainId": 42161,
+  "deploymentStatus": "verified",
+  "tradingAdmission": "not-admitted",
+  "owner": "0xc75aAeBD1F395cFc9e7c7f291Ea32d5C9d4c270a",
+  "executor": {
+    "address": "0xba4681b7cae1a67c703f43f1476b25fef2635b0a",
+    "runtimeCodeHash": "0xda41b5b572397eda5e3b97666ca8c00d44e61a4500bff024bcc1346ee948e992",
+    "deployTxHash": "0xbd05ebd43bcc21556f0ab06a5faf363813390e7f0f498fe575a5ac0cc9c057e6",
+    "blockNumber": 514784421
+  },
+  "v4StateQuoter": {
+    "address": "0x552d73e6b424b98a9d74fb335e62ee198d0601ad",
+    "runtimeCodeHash": "0x0cdcb9dcb8a9bd103bfd89efd8bcb7beffe26056fe4284799b8996544c793556",
+    "deployTxHash": "0x72f6cee29308c8b56789b0ac0665524d140283e76b3072eb9fc1faa393288ebf",
+    "blockNumber": 514784436
+  },
+  "rootPins": {
+    "aaveProvider": {
+      "address": "0xa97684ead0e402dC232d5A977953DF7ECBaB3CDb",
+      "runtimeCodeHash": "0x1a95f317ee56e0b9aedc4f4b7abd9e546dc45c26d1d77e95bcf62b789d9a5486",
+      "configureTxHash": "0x48b8e6002db119fe3abe961ec5b86854e15d53591cdfbefe0af0aee0d69df31b"
+    },
+    "uniswapV2Factory": {
+      "address": "0xf1D7CC64Fb4452F05c498126312eBE29f30Fbcf9",
+      "runtimeCodeHash": "0xbab145d02e7005f0d84c6c1639d39b799b0ea16df99ebbdaf5a14d9da820b4e0",
+      "configureTxHash": "0x3213ae786ddf1567083911cea084740bd53baae06689b1f00c77746cd2da7059"
+    },
+    "uniswapV3Factory": {
+      "address": "0x1F98431c8aD98523631AE4a59f267346ea31F984",
+      "runtimeCodeHash": "0x4d7b8525cd5d14343fa67a732fba5b24cddba11620ca88392f4ec6c52f91fd69",
+      "configureTxHash": "0x4744c834adc8fc6c7816aaf3741a34f862e587a59b2bf0f917716ae857cb5876"
+    },
+    "uniswapV4PoolManager": {
+      "address": "0x360E68faCcca8cA495c1B759Fd9EEe466db9FB32",
+      "runtimeCodeHash": "0xe4b2759e456c9c4ef763e3b4e257c5105e1ba283d7de8b131dd321197de794a4",
+      "configureTxHash": "0x6376eb355287e9f9eb211d75b206309d1d0d7ae76410b6f9197a88783e765d3c"
+    },
+    "morphoBlue": {
+      "address": "0x6c247b1F6182318877311737BaC0844bAa518F5e",
+      "runtimeCodeHash": "0xd2bb64e51bc71ff5ce00ae89eab643e65fda6fc59f4ab8c367241c4bedf8acf5",
+      "configureTxHash": "0xd39a24c57a56d74c09689457288ceda5ee68edefc135b89c45582952e49e692c"
+    },
+    "balancerV2": {
+      "address": "0xBA12222222228d8Ba445958a75a0704d566BF2C8",
+      "runtimeCodeHash": "0x96f131af73d8a231741b91e266fb54e0bc8c3041954deb51652113600549093a",
+      "configureTxHash": "0x3ed245c7db93d10e33c68cc90a6cc71dbdf61ee645c32e61fae574ead4d5e6f6"
+    }
+  },
+  "v4HooksAllowed": false,
+  "algebraFactoryAdmission": "not-admitted"
+} as const;
+
 /**
  * Historical deployment state for the dynamic Uniswap V4 settlement executor.
  * V4 admission is revoked: immutable bytecode retains reversed delta decoding.

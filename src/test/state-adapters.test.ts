@@ -44,6 +44,29 @@ test('snapshots every initialized V3 bitmap tick at one head', async () => {
   assert.deepEqual(snapshot.initializedTicks, [{ tick: 0, liquidityGross: '10', liquidityNet: '-3' }, { tick: 20, liquidityGross: '8', liquidityNet: '1' }]);
 });
 
+test('tick snapshot fan-out is bounded and preserves every bitmap-derived record', async () => {
+  let active = 0, peak = 0;
+  const fixture = client(async ({ functionName }) => {
+    if (functionName === 'token0') return token0;
+    if (functionName === 'token1') return token1;
+    if (functionName === 'fee') return 500n;
+    if (functionName === 'tickSpacing') return 10n;
+    if (functionName === 'slot0') return [100n,0n,0n,0n,0n,0n,true];
+    if (functionName === 'liquidity') return 5000n;
+    if (functionName === 'tickBitmap') return 65535n;
+    if (functionName === 'ticks') {
+      peak = Math.max(peak,++active);
+      await new Promise(resolve => setImmediate(resolve)); active--;
+      return [10n,1n,0n,0n,0n,0n,0n,true];
+    }
+    throw new Error('unexpected call');
+  });
+  const state = await snapshotUniswapV3(fixture,pool,[0],{ ...policy,readConcurrency: 2 });
+  assert.equal(state.initializedTicks.length,16); assert.equal(peak,2);
+  assert.deepEqual(state.initializedTicks.map(t => t.tick),Array.from({ length: 16 },(_,i) => i * 10));
+  await assert.rejects(snapshotUniswapV3(fixture,pool,[0],{ ...policy,readConcurrency: 0 }),/INVALID_READ_CONCURRENCY/);
+});
+
 test('a set V3 or Algebra bitmap bit with missing initialized state rejects the snapshot', async () => {
   const inconsistent = client(async ({ functionName }) => {
     if (functionName === 'token0') return token0;

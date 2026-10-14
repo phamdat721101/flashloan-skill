@@ -1,0 +1,37 @@
+{
+  "schemaVersion": "4.0",
+  "pool": {
+    "schemaVersion": "4.0",
+    "identity": {
+      "chain": "arbitrum",
+      "network": "42161",
+      "height": "1",
+      "blockHash": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "poolId": "arbitrum:42161:example-a",
+    "poolAddress": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "adapterRevision": "example-only-not-admitted",
+    "revisionHash": "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "token0": "0x1111111111111111111111111111111111111111",
+    "token1": "0x2222222222222222222222222222222222222222",
+    "decimals0": 18,
+    "decimals1": 18,
+    "stateClass": "canonical",
+    "appliedOperations": [],
+    "state": {
+      "protocol": "uniswap-v2",
+      "reserve0": "10000",
+      "reserve1": "20000",
+      "feeNumerator": "997",
+      "feeDenominator": "1000"
+    }
+  },
+  "request": {
+    "schemaVersion": "4.0",
+    "snapshotDigest": "fedd9a6163503eded894328974a747688977862ace295afbe83b47389fca00b6",
+    "operationId": "example-hypothetical-swap",
+    "operationClass": "hypothetical",
+    "tokenIn": "0x1111111111111111111111111111111111111111",
+    "amountIn": "1000"
+  }
+}

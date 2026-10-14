@@ -8,6 +8,7 @@ test('never configures an executor, relay, or wallet implicitly', () => {
   assert.equal(config.risk.maxGasUsd, 2_000);
   assert.equal(config.risk.maxDailyLossUsd, 10_000);
   assert.equal(config.risk.maxPriceImpactBps, 200);
+  assert.equal(config.risk.minNetProfitUsd, 10);
   assert.equal(config.risk.maxProposalBlockAge, 1);
   assert.equal(config.risk.rpcConcurrency, 4);
   assert.equal(config.executorAddress, undefined);
@@ -18,5 +19,6 @@ test('never configures an executor, relay, or wallet implicitly', () => {
 test('rejects malformed wallet configuration before any connector is constructed', () => {
   assert.throws(() => loadConfig({ ARBITRUM_RPC_URL: 'https://rpc.example', OPERATOR_PRIVATE_KEY: 'not-a-key' }), /32-byte/);
   assert.throws(() => loadConfig({ ARBITRUM_RPC_URL: 'https://rpc.example', BORROW_TIERS_USD: '100000,zero' }), /positive/);
+  assert.throws(() => loadConfig({ ARBITRUM_RPC_URL: 'https://rpc.example', MIN_NET_PROFIT_USD: '9.99' }), /at least 10/);
   assert.throws(() => loadConfig({ ARBITRUM_RPC_URL: 'https://rpc.example', PRIVATE_RELAY_URL: 'http://relay.example' }), /HTTPS/);
 });

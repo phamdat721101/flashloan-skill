@@ -9,6 +9,7 @@ interface IMVBalancer { function flashLoan(address, address[] calldata, uint256[
 interface IMVV2Factory { function getPair(address, address) external view returns (address); }
 interface IMVV2Pair { function token0() external view returns (address); function token1() external view returns (address); function swap(uint256, uint256, address, bytes calldata) external; }
 interface IMVV3Factory { function getPool(address, address, uint24) external view returns (address); }
+interface IMVAlgebraFactory { function poolByPair(address, address) external view returns (address); }
 interface IMVV3Pool { function token0() external view returns (address); function token1() external view returns (address); function swap(address, bool, int256, uint160, bytes calldata) external returns (int256, int256); }
 
 struct MVPoolKey { address currency0; address currency1; uint24 fee; int24 tickSpacing; address hooks; }
@@ -19,7 +20,7 @@ interface IMVV4PoolManager { function unlock(bytes calldata) external returns (b
 /// @notice A callback-authenticated, bounded V2/V3/V4 route executor. It never dispatches arbitrary calldata.
 contract MultiVenueArbitrageExecutor {
     error Unauthorized(); error Busy(); error InvalidRoute(); error Expired(); error UntrustedRoot(); error CallbackOnly(); error InsufficientOutput(); error Unprofitable(); error TransferFailed(); error HooksDisabled();
-    uint8 private constant V2 = 2; uint8 private constant V3 = 3; uint8 private constant V4 = 4; uint256 private constant MAX_HOPS = 6;
+    uint8 private constant V2 = 2; uint8 private constant V3 = 3; uint8 private constant V4 = 4; uint8 private constant ALGEBRA = 5; uint256 private constant MAX_HOPS = 6;
     enum Phase { Idle, AwaitingFlash, AwaitingV3Swap, UnlockingV4 }
     address public immutable owner;
     Phase private phase;
@@ -30,6 +31,7 @@ contract MultiVenueArbitrageExecutor {
     mapping(address => bytes32) public trustedAaveProviderCodeHash;
     mapping(address => bytes32) public trustedV2FactoryCodeHash;
     mapping(address => bytes32) public trustedV3FactoryCodeHash;
+    mapping(address => bytes32) public trustedAlgebraFactoryCodeHash;
     mapping(address => bytes32) public trustedV4ManagerCodeHash;
     mapping(address => bool) public v4HooksAllowed;
     mapping(uint8 => mapping(address => bytes32)) public trustedLenderCodeHash;
@@ -118,10 +120,11 @@ contract MultiVenueArbitrageExecutor {
     }
 
     function configureRoot(uint8 venueVersion, address root, bytes32 codeHash, bool allowed, bool allowHooks) external onlyOwner onlyIdle {
-        if (root == address(0) || venueVersion < V2 || venueVersion > V4 || (allowed && (codeHash == bytes32(0) || root.codehash != codeHash))) revert InvalidRoute();
+        if (root == address(0) || venueVersion < V2 || venueVersion > ALGEBRA || (allowHooks && venueVersion != V4) || (allowed && (codeHash == bytes32(0) || root.codehash != codeHash))) revert InvalidRoute();
         bytes32 value = allowed ? codeHash : bytes32(0);
         if (venueVersion == V2) trustedV2FactoryCodeHash[root] = value;
         else if (venueVersion == V3) trustedV3FactoryCodeHash[root] = value;
+        else if (venueVersion == ALGEBRA) trustedAlgebraFactoryCodeHash[root] = value;
         else { trustedV4ManagerCodeHash[root] = value; v4HooksAllowed[root] = allowed && allowHooks; }
         emit RootConfigured(venueVersion, root, codeHash, allowed, allowed && allowHooks);
     }
@@ -160,6 +163,14 @@ contract MultiVenueArbitrageExecutor {
     }
 
     function uniswapV3SwapCallback(int256 amount0Delta, int256 amount1Delta, bytes calldata) external {
+        _paySwapCallback(amount0Delta, amount1Delta);
+    }
+
+    function algebraSwapCallback(int256 amount0Delta, int256 amount1Delta, bytes calldata) external {
+        _paySwapCallback(amount0Delta, amount1Delta);
+    }
+
+    function _paySwapCallback(int256 amount0Delta, int256 amount1Delta) private {
         if (phase != Phase.AwaitingV3Swap || msg.sender != expectedCallback) revert CallbackOnly();
         uint256 owed = amount0Delta > 0 ? uint256(amount0Delta) : amount1Delta > 0 ? uint256(amount1Delta) : 0;
         if (owed == 0 || owed > expectedInput) revert InvalidRoute();
@@ -193,8 +204,10 @@ contract MultiVenueArbitrageExecutor {
             if (!((token0 == leg.tokenIn && token1 == leg.tokenOut) || (token1 == leg.tokenIn && token0 == leg.tokenOut))) revert InvalidRoute();
             _safeTransfer(leg.tokenIn, leg.pool, amountIn);
             IMVV2Pair(leg.pool).swap(token0 == leg.tokenOut ? leg.minAmountOut : 0, token1 == leg.tokenOut ? leg.minAmountOut : 0, address(this), bytes(""));
-        } else if (leg.venueVersion == V3) {
-            if (!_trustedV3Factory(leg.root) || IMVV3Factory(leg.root).getPool(leg.tokenIn, leg.tokenOut, leg.fee) != leg.pool) revert UntrustedRoot();
+        } else if (leg.venueVersion == V3 || leg.venueVersion == ALGEBRA) {
+            if (leg.venueVersion == V3) {
+                if (!_trustedV3Factory(leg.root) || IMVV3Factory(leg.root).getPool(leg.tokenIn, leg.tokenOut, leg.fee) != leg.pool) revert UntrustedRoot();
+            } else if (trustedAlgebraFactoryCodeHash[leg.root] == bytes32(0) || leg.root.codehash != trustedAlgebraFactoryCodeHash[leg.root] || IMVAlgebraFactory(leg.root).poolByPair(leg.tokenIn, leg.tokenOut) != leg.pool) revert UntrustedRoot();
             if (IMVV3Pool(leg.pool).token0() != (leg.tokenIn < leg.tokenOut ? leg.tokenIn : leg.tokenOut)) revert InvalidRoute();
             expectedCallback = leg.pool; expectedInput = amountIn; expectedInputToken = leg.tokenIn; phase = Phase.AwaitingV3Swap;
             IMVV3Pool(leg.pool).swap(address(this), leg.tokenIn < leg.tokenOut, int256(amountIn), leg.sqrtPriceLimitX96, bytes(""));

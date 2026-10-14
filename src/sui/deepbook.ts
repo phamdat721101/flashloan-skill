@@ -3,8 +3,63 @@ import { Transaction } from '@mysten/sui/transactions';
 import { normalizeStructTag } from '@mysten/sui/utils';
 import { decimal } from './manifest.js';
 import type { Decimal, SuiAddress, SuiObjectRef } from './types.js';
+import { uint, digest, isSuiDigest } from '../liquidity/state.js';
 
 const ADDRESS = /^0x[0-9a-fA-F]{1,64}$/;
+
+export interface DeepBookOrder { orderId: string; price: string; remainingBase: string; expiresAtMs: string }
+export interface DeepBookBookState {
+  schemaVersion: '4.0'; revision: 'deepbook-v3-input-fee'; packageDigest: string; checkpointDigest: string;
+  lotSize: string; minSize: string; tickSize: string; takerFee: string; timestampMs: string;
+  complete: boolean; bids: DeepBookOrder[]; asks: DeepBookOrder[];
+}
+export interface DeepBookQuote {
+  schemaVersion: '4.0'; snapshotDigest: string; amountIn: string; amountOut: string; consumedInput: string; unspentInput: string;
+  feeAsset: 'input'; feeAmount: string; deepFeeAmount: '0'; fills: number; baseToQuote: boolean;
+  nextState: DeepBookBookState; nextStateDigest: string;
+}
+/** Mirror Book.get_quantity_out with input-token fees, 1e9 scaling and 100 scanned orders.
+ * DEEP-funded swaps require a separate admitted fee-price model and are never approximated here.
+ */
+export function quoteDeepBookExactInput(raw: DeepBookBookState, baseToQuote: boolean, amountIn: string): DeepBookQuote {
+  const state = structuredClone(raw), scale = 1000000000n;
+  if (!state || Object.keys(state).sort().join(',') !== 'asks,bids,checkpointDigest,complete,lotSize,minSize,packageDigest,revision,schemaVersion,takerFee,tickSize,timestampMs' || state.schemaVersion !== '4.0' || state.revision !== 'deepbook-v3-input-fee' || state.complete !== true || typeof baseToQuote !== 'boolean' || !isSuiDigest(state.packageDigest) || !isSuiDigest(state.checkpointDigest) || !Array.isArray(state.bids) || !Array.isArray(state.asks) || state.bids.length + state.asks.length > 10000) throw new Error('INVALID_DEEPBOOK_BOOK_STATE');
+  const lot = uint(state.lotSize,64), min = uint(state.minSize,64), tick = uint(state.tickSize,64), taker = uint(state.takerFee,64), now = uint(state.timestampMs,64), input = uint(amountIn,64);
+  if (!lot || !min || min % lot || !tick || taker >= scale || !input) throw new Error('INVALID_DEEPBOOK_BOOK_STATE');
+  const ids = new Set<string>();
+  for (const [orders,isBid] of [[state.bids,true],[state.asks,false]] as const) {
+    let prior: bigint | undefined;
+    for (const order of orders) {
+      if (!order || Object.keys(order).sort().join(',') !== 'expiresAtMs,orderId,price,remainingBase') throw new Error('INVALID_DEEPBOOK_ORDER');
+      const price = uint(order.price,64), size = uint(order.remainingBase,64); uint(order.orderId,128); uint(order.expiresAtMs,64);
+      if (!price || price % tick || !size || size % lot || ids.has(order.orderId) || (prior !== undefined && (isBid ? price > prior : price < prior))) throw new Error('INVALID_DEEPBOOK_ORDER');
+      ids.add(order.orderId); prior = price;
+    }
+  }
+  const feeRate = taker * 1250000000n / scale, side = baseToQuote ? state.bids : state.asks;
+  let remaining = input, output = 0n, fees = 0n, fills = 0;
+  const matched = new Map<string,bigint>();
+  if (!baseToQuote || input * scale / (scale + feeRate) >= min) {
+    for (const order of side) {
+      if (!remaining || fills >= 100) break;
+      if (now <= uint(order.expiresAtMs,64)) {
+        const available = remaining * scale / (scale + feeRate), price = uint(order.price,64), size = uint(order.remainingBase,64);
+        let quantity = baseToQuote ? available : available * scale / price;
+        quantity = (quantity < size ? quantity : size) / lot * lot;
+        if (!quantity) break;
+        const quote = quantity * price / scale, used = baseToQuote ? quantity : quote, fee = used * feeRate / scale;
+        if (used + fee > remaining) throw new Error('DEEPBOOK_MATH_INVARIANT');
+        remaining -= used + fee; fees += fee; output += baseToQuote ? quote : quantity; matched.set(order.orderId,quantity);
+      }
+      fills++;
+    }
+  }
+  if ((!baseToQuote && output < min) || (baseToQuote && input - remaining > 0n && input - remaining < min)) { remaining = input; output = 0n; fees = 0n; matched.clear(); }
+  uint(output.toString(),64);
+  const update = (orders: DeepBookOrder[]) => orders.map(order => ({ ...order,remainingBase: (uint(order.remainingBase,64) - (matched.get(order.orderId) ?? 0n)).toString() })).filter(order => order.remainingBase !== '0');
+  state.bids = update(state.bids); state.asks = update(state.asks);
+  return { schemaVersion: '4.0',snapshotDigest: digest(raw),amountIn,amountOut: output.toString(),consumedInput: (input - remaining).toString(),unspentInput: remaining.toString(),feeAsset: 'input',feeAmount: fees.toString(),deepFeeAmount: '0',fills,baseToQuote,nextState: state,nextStateDigest: digest(state) };
+}
 
 export interface DeepBookFlashloanCanary {
   network: 'mainnet';

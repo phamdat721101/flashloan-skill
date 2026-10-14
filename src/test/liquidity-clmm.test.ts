@@ -1,7 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import type { V3Snapshot, V4Snapshot } from '../state-adapters.js';
+import { deriveV4PoolId, type StateClient, type V3Snapshot, type V4Snapshot } from '../state-adapters.js';
 import { quoteV3ExactInput, quoteV4ExactInput, sqrtRatioAtTick } from '../liquidity/clmm.js';
+import { simulateV4Projection } from '../liquidity/v4-simulation.js';
+import { digest } from '../liquidity/state.js';
+import { keccak256 } from 'viem';
+import type { PoolStateEnvelope } from '../liquidity/projection.js';
 
 const token0 = `0x${'1'.repeat(40)}` as const, token1 = `0x${'2'.repeat(40)}` as const;
 function snapshot(ticks: Array<{ tick: number; liquidityNet: string; liquidityGross: string }> = []): V3Snapshot {
@@ -59,4 +63,22 @@ test('static no-hook V4 composes directional protocol and LP fees and rejects ho
   }
   assert.throws(() => quoteV4ExactInput({ ...state, key: { ...state.key, hooks: token0 } }, token0, '1000', -200, 200), /UNSUPPORTED_V4/);
   assert.throws(() => quoteV4ExactInput({ ...state, key: { ...state.key, fee: 0x800000 } }, token0, '1000', -200, 200), /UNSUPPORTED_V4/);
+});
+test('VM-backed V4 projection preserves post-hook bitmap/ticks, exact delta, code pins and sender semantics', async () => {
+  const hash = `0x${'a'.repeat(64)}` as const, key = { currency0: token0,currency1: token1,fee: 0x800000,tickSpacing: 1,hooks: `0x${'3'.repeat(40)}` as const };
+  const pool: PoolStateEnvelope = { schemaVersion: '4.0',identity: { chain: 'arbitrum',network: '42161',height: '1',blockHash: hash },poolId: 'arbitrum:42161:fixture-v4',poolAddress: token0,adapterRevision: 'fixture-v4-state-quoter',revisionHash: keccak256('0x6000'),token0,token1,decimals0: 18,decimals1: 18,stateClass: 'canonical',appliedOperations: [],state: { protocol: 'uniswap-v4',sqrtPriceX96: sqrtRatioAtTick(0).toString(),tick: 0,liquidity: '1000000',tickSpacing: 1,lowerTick: -200,upperTick: 200,bitmapWords: [{ wordPosition: -1,bitmap: '0' },{ wordPosition: 0,bitmap: '0' }],initializedTicks: [],key,poolId: deriveV4PoolId(key),protocolFeePips: 0,lpFeePips: 3000 } };
+  const request = { schemaVersion: '4.0',snapshotDigest: digest(pool),operationId: 'fixture-swap',operationClass: 'hypothetical',tokenIn: token0,amountIn: '1000' };
+  let drift = false, reorg = false, reads = 0; const pinned: bigint[] = [];
+  const client: StateClient = { getChainId: async () => 42161,getBlock: async () => ({ number: 1n,timestamp: 1000n,hash: reorg && ++reads > 1 ? `0x${'b'.repeat(64)}` : hash }),getCode: async args => { pinned.push(args.blockNumber); return drift ? '0x6001' : '0x6000'; },readContract: async args => {
+    pinned.push(args.blockNumber); assert.equal(args.functionName,'quoteExactInput'); assert.deepEqual(args.args!.at(-1),[-1,0]);
+    return { delta: (-1000n << 128n) | 996n,price: sqrtRatioAtTick(0) - 1n,tick: -1,liquidity: 1500000n,protocolFee: 0,lpFee: 3000,bitmap: [0n,1n << 60n],tickIndices: [60],liquidityGross: [500000n],liquidityNet: [500000n] };
+  } };
+  const binding = { quoter: `0x${'4'.repeat(40)}` as const,quoterCodeHash: keccak256('0x6000'),hookCodeHash: keccak256('0x6000'),hookData: '0x' as const }, result = await simulateV4Projection(client,pool,request,binding);
+  assert.equal(result.amountOut,'996'); assert.equal(result.consumedInput,'1000'); assert.equal(result.semantics,'quoter-sender'); assert.equal(result.eligibility,'simulation-required'); assert.equal(result.projectedState.stateClass,'projected');
+  assert.equal(result.projectedState.state.protocol,'uniswap-v4');
+  if (result.projectedState.state.protocol === 'uniswap-v4') { assert.equal(result.projectedState.state.liquidity,'1500000'); assert.equal(result.projectedState.state.initializedTicks[0].tick,60); }
+  assert.ok(pinned.every(block => block === 1n)); assert.equal(pool.appliedOperations.length,0);
+  drift = true; await assert.rejects(simulateV4Projection(client,pool,request,binding),/CODE_CHANGED/);
+  drift = false; reorg = true; reads = 0; await assert.rejects(simulateV4Projection(client,pool,request,binding),/BLOCK_REORG/);
+  await assert.rejects(simulateV4Projection(client,result.projectedState,{ ...request,snapshotDigest: result.projectedStateDigest },binding),/UNSUPPORTED_V4_SIMULATION_STATE/);
 });

@@ -1,0 +1,331 @@
+{
+  "spec_id": "SPEC-2026-101402",
+  "feature_name": "Liquidity formula conditional projection and bounded sizing",
+  "source_evidence": [
+    {
+      "source_uri": "docs/liquid-formula.md",
+      "entity_id": "docs/liquid-formula.md",
+      "hash": "sha256:6b123287cdf03d48c78f7bc64cea929add9539ca4870c9d6598e243a88285dce"
+    },
+    {
+      "source_uri": "docs/features/liquid-formula.md",
+      "entity_id": "docs/features/liquid-formula.md",
+      "hash": "sha256:c2a50781e0a3aff4c29362956a9040d2d2f520e246b9a078974d2399f4657111"
+    },
+    {
+      "source_uri": "schemas/liquidity-analytics.schema.json",
+      "entity_id": "schemas/liquidity-analytics.schema.json",
+      "hash": "sha256:09ad6cc119245cb724ce2d97330a87b120384a70e918086e7dce273f537b197d"
+    },
+    {
+      "source_uri": "src/liquidity/v2.ts",
+      "entity_id": "src/liquidity/v2.ts",
+      "hash": "sha256:c601cd29cd89e0612aa3b3653d09a8d9b0333e0249585415df4e795b933d9b35"
+    },
+    {
+      "source_uri": "src/liquidity/cetus-math.ts",
+      "entity_id": "src/liquidity/cetus-math.ts",
+      "hash": "sha256:82042be4f287b318d513fb98528332e72714ae0cfc01d316a696d9cda7359317"
+    },
+    {
+      "source_uri": "src/liquidity/projection.ts",
+      "entity_id": "src/liquidity/projection.ts",
+      "hash": "sha256:6130ac27659a728c835dd95fefd8660bcbaa89fd81ab9be443fa2cbb336830a0"
+    },
+    {
+      "source_uri": "src/liquidity/sizing.ts",
+      "entity_id": "src/liquidity/sizing.ts",
+      "hash": "sha256:be8ab733594ba41e145ef661e653a729ca4b94950339ea70bf7fb67e8a3f25e7"
+    },
+    {
+      "source_uri": "src/liquidity/analytics.ts",
+      "entity_id": "src/liquidity/analytics.ts",
+      "hash": "sha256:e6df0327e6a33f32ee2c12084596a93793bc80ac744fb4f0a695863be2764076"
+    },
+    {
+      "source_uri": "src/liquidity/sources.ts",
+      "entity_id": "src/liquidity/sources.ts",
+      "hash": "sha256:dc13ed8df1af642fedd363fc655aacee2231cd3f339e0dd85e45672c8fc03d51"
+    },
+    {
+      "source_uri": "src/state-adapters.ts",
+      "entity_id": "src/state-adapters.ts",
+      "hash": "sha256:b9d416c1ba2d3055c1ac402ba9789b721f230eba223bd2f0f7c15559d02147fb"
+    },
+    {
+      "source_uri": "src/liquidity/runtime.ts",
+      "entity_id": "src/liquidity/runtime.ts",
+      "hash": "sha256:814c1cfc681d60fe7bca4644177adfbe0509c7e1470b1c5e0d0d1b742c3bda35"
+    },
+    {
+      "source_uri": "src/liquidity/arbitrum.ts",
+      "entity_id": "src/liquidity/arbitrum.ts",
+      "hash": "sha256:630ba5fc039eb526c5b05b9d3dd7baeea5023f873f14d6118645621e7bdb7184"
+    },
+    {
+      "source_uri": "src/liquidity/algebra.ts",
+      "entity_id": "src/liquidity/algebra.ts",
+      "hash": "sha256:8e94ac8ff1eae4409734776ae2a474c89a8cdfc793cb69045f9b8ea534c68d02"
+    },
+    {
+      "source_uri": "src/liquidity/v4-simulation.ts",
+      "entity_id": "src/liquidity/v4-simulation.ts",
+      "hash": "sha256:51449470def92822055b03b1865c780e9b26f5ed7ce8957af51129119e152c19"
+    },
+    {
+      "source_uri": "src/sui/cetus.ts",
+      "entity_id": "src/sui/cetus.ts",
+      "hash": "sha256:f42a88f417d9005b1792edecce67ad2bcf4c497b33f3f51f505aaa4528b09704"
+    },
+    {
+      "source_uri": "src/sui/route.ts",
+      "entity_id": "src/sui/route.ts",
+      "hash": "sha256:bb46d1d0f427da54c724c60b7014c18af80cf5a9fd8105aba47425de52923294"
+    },
+    {
+      "source_uri": "src/sui/deepbook.ts",
+      "entity_id": "src/sui/deepbook.ts",
+      "hash": "sha256:1e907289832a674c8184e71d4d34f1af2350cf15478bda1652df4b10d8a6d39f"
+    },
+    {
+      "source_uri": "contracts/V4StateQuoter.sol",
+      "entity_id": "contracts/V4StateQuoter.sol",
+      "hash": "sha256:a098266397072b19c8eb337ca4c0dd85088147466808edcdebdde74f48b170f7"
+    },
+    {
+      "source_uri": "contracts/MultiVenueArbitrageExecutor.sol",
+      "entity_id": "contracts/MultiVenueArbitrageExecutor.sol",
+      "hash": "sha256:773022ce7cc3439fbe9d6fcc93c46a0a03d3bc58f46c137512246234152ed4ad"
+    },
+    {
+      "source_uri": "src/contracts/flash-executor.ts",
+      "entity_id": "src/contracts/flash-executor.ts",
+      "hash": "sha256:6b00a89995742c747567f1530a4c0b6a0f4d2009cecd43e0c5c0c0ad7fc86ada"
+    },
+    {
+      "source_uri": "README.md",
+      "entity_id": "README.md",
+      "hash": "sha256:b048904bb25d83d46d877e5c43e249194b636eaa8d976c492a73df388daab2d5"
+    },
+    {
+      "source_uri": "src/liquidity/arbitrum-execution.ts",
+      "entity_id": "src/liquidity/arbitrum-execution.ts",
+      "hash": "sha256:9a2f4af9ce45ff06a5646b97c48a71270d3666446f5b658f1a4c2d1893baab80"
+    },
+    {
+      "source_uri": "src/liquidity/journal.ts",
+      "entity_id": "src/liquidity/journal.ts",
+      "hash": "sha256:c9b1877769063a3535a0b12e199bde9a3306de74a6f4a19d1ba1e871077d6dc5"
+    },
+    {
+      "source_uri": "src/liquidity/state.ts",
+      "entity_id": "src/liquidity/state.ts",
+      "hash": "sha256:5d955c3df81fb92bc401bc5564041cee1b0f077b4e7f66a8564c4be5be8c7e8b"
+    }
+  ],
+  "dependencies": [
+    {
+      "package_or_module": "src/liquidity/v2.ts",
+      "symbol": "projectV2",
+      "file_location": "src/liquidity/v2.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/v2.ts",
+      "symbol": "v2InputForPrice",
+      "file_location": "src/liquidity/v2.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/v2.ts",
+      "symbol": "v2StationarySeed",
+      "file_location": "src/liquidity/v2.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/cetus-math.ts",
+      "symbol": "quoteCetusExactInput",
+      "file_location": "src/liquidity/cetus-math.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/cetus-math.ts",
+      "symbol": "cetusSqrtPriceAtTick",
+      "file_location": "src/liquidity/cetus-math.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/projection.ts",
+      "symbol": "parsePoolState",
+      "file_location": "src/liquidity/projection.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/projection.ts",
+      "symbol": "projectPool",
+      "file_location": "src/liquidity/projection.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/projection.ts",
+      "symbol": "describeLiquidity",
+      "file_location": "src/liquidity/projection.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/projection.ts",
+      "symbol": "positionInventory",
+      "file_location": "src/liquidity/projection.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/sizing.ts",
+      "symbol": "sizeRoute",
+      "file_location": "src/liquidity/sizing.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/sizing.ts",
+      "symbol": "sizingToCandidate",
+      "file_location": "src/liquidity/sizing.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/analytics.ts",
+      "symbol": "analyzeLiquidity",
+      "file_location": "src/liquidity/analytics.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/analytics.ts",
+      "symbol": "runLiquidityAnalytics",
+      "file_location": "src/liquidity/analytics.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/sources.ts",
+      "symbol": "readArbitrumAnalyticsSnapshot",
+      "file_location": "src/liquidity/sources.ts"
+    },
+    {
+      "package_or_module": "src/state-adapters.ts",
+      "symbol": "snapshotUniswapV3",
+      "file_location": "src/state-adapters.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/runtime.ts",
+      "symbol": "LiquidityRuntime",
+      "file_location": "src/liquidity/runtime.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/sizing.ts",
+      "symbol": "compareRouteDirections",
+      "file_location": "src/liquidity/sizing.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/arbitrum.ts",
+      "symbol": "prepareArbitrumTrade",
+      "file_location": "src/liquidity/arbitrum.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/algebra.ts",
+      "symbol": "quoteAlgebraExactInput",
+      "file_location": "src/liquidity/algebra.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/algebra.ts",
+      "symbol": "readAlgebraLinkedSnapshot",
+      "file_location": "src/liquidity/algebra.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/v4-simulation.ts",
+      "symbol": "simulateV4Projection",
+      "file_location": "src/liquidity/v4-simulation.ts"
+    },
+    {
+      "package_or_module": "src/sui/cetus.ts",
+      "symbol": "decodeCetusCheckpoint",
+      "file_location": "src/sui/cetus.ts"
+    },
+    {
+      "package_or_module": "src/sui/cetus.ts",
+      "symbol": "suiObjectDigest",
+      "file_location": "src/sui/cetus.ts"
+    },
+    {
+      "package_or_module": "src/sui/route.ts",
+      "symbol": "prepareSuiTrade",
+      "file_location": "src/sui/route.ts"
+    },
+    {
+      "package_or_module": "src/sui/deepbook.ts",
+      "symbol": "quoteDeepBookExactInput",
+      "file_location": "src/sui/deepbook.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/sizing.ts",
+      "symbol": "sizeConditionalCycle",
+      "file_location": "src/liquidity/sizing.ts"
+    },
+    {
+      "package_or_module": "src/state-adapters.ts",
+      "symbol": "deriveV4PoolId",
+      "file_location": "src/state-adapters.ts"
+    },
+    {
+      "package_or_module": "src/contracts/flash-executor.ts",
+      "symbol": "LIQUIDITY_UPGRADE_DEPLOYMENT",
+      "file_location": "src/contracts/flash-executor.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/arbitrum-execution.ts",
+      "symbol": "ArbitrumLiquidityExecutionAdapter",
+      "file_location": "src/liquidity/arbitrum-execution.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/journal.ts",
+      "symbol": "AttemptJournal",
+      "file_location": "src/liquidity/journal.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/state.ts",
+      "symbol": "SnapshotStore",
+      "file_location": "src/liquidity/state.ts"
+    }
+  ],
+  "architecture": {
+    "pattern": "existing TypeScript adapters with protocol-specific bigint math and bounded worker execution",
+    "isolation_boundaries": "canonical snapshots vs projected math; Q96 vs X64; analysis vs admission/signing; SDK reference outside runtime",
+    "execution_flow": [
+      "coherent source capture -> validated v4 pool envelopes",
+      "inspect or projection bound to state digest and logical operation identity",
+      "bounded exact route sampling -> honest optimum status",
+      "selected amount re-quote -> canonical candidate -> existing simulation/admission runtime",
+      "independent effects and live receipts required before production admission"
+    ]
+  },
+  "data_contracts": {
+    "inputs": {
+      "schema": "schemas/liquidity-analytics.schema.json",
+      "versions": "new 4.0 analytics; existing v3 remains unchanged",
+      "operations": [
+        "inspect",
+        "project",
+        "size",
+        "target-price",
+        "snapshot-analytics-arbitrum"
+      ]
+    },
+    "outputs": {
+      "projection": "native output/fees and immutable projected state digest",
+      "sizing": "best-found or exhaustive-domain certificate",
+      "execution": "existing RouteCandidate subject to independent admission; no send from analytics CLI"
+    },
+    "error_states": [
+      "SNAPSHOT_DIGEST_MISMATCH",
+      "OPERATION_ALREADY_APPLIED",
+      "CLMM_COVERAGE_EXHAUSTED",
+      "CETUS_COVERAGE_EXHAUSTED",
+      "ANALYTICS_CANDIDATE_QUOTE_MISMATCH",
+      "ANALYTICS_TIMEOUT",
+      "UNSUPPORTED_MATH_ADAPTER"
+    ]
+  },
+  "test_criteria": [
+    "10,000 V2 adjusted-balance invariant/maximal-output vectors",
+    "10,000 independent Cetus SDK vectors with complete and coverage-exhausted cases",
+    "schema-valid public examples/results and legacy v3 compatibility",
+    "both source and compiled worker/CLI paths, timeout and cancellation",
+    "common-head capture rejects code/hash drift and bounds RPC fan-out",
+    "small-domain exhaustive profit equivalence and truthful sampled optimality",
+    "projected/tampered sizing cannot bypass simulation or execution admission",
+    "live production admission requires independent per-adapter receipts; current global map remains non-Done"
+  ]
+}

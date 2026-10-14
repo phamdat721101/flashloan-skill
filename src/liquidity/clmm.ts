@@ -27,13 +27,23 @@ export function sqrtRatioAtTick(tick: number): bigint {
   if (tick > 0) ratio = U256_MAX / ratio;
   return ceil(ratio, 1n << 32n);
 }
-function tickAtRatio(ratio: bigint): number {
+export function tickAtRatio(ratio: bigint): number {
   let lower = MIN_TICK, upper = MAX_TICK;
   while (lower < upper) {
     const middle = Math.ceil((lower + upper) / 2);
     if (sqrtRatioAtTick(middle) <= ratio) lower = middle; else upper = middle - 1;
   }
   return lower;
+}
+/** Shared Q96 exact-input step; protocols supply their own tick traversal and fee semantics. */
+export function q96ExactInputStep(price: bigint,target: bigint,liquidity: bigint,remaining: bigint,feePips: number,zeroForOne: boolean): { nextRatio: bigint; used: bigint; received: bigint; fee: bigint } {
+  const available = remaining * (PIPS - BigInt(feePips)) / PIPS;
+  const toTarget = zeroForOne ? delta0(target,price,liquidity,true) : delta1(price,target,liquidity,true);
+  const nextRatio = available >= toTarget ? target : nextPrice(price,liquidity,available,zeroForOne);
+  const used = zeroForOne ? delta0(nextRatio,price,liquidity,true) : delta1(price,nextRatio,liquidity,true);
+  const received = zeroForOne ? delta1(nextRatio,price,liquidity,false) : delta0(price,nextRatio,liquidity,false);
+  const fee = nextRatio === target ? ceil(used * BigInt(feePips),PIPS - BigInt(feePips)) : remaining - used;
+  return { nextRatio,used,received,fee };
 }
 function delta0(a: bigint, b: bigint, liquidity: bigint, roundUp: boolean): bigint {
   const numerator = (liquidity << 96n) * (b - a);
@@ -90,12 +100,7 @@ export function quoteV3ExactInput(snapshot: V3Snapshot, tokenIn: string, amount:
     const nextTick = Math.min(MAX_TICK, Math.max(MIN_TICK, next * snapshot.tickSpacing));
     const boundary = sqrtRatioAtTick(nextTick);
     const target = zeroForOne ? (boundary < limit ? limit : boundary) : (boundary > limit ? limit : boundary);
-    const available = remaining * (PIPS - BigInt(snapshot.feePips)) / PIPS;
-    const toTarget = zeroForOne ? delta0(target, price, liquidity, true) : delta1(price, target, liquidity, true);
-    const nextRatio = available >= toTarget ? target : nextPrice(price, liquidity, available, zeroForOne);
-    const used = zeroForOne ? delta0(nextRatio, price, liquidity, true) : delta1(price, nextRatio, liquidity, true);
-    const received = zeroForOne ? delta1(nextRatio, price, liquidity, false) : delta0(price, nextRatio, liquidity, false);
-    const fee = nextRatio === target ? ceil(used * BigInt(snapshot.feePips), PIPS - BigInt(snapshot.feePips)) : remaining - used;
+    const { nextRatio,used,received,fee } = q96ExactInputStep(price,target,liquidity,remaining,snapshot.feePips,zeroForOne);
     if (used + fee > remaining || received < 0n) throw new Error('CLMM_MATH_INVARIANT');
     remaining -= used + fee; output += received; fees += fee; price = nextRatio;
     if (price === boundary) {

@@ -35,7 +35,11 @@
     }
   },
   "workspace": {
-    "stack": ["typescript", "rust", "web3"],
+    "stack": [
+      "typescript",
+      "rust",
+      "web3"
+    ],
     "livenessFile": "docs/state/active_session.md",
     "mode": "warn",
     "deliver": {
@@ -46,7 +50,19 @@
         "default": {
           "contract": ".nim/deliver/default-contract.json",
           "configFiles": [],
-          "commands": ["npm test", "npm run typecheck"]
+          "commands": [
+            "npm test",
+            "npm run typecheck"
+          ]
+        },
+        "liquid-formula-local": {
+          "contract": ".nim/deliver/liquid-formula-local-contract.json",
+          "configFiles": [],
+          "commands": [
+            "npm run typecheck",
+            "npm run liquidity:test",
+            "nim-skill search compile --title \"Liquidity formula local implementation\" --spec docs/features/liquid-formula.spec.json"
+          ]
         }
       }
     }

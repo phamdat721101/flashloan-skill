@@ -1,0 +1,122 @@
+{
+  "schemaVersion": "4.0",
+  "pools": [
+    {
+      "schemaVersion": "4.0",
+      "identity": {
+        "chain": "arbitrum",
+        "network": "42161",
+        "height": "1",
+        "blockHash": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "poolId": "arbitrum:42161:example-a",
+      "poolAddress": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "adapterRevision": "example-only-not-admitted",
+      "revisionHash": "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "token0": "0x1111111111111111111111111111111111111111",
+      "token1": "0x2222222222222222222222222222222222222222",
+      "decimals0": 18,
+      "decimals1": 18,
+      "stateClass": "canonical",
+      "appliedOperations": [],
+      "state": {
+        "protocol": "uniswap-v2",
+        "reserve0": "10000",
+        "reserve1": "20000",
+        "feeNumerator": "997",
+        "feeDenominator": "1000"
+      }
+    },
+    {
+      "schemaVersion": "4.0",
+      "identity": {
+        "chain": "arbitrum",
+        "network": "42161",
+        "height": "1",
+        "blockHash": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "poolId": "arbitrum:42161:example-b",
+      "poolAddress": "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "adapterRevision": "example-only-not-admitted",
+      "revisionHash": "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "token0": "0x1111111111111111111111111111111111111111",
+      "token1": "0x2222222222222222222222222222222222222222",
+      "decimals0": 18,
+      "decimals1": 18,
+      "stateClass": "canonical",
+      "appliedOperations": [],
+      "state": {
+        "protocol": "uniswap-v2",
+        "reserve0": "15000",
+        "reserve1": "20000",
+        "feeNumerator": "997",
+        "feeDenominator": "1000"
+      }
+    }
+  ],
+  "request": {
+    "schemaVersion": "4.0",
+    "snapshotDigest": "39c0affea309062eb87259c3ef21f53a5ed9460b9783b257436f352bab0090fc",
+    "borrowAsset": "0x1111111111111111111111111111111111111111",
+    "route": [
+      {
+        "poolId": "arbitrum:42161:example-a",
+        "tokenIn": "0x1111111111111111111111111111111111111111"
+      },
+      {
+        "poolId": "arbitrum:42161:example-b",
+        "tokenIn": "0x2222222222222222222222222222222222222222"
+      }
+    ],
+    "minimum": "1",
+    "maximum": "2000",
+    "quantum": "1",
+    "lenderAvailable": "2000",
+    "flashFeeNumerator": "0",
+    "flashFeeDenominator": "10000",
+    "costInBorrowAsset": "10",
+    "costEvidenceDigest": "af2e7bf5bd20c857dc3c0a94e5bfec68b0669854f7759144ff658ff59d7e44a7",
+    "minProfit": "1"
+  },
+  "snapshot": {
+    "schemaVersion": "3.0",
+    "identity": {
+      "chain": "arbitrum",
+      "network": "42161",
+      "height": "1",
+      "blockHash": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "sourceId": "synthetic-unadmitted-example",
+    "cursor": "1",
+    "observedAtMs": 1000,
+    "complete": true,
+    "poolIds": [
+      "arbitrum:42161:example-a",
+      "arbitrum:42161:example-b"
+    ],
+    "stateDigest": "39c0affea309062eb87259c3ef21f53a5ed9460b9783b257436f352bab0090fc"
+  },
+  "binding": {
+    "kind": "morpho-blue",
+    "lender": "0x3333333333333333333333333333333333333333",
+    "deadline": "2",
+    "roots": [
+      {
+        "poolId": "arbitrum:42161:example-a",
+        "root": "0x4444444444444444444444444444444444444444",
+        "adapterRevision": "example-only-not-admitted",
+        "revisionHash": "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      {
+        "poolId": "arbitrum:42161:example-b",
+        "root": "0x4444444444444444444444444444444444444444",
+        "adapterRevision": "example-only-not-admitted",
+        "revisionHash": "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      }
+    ],
+    "adapterId": "synthetic-unadmitted",
+    "adapterRevision": "example-only",
+    "expiresAtMs": 2000,
+    "maxGasCost": "1"
+  }
+}

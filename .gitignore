@@ -8,6 +8,8 @@ target/
 .flashloan-agent/
 .gstack/
 coverage/
+/out/
+/cache/
 *.tgz
 *.pem
 *.key
@@ -16,3 +18,5 @@ coverage/
 *.keystore
 .npmrc
 .DS_Store
+docs/*
+!docs/sui-flashloan/
