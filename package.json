@@ -27,7 +27,10 @@
     "liquidity": "tsx src/liquidity/cli.ts",
     "liquidity:benchmark": "npm run build && node dist/liquidity/benchmark.js",
     "liquidity:cetus-reference": "npm run build && node dist/liquidity/cetus-reference.js",
-    "liquidity:proof": "npm run build && node dist/liquidity/local-proof.js"
+    "liquidity:proof": "npm run build && node dist/liquidity/local-proof.js",
+    "l2:test": "npm run build && node --test dist/test/level-2-e2e.test.js",
+    "l2": "tsx src/liquidity/cli.ts",
+    "l2:proof": "npm run build && node dist/liquidity/l2-proof.js"
   },
   "dependencies": {
     "@mysten/sui": "^2.0.0",

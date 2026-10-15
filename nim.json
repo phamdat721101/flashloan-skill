@@ -63,6 +63,15 @@
             "npm run liquidity:test",
             "nim-skill search compile --title \"Liquidity formula local implementation\" --spec docs/features/liquid-formula.spec.json"
           ]
+        },
+        "level-2-local": {
+          "contract": ".nim/deliver/level-2-local-contract.json",
+          "configFiles": [],
+          "commands": [
+            "npm run typecheck",
+            "npm run l2:test",
+            "nim-skill search compile --title \"Level 2 market context implementation\" --spec docs/features/level-2.spec.json"
+          ]
         }
       }
     }

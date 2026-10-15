@@ -19,6 +19,8 @@ Use $flashloan-agent to scan Aave, Morpho, Balancer, and Uniswap v4 using my sca
 
 For a configured executor, private relay, and dedicated wallet, ask the agent to simulate or autonomously execute a schema-valid opportunity file. The runtime verifies chain, executor bytecode, owner signer, capability selector, proposal freshness, private relay, and final simulation before broadcast; it persists realized P&L and halts if P&L cannot be valued.
 
+For the liquid-pattern workflow, start with [capture, size and prepare](#use-a-liquid-pattern-to-prepare-a-flashloan), then add [Level 2 agent context](#level-2-market-context-for-agents). Current public contracts are listed in [deployment addresses](#recorded-deployment-addresses).
+
 ## Configuration
 
 Copy `.env.example` to `.env`. Keep `OPERATOR_PRIVATE_KEY` only in your local environment; never put credentials in prompts, JSON input, or Git. Validate safely with:
@@ -122,6 +124,8 @@ authorize sending or establish liquidity-pattern production admission.
 
 | Network / contract | Recorded address | Scope |
 | --- | --- | --- |
+| Arbitrum One / current liquidity executor | [`0xba4681b7cae1a67c703f43f1476b25fef2635b0a`](https://arbiscan.io/address/0xba4681b7cae1a67c703f43f1476b25fef2635b0a) | Corrected multi-lender/multi-venue ABI; trading admission required |
+| Arbitrum One / current V4 state quoter | [`0x552d73e6b424b98a9d74fb335e62ee198d0601ad`](https://arbiscan.io/address/0x552d73e6b424b98a9d74fb335e62ee198d0601ad) | Rollback-only quotation; no flashloan execution |
 | Arbitrum One / multi-split | `0xb1aac2079c52fd31e038ec348505a0f55859d60f` | Separate `executeMultiSplitPairArbitrage` ABI; not the repaired multi-lender ABI |
 | Arbitrum One / historical multi-venue | `0xd130b45b7e7d08fb7dbb1c79fa5d9b95ea8e27b2` | V4 revoked; V2/V3 require their existing gates |
 | Arbitrum One / historical V4-only | `0xfcd8f1257d8f37f4c51b4e6ac923137e5b6a2a16` | Execution revoked |
@@ -132,9 +136,11 @@ The multi-split record references deployment transaction
 Its code was reread at Arbitrum block `514628150`, with runtime hash
 `0xa3f091893cee71a89509cf51c1ef49828a5a1850e72b88691924c824c80dd81e`.
 This is a code-identity observation, not verification of every capability or
-of the recorded historical deployment receipt. No corrected production
-multi-lender deployment is recorded; fork-test deployments are not production
-addresses. Sui Move call targets use the active package, while guard type/event
+of the recorded historical deployment receipt. The corrected liquidity executor and quoter are recorded in the
+[deployment receipt record](docs/deployments/arbitrum-one-liquidity-upgrade.json).
+Both deployment receipts succeeded and both runtime hashes matched public RPC
+readback at Arbitrum block `514959818` on 2026-10-15. These are deployed addresses;
+production strategy admission still requires fresh route evidence. Sui Move call targets use the active package, while guard type/event
 origins retain the original package from the deployment record.
 
 ## Deployed Arbitrum multi-venue executor
@@ -537,3 +543,68 @@ When `protocols.aaveV3.multicall3` is configured, Aave account health is queried
 Every solve run appends a sanitized event to `.nim/memory.jsonl`; repeated reusable failure codes are promoted once to `.nim/lessons.jsonl`. Keys, endpoint credentials, signatures, raw calldata, and signed transactions are never recorded.
 
 To run the opt-in live E2E without credentials, point `E2E_ARBITRUM_SCANNER_CONFIG` at a bounded scanner configuration and run `npm test`. The test asserts a real finalized-block envelope and accepts zero opportunities; it never signs or broadcasts.
+
+## Level 2 market context for agents
+
+The Level 2 extension ingests Arbitrum/Sui evidence and optional market feeds into
+hash-linked journals, computes protocol-native executable depth and flow metrics,
+and exposes canonical context through CLI or local stdio MCP. Fast Feed data stays
+provisional. Approvals describe permission, never proof of a future sale.
+
+Use Level 2 alongside the liquid-pattern preparation flow:
+
+1. Capture canonical pool state and swaps with `l2-follow`. Start with public RPC;
+   optional Binance/Hyperliquid books add market context. No Twitter, Discord or
+   news source is required. Arbitrum capture processes one explicit block per call;
+   the host schedules successive blocks and handles resynchronization.
+2. Run `l2-replay` to materialize frames, then `l2-inspect` or `l2-serve` to expose
+   executable depth, buy/sell flow, coverage, freshness and evidence to the agent.
+3. Use those facts to choose pools for canonical route comparison and unsigned
+   `prepare-arbitrum` preparation. A descriptive label or tentative feed event
+   does not replace fresh canonical state or exact transaction simulation.
+4. An admitted host integration passes bound frames and candidates through
+   `runL2Candidates`, beginning in shadow mode. CLI/MCP tools can request expiring
+   shadow evaluation; the worker must consume that request under operator policy.
+   Prediction-based ranking additionally needs a validated, operator-pinned report.
+
+For example, save this non-secret JSON as `follow.json` to ingest an existing
+file of versioned observations matching `schemas/level-2.schema.json`:
+
+```json
+{
+  "schemaVersion": "1.0",
+  "journalPath": ".flashloan-agent/l2/raw.jsonl",
+  "outputPath": ".flashloan-agent/l2/frames.jsonl",
+  "source": { "kind": "jsonl", "path": "observations.jsonl" }
+}
+```
+
+For `serve.json`, use `{ "schemaVersion": "1.0", "journalPath":
+".flashloan-agent/l2/raw.jsonl" }`. Configure the MCP client to launch
+`node dist/liquidity/cli.js l2-serve /absolute/path/to/serve.json` from this
+repository root. The inspect tool is `l2_inspect_pool_microstructure` with
+`{ "pool_id": "<captured pool ID>" }`; stale or incomplete coverage stays explicit.
+Use `l2-sources` and the specification below for pinned RPC/stream configurations.
+
+```sh
+npm run l2 -- l2-sources
+npm run l2 -- l2-follow follow.json
+npm run l2 -- l2-replay replay.json
+npm run l2 -- l2-inspect inspect.json
+npm run l2 -- l2-serve serve.json
+npm run l2 -- l2-evaluate evaluate.json
+npm run l2:test
+npm run l2:proof
+```
+
+[The Level 2 specification](docs/features/level-2.md) defines exact input/output
+contracts, configuration, source capabilities, rotation/retention, MCP resources,
+chronological evaluation and execution integration. Public schemas are in
+`schemas/level-2.schema.json`. Offline/RPC/MCP workflows retain Node 20 support;
+optional native WebSocket streaming needs Node 22+.
+
+Predictions start as research-only. An explicitly pinned report must establish
+holdout improvement and paired shadow net benefit before predictive prioritization.
+`runL2Candidates` retains existing simulation, custody, fees and profit gates and
+rechecks reflection state before signing/submission. The CLI and MCP server never
+construct a signer. Local E2E proof does not admit a production strategy or adapter.

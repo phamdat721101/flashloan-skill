@@ -21,9 +21,10 @@ function chainDigest(identity: StateIdentity): string {
 }
 
 /** Bounded-memory JSONL recovery. A partial last record is never treated as committed. */
-export async function* readSourceLines(path: string, maxRecordBytes: number): AsyncGenerator<string> {
+export async function* readSourceLines(path: string, maxRecordBytes: number, range?: { start: number; end: number }): AsyncGenerator<string> {
   if (!Number.isSafeInteger(maxRecordBytes) || maxRecordBytes < 1 || maxRecordBytes > 64 * 1024 * 1024) throw new Error('INVALID_SOURCE_RECORD_LIMIT');
-  const stream = createReadStream(path, { highWaterMark: 65536 });
+  if (range && (!Number.isSafeInteger(range.start) || !Number.isSafeInteger(range.end) || range.start < 0 || range.end < range.start)) throw new Error('INVALID_SOURCE_READ_RANGE');
+  const stream = createReadStream(path, { highWaterMark: 65536,...range });
   let pending = Buffer.alloc(0);
   try {
     for await (const chunk of stream) {

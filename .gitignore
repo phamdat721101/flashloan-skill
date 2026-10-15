@@ -19,4 +19,9 @@ coverage/
 .npmrc
 .DS_Store
 docs/*
+!docs/features/
+docs/features/*
+!docs/features/level-2.md
+!docs/features/level-2.spec.json
+!docs/features/level-2-map.md
 !docs/sui-flashloan/

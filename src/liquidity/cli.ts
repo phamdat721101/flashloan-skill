@@ -26,6 +26,7 @@ async function readAnalyticsJson(path: string): Promise<unknown> {
 
 async function main(): Promise<void> {
   const [command, path] = process.argv.slice(2);
+  if (command?.startsWith('l2-')) { await (await import('./l2-cli.js')).runL2Cli(command,path); return; }
   if (command === 'sources') { console.log(JSON.stringify(SOURCE_CAPABILITIES)); return; }
   if (['snapshot-algebra-arbitrum','simulate-v4','snapshot-analytics-sui','stream-sui'].includes(command)) {
     if (!path) throw new Error('ANALYTICS_INPUT_REQUIRED');
@@ -131,4 +132,4 @@ async function main(): Promise<void> {
     } else throw new Error('UNSUPPORTED_COMMAND');
   }
 }
-void main().catch(e => { console.error(e instanceof Error && /^[A-Z_]+$/.test(e.message) ? e.message : 'SOURCE_READ_FAILED'); process.exitCode = 1; });
+void main().catch(e => { console.error(e instanceof Error && /^[A-Z0-9_]+$/.test(e.message) ? e.message : 'SOURCE_READ_FAILED'); process.exitCode = 1; });

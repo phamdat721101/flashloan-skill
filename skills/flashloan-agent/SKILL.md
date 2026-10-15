@@ -39,6 +39,16 @@ The runtime verifies executor bytecode, chain ID, ABI selector, and `owner()` si
 
 ## Constraints
 
+- **Level 2 context:** use `node dist/liquidity/cli.js l2-sources` to inspect actual
+  capabilities and `l2-follow|l2-replay|l2-inspect|l2-serve|l2-evaluate <config.json>`
+  for evidence ingestion, replay, facts, local stdio MCP or offline research. Inputs
+  use `schemas/level-2.schema.json`; see `docs/features/level-2.md` in the source repo.
+  Missing coverage, stale state and unvalidated predictions must remain explicit.
+  Fast Feed is ordered/executed provisional activity, not a mempool. MCP staging
+  requests shadow evaluation only; it never authorizes signing. Integrate through
+  `runL2Candidates` only with existing adapter admission and operator budgets;
+  predictive ranking additionally requires an exact operator-pinned report.
+
 - Secrets stay in the local environment. Never request, print, store, or place a private key in a prompt, JSON file, or response.
 - Never construct calldata for an address other than the explicitly configured `FLASH_EXECUTOR_ADDRESS`.
 - Scanner findings are observations or validated intents, not permission to execute. Balancer v2 flash-loan callbacks and Uniswap v4 `unlock` delta settlement require a separately capability-verified executor transformer.

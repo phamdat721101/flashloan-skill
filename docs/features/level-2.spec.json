@@ -1,0 +1,288 @@
+{
+  "spec_id": "SPEC-2026-101501",
+  "feature_name": "Level 2 Arbitrum and Sui market context, agent ingestion and gated prediction",
+  "source_evidence": [
+    {
+      "source_uri": "src/liquidity/l2-contracts.ts",
+      "entity_id": "parseObservation",
+      "hash": "sha256:8764430ef51ad8addf338add240b6be795bc32cf5c17f7e346e2a47d3dbc4059"
+    },
+    {
+      "source_uri": "src/liquidity/l2-metrics.ts",
+      "entity_id": "executableDepth",
+      "hash": "sha256:bfa013c86c872749d311833fd10164d0947990745a5e371dda4a18c8fadc9860"
+    },
+    {
+      "source_uri": "src/liquidity/l2-ingestion.ts",
+      "entity_id": "EvidenceTail",
+      "hash": "sha256:0bf31ee4d73fa96a87256a6a5d1039dfc7542561d5811d8a92e0d2513523a539"
+    },
+    {
+      "source_uri": "src/liquidity/l2-sources.ts",
+      "entity_id": "captureArbitrumL2",
+      "hash": "sha256:181716d55070542db6767132a262972424b6dd1f8c76785db7a5250b460dd776"
+    },
+    {
+      "source_uri": "src/liquidity/l2-prediction.ts",
+      "entity_id": "forwardOutcome",
+      "hash": "sha256:bb628799a5378fd17990565a5f2c151d4e0984c04697e7763c7c32b762ecb6e2"
+    },
+    {
+      "source_uri": "src/liquidity/l2-execution.ts",
+      "entity_id": "runL2Candidates",
+      "hash": "sha256:b23200fd56dc93b365f13481a3b55adbcfd9998f5631d8e6b6a489c5aee6dcf9"
+    },
+    {
+      "source_uri": "src/liquidity/l2-agent.ts",
+      "entity_id": "L2AgentServer",
+      "hash": "sha256:722932c68b82aebe1564800e8d1bdf1e2681ee81f6f42e6afda9adb2b71abb35"
+    },
+    {
+      "source_uri": "src/liquidity/l2-cli.ts",
+      "entity_id": "runL2Cli",
+      "hash": "sha256:76845899a5c6f0099f2c212ff75f61676d9496c9757346f79f4df134707aa628"
+    },
+    {
+      "source_uri": "src/liquidity/l2-storage.ts",
+      "entity_id": "retainL2Segments",
+      "hash": "sha256:72e2a65e46cbee61fe863e65c2d514ea43e463854b07db795b51da536124e144"
+    },
+    {
+      "source_uri": "src/liquidity/runtime.ts",
+      "entity_id": "LiquidityRuntime",
+      "hash": "sha256:26b0e64c81ebbd7513d337327d442ccca169851885cb74036eae31f09fd6af8c"
+    },
+    {
+      "source_uri": "src/liquidity/projection.ts",
+      "entity_id": "parsePoolState",
+      "hash": "sha256:6130ac27659a728c835dd95fefd8660bcbaa89fd81ab9be443fa2cbb336830a0"
+    },
+    {
+      "source_uri": "src/liquidity/clmm.ts",
+      "entity_id": "quoteV3ExactInput",
+      "hash": "sha256:39a885e137539406dcc6b9722785a92f6d89bce224974cdbe5a10e3b72c3d3ce"
+    },
+    {
+      "source_uri": "src/liquidity/cetus-math.ts",
+      "entity_id": "quoteCetusExactInput",
+      "hash": "sha256:82042be4f287b318d513fb98528332e72714ae0cfc01d316a696d9cda7359317"
+    },
+    {
+      "source_uri": "src/sui/deepbook.ts",
+      "entity_id": "quoteDeepBookExactInput",
+      "hash": "sha256:1e907289832a674c8184e71d4d34f1af2350cf15478bda1652df4b10d8a6d39f"
+    }
+  ],
+  "dependencies": [
+    {
+      "package_or_module": "src/liquidity/l2-contracts.ts",
+      "symbol": "parseObservation",
+      "file_location": "src/liquidity/l2-contracts.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/l2-contracts.ts",
+      "symbol": "parseFrame",
+      "file_location": "src/liquidity/l2-contracts.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/l2-metrics.ts",
+      "symbol": "executableDepth",
+      "file_location": "src/liquidity/l2-metrics.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/l2-metrics.ts",
+      "symbol": "buildMicrostructureFrame",
+      "file_location": "src/liquidity/l2-metrics.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/l2-ingestion.ts",
+      "symbol": "EvidenceTail",
+      "file_location": "src/liquidity/l2-ingestion.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/l2-ingestion.ts",
+      "symbol": "EvidenceJournal",
+      "file_location": "src/liquidity/l2-ingestion.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/l2-ingestion.ts",
+      "symbol": "L2ContextEngine",
+      "file_location": "src/liquidity/l2-ingestion.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/l2-ingestion.ts",
+      "symbol": "replayEvidence",
+      "file_location": "src/liquidity/l2-ingestion.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/l2-ingestion.ts",
+      "symbol": "refreshEvidence",
+      "file_location": "src/liquidity/l2-ingestion.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/l2-ingestion.ts",
+      "symbol": "materializeFrames",
+      "file_location": "src/liquidity/l2-ingestion.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/l2-sources.ts",
+      "symbol": "captureArbitrumL2",
+      "file_location": "src/liquidity/l2-sources.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/l2-sources.ts",
+      "symbol": "captureSuiL2",
+      "file_location": "src/liquidity/l2-sources.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/l2-sources.ts",
+      "symbol": "decodeCetusL2Swap",
+      "file_location": "src/liquidity/l2-sources.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/l2-sources.ts",
+      "symbol": "decodePoolSwap",
+      "file_location": "src/liquidity/l2-sources.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/l2-sources.ts",
+      "symbol": "BinanceDepthBook",
+      "file_location": "src/liquidity/l2-sources.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/l2-sources.ts",
+      "symbol": "streamMarketMessages",
+      "file_location": "src/liquidity/l2-sources.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/l2-prediction.ts",
+      "symbol": "forwardOutcome",
+      "file_location": "src/liquidity/l2-prediction.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/l2-prediction.ts",
+      "symbol": "trainL2Model",
+      "file_location": "src/liquidity/l2-prediction.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/l2-prediction.ts",
+      "symbol": "evaluateL2",
+      "file_location": "src/liquidity/l2-prediction.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/l2-prediction.ts",
+      "symbol": "predictL2",
+      "file_location": "src/liquidity/l2-prediction.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/l2-execution.ts",
+      "symbol": "runL2Candidates",
+      "file_location": "src/liquidity/l2-execution.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/l2-execution.ts",
+      "symbol": "validatedPrediction",
+      "file_location": "src/liquidity/l2-execution.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/l2-execution.ts",
+      "symbol": "L2RiskJournal",
+      "file_location": "src/liquidity/l2-execution.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/l2-agent.ts",
+      "symbol": "L2AgentServer",
+      "file_location": "src/liquidity/l2-agent.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/l2-agent.ts",
+      "symbol": "serveL2Stdio",
+      "file_location": "src/liquidity/l2-agent.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/l2-cli.ts",
+      "symbol": "runL2Cli",
+      "file_location": "src/liquidity/l2-cli.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/l2-storage.ts",
+      "symbol": "retainL2Segments",
+      "file_location": "src/liquidity/l2-storage.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/runtime.ts",
+      "symbol": "LiquidityRuntime",
+      "file_location": "src/liquidity/runtime.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/projection.ts",
+      "symbol": "parsePoolState",
+      "file_location": "src/liquidity/projection.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/projection.ts",
+      "symbol": "projectPool",
+      "file_location": "src/liquidity/projection.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/clmm.ts",
+      "symbol": "quoteV3ExactInput",
+      "file_location": "src/liquidity/clmm.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/cetus-math.ts",
+      "symbol": "quoteCetusExactInput",
+      "file_location": "src/liquidity/cetus-math.ts"
+    },
+    {
+      "package_or_module": "src/sui/deepbook.ts",
+      "symbol": "quoteDeepBookExactInput",
+      "file_location": "src/sui/deepbook.ts"
+    }
+  ],
+  "architecture": {
+    "pattern": "versioned observations, incremental hash-linked journals, canonical state generations, exact quote-based features, chronological research models and existing chain-local execution admission",
+    "isolation_boundaries": "External/provisional observations cannot mutate canonical chain state; agent resources cannot authorize signing; research scores cannot bypass simulation or risk gates.",
+    "execution_flow": [
+      "validate source identity, parentage, units and arrival time",
+      "journal evidence before consumer acknowledgement",
+      "build deterministic coherent features and agent resources",
+      "evaluate temporal holdouts and independently paired shadow outcomes",
+      "bind context to exact canonical route, refresh risk before signing and submission",
+      "reconcile existing authoritative receipts; deduplicate risk credit by lane and receipt digest"
+    ]
+  },
+  "data_contracts": {
+    "inputs": {
+      "observation": "MarketObservation 1.0 with source/generation/cursor/parent/finality/availability and bounded typed payload",
+      "pool": "Existing PoolStateEnvelope 4.0; complete DeepBook book or pinned Cetus BCS event profile",
+      "research": "Frame-bound ForwardOutcome with exact future price and separate shadow-runtime net evidence"
+    },
+    "outputs": {
+      "context": "MicrostructureFrame 1.0 with rational depth/flow features, coverage reasons and source watermarks",
+      "prediction": "Research-only PredictionRecord until an operator-pinned EvaluationReport admits it",
+      "execution": "Existing LiquidityDecision, receipt accounting and persistent risk reflection"
+    },
+    "error_states": [
+      "L2_SOURCE_GAP",
+      "L2_PARENT_DIVERGENCE",
+      "L2_INVALIDATED_GENERATION",
+      "L2_STALE_STATE",
+      "L2_OUTCOME_HORIZON_MISMATCH",
+      "L2_INVALID_OR_LEAKING_MODEL",
+      "L2_UNADMITTED_PREDICTION",
+      "L2_RISK_RESIZING_OR_RECONCILIATION_REQUIRED",
+      "L2_RECEIPT_SUBSTITUTION"
+    ]
+  },
+  "test_criteria": [
+    "five EDGE local proofs pass with structured markers",
+    "journal corruption, restart, cross-writer tails and generation invalidation are explicit",
+    "V2 independent invariant, V3 Q96, Cetus X64, DeepBook fees and incomplete coverage remain distinct",
+    "real MCP stdio subprocess negotiates capabilities and validates requests",
+    "calibration availability, purged folds and holdout-only data cannot leak",
+    "synthetic positive admission tests do not constitute market-alpha evidence",
+    "reflection changes during final RPC block signing; duplicate receipts cannot restore size",
+    "production admission stays disabled without independent operator, source and live receipt proof"
+  ]
+}

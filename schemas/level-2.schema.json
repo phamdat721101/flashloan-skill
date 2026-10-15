@@ -1,0 +1,1718 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Level 2 market context v1",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/observation"
+    },
+    {
+      "$ref": "#/$defs/frame"
+    },
+    {
+      "$ref": "#/$defs/prediction"
+    },
+    {
+      "$ref": "#/$defs/outcome"
+    },
+    {
+      "$ref": "#/$defs/model"
+    },
+    {
+      "$ref": "#/$defs/evaluationReport"
+    }
+  ],
+  "$defs": {
+    "identity": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "chain",
+            "network",
+            "height",
+            "blockHash"
+          ],
+          "properties": {
+            "chain": {
+              "const": "arbitrum"
+            },
+            "network": {
+              "enum": [
+                "42161",
+                "421614"
+              ]
+            },
+            "height": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]*)$",
+              "maxLength": 78
+            },
+            "blockHash": {
+              "type": "string",
+              "pattern": "^0x[0-9a-f]{64}$"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "chain",
+            "network",
+            "height",
+            "checkpointDigest"
+          ],
+          "properties": {
+            "chain": {
+              "const": "sui"
+            },
+            "network": {
+              "enum": [
+                "mainnet",
+                "testnet",
+                "localnet"
+              ]
+            },
+            "height": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]*)$",
+              "maxLength": 78
+            },
+            "checkpointDigest": {
+              "type": "string",
+              "pattern": "^[1-9A-HJ-NP-Za-km-z]{32,44}$"
+            }
+          }
+        }
+      ]
+    },
+    "observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "eventId",
+        "sourceId",
+        "cursor",
+        "generation",
+        "poolId",
+        "identity",
+        "status",
+        "eventTimeNs",
+        "receivedTimeNs",
+        "evidence",
+        "payload",
+        "parentDigest"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "1.0"
+        },
+        "eventId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "sourceId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "cursor": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "generation": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "poolId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "identity": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/identity"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "status": {
+          "enum": [
+            "provisional",
+            "node-confirmed",
+            "checkpoint-certified",
+            "external"
+          ]
+        },
+        "eventTimeNs": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "receivedTimeNs": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "evidence": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "payload": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "kind",
+                "pool",
+                "flowComplete"
+              ],
+              "properties": {
+                "kind": {
+                  "const": "pool"
+                },
+                "pool": {
+                  "$ref": "liquidity-analytics.schema.json#/$defs/pool"
+                },
+                "flowComplete": {
+                  "type": "boolean"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "kind",
+                "side",
+                "baseAtoms",
+                "quoteAtoms"
+              ],
+              "properties": {
+                "kind": {
+                  "const": "trade"
+                },
+                "side": {
+                  "enum": [
+                    "buy",
+                    "sell"
+                  ]
+                },
+                "baseAtoms": {
+                  "type": "string",
+                  "pattern": "^(0|[1-9][0-9]*)$",
+                  "maxLength": 78
+                },
+                "quoteAtoms": {
+                  "type": "string",
+                  "pattern": "^(0|[1-9][0-9]*)$",
+                  "maxLength": 78
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "kind",
+                "owner",
+                "router",
+                "balanceAtoms",
+                "allowanceAtoms"
+              ],
+              "properties": {
+                "kind": {
+                  "const": "allowance"
+                },
+                "owner": {
+                  "type": "string",
+                  "pattern": "^0x[0-9a-f]{40}$"
+                },
+                "router": {
+                  "type": "string",
+                  "pattern": "^0x[0-9a-f]{40}$"
+                },
+                "balanceAtoms": {
+                  "type": "string",
+                  "pattern": "^(0|[1-9][0-9]*)$",
+                  "maxLength": 78
+                },
+                "allowanceAtoms": {
+                  "type": "string",
+                  "pattern": "^(0|[1-9][0-9]*)$",
+                  "maxLength": 78
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "kind",
+                "venue",
+                "bids",
+                "asks",
+                "complete",
+                "baseAsset",
+                "quoteAsset"
+              ],
+              "properties": {
+                "kind": {
+                  "const": "market-book"
+                },
+                "venue": {
+                  "enum": [
+                    "binance",
+                    "hyperliquid"
+                  ]
+                },
+                "bids": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "price",
+                      "quantity"
+                    ],
+                    "properties": {
+                      "price": {
+                        "type": "string",
+                        "pattern": "^(0|[1-9][0-9]*)$",
+                        "maxLength": 78
+                      },
+                      "quantity": {
+                        "type": "string",
+                        "pattern": "^(0|[1-9][0-9]*)$",
+                        "maxLength": 78
+                      }
+                    }
+                  },
+                  "maxItems": 5000
+                },
+                "asks": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "price",
+                      "quantity"
+                    ],
+                    "properties": {
+                      "price": {
+                        "type": "string",
+                        "pattern": "^(0|[1-9][0-9]*)$",
+                        "maxLength": 78
+                      },
+                      "quantity": {
+                        "type": "string",
+                        "pattern": "^(0|[1-9][0-9]*)$",
+                        "maxLength": 78
+                      }
+                    }
+                  },
+                  "maxItems": 5000
+                },
+                "complete": {
+                  "type": "boolean"
+                },
+                "baseAsset": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1024
+                },
+                "quoteAsset": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1024
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "kind",
+                "book",
+                "baseAsset",
+                "quoteAsset",
+                "decimalsBase",
+                "decimalsQuote",
+                "flowComplete"
+              ],
+              "properties": {
+                "kind": {
+                  "const": "deepbook"
+                },
+                "book": {
+                  "$ref": "liquidity-analytics.schema.json#/$defs/deepBookState"
+                },
+                "baseAsset": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1024
+                },
+                "quoteAsset": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1024
+                },
+                "decimalsBase": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 255
+                },
+                "decimalsQuote": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 255
+                },
+                "flowComplete": {
+                  "type": "boolean"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "kind",
+                "generation",
+                "reason"
+              ],
+              "properties": {
+                "kind": {
+                  "const": "invalidate"
+                },
+                "generation": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1024
+                },
+                "reason": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1024
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "kind",
+                "venue",
+                "baseAsset",
+                "quoteAsset",
+                "side",
+                "price",
+                "quantity"
+              ],
+              "properties": {
+                "kind": {
+                  "const": "market-trade"
+                },
+                "venue": {
+                  "enum": [
+                    "binance",
+                    "hyperliquid"
+                  ]
+                },
+                "baseAsset": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1024
+                },
+                "quoteAsset": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1024
+                },
+                "side": {
+                  "enum": [
+                    "buy",
+                    "sell"
+                  ]
+                },
+                "price": {
+                  "type": "string",
+                  "pattern": "^(0|[1-9][0-9]*)$",
+                  "maxLength": 78
+                },
+                "quantity": {
+                  "type": "string",
+                  "pattern": "^(0|[1-9][0-9]*)$",
+                  "maxLength": 78
+                }
+              }
+            }
+          ]
+        },
+        "parentDigest": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 66
+        }
+      }
+    },
+    "frame": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "frameId",
+        "featureRevision",
+        "generation",
+        "poolId",
+        "identity",
+        "stateDigest",
+        "receivedTimeNs",
+        "baseAsset",
+        "quoteAsset",
+        "decimalsBase",
+        "decimalsQuote",
+        "evidence",
+        "watermarks",
+        "labels",
+        "metrics",
+        "quality"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "1.0"
+        },
+        "frameId": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "featureRevision": {
+          "const": "depth-flow-v1"
+        },
+        "generation": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "poolId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "identity": {
+          "$ref": "#/$defs/identity"
+        },
+        "stateDigest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "receivedTimeNs": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "baseAsset": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "quoteAsset": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "decimalsBase": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "decimalsQuote": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024
+          },
+          "maxItems": 100000,
+          "minItems": 1
+        },
+        "watermarks": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]*)$",
+            "maxLength": 78
+          },
+          "maxProperties": 100
+        },
+        "labels": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024
+          },
+          "maxItems": 20
+        },
+        "metrics": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "spot",
+            "depth",
+            "skew2pct",
+            "volume1hQuoteAtoms",
+            "cvd5mQuoteAtoms",
+            "tradeCount",
+            "vwap1h",
+            "printDecay",
+            "turnover1h",
+            "allowanceCapacityQuoteAtoms",
+            "allowanceOverhang",
+            "bidWithdrawal",
+            "marketBasis",
+            "marketSource",
+            "printCounts"
+          ],
+          "properties": {
+            "spot": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "numerator",
+                "denominator"
+              ],
+              "properties": {
+                "numerator": {
+                  "type": "string",
+                  "pattern": "^(0|[1-9][0-9]*)$",
+                  "maxLength": 78
+                },
+                "denominator": {
+                  "type": "string",
+                  "pattern": "^[1-9][0-9]*$",
+                  "maxLength": 1024
+                }
+              }
+            },
+            "depth": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "bps",
+                  "side",
+                  "inputAsset",
+                  "outputAsset",
+                  "inputAtoms",
+                  "outputAtoms",
+                  "quoteAtoms"
+                ],
+                "properties": {
+                  "bps": {
+                    "enum": [
+                      100,
+                      200,
+                      500
+                    ]
+                  },
+                  "side": {
+                    "enum": [
+                      "bid",
+                      "ask"
+                    ]
+                  },
+                  "inputAsset": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1024
+                  },
+                  "outputAsset": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1024
+                  },
+                  "inputAtoms": {
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "value",
+                          "reason"
+                        ],
+                        "properties": {
+                          "value": {
+                            "type": "string",
+                            "pattern": "^(0|[1-9][0-9]*)$",
+                            "maxLength": 78
+                          },
+                          "reason": {
+                            "type": "null"
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "value",
+                          "reason"
+                        ],
+                        "properties": {
+                          "value": {
+                            "type": "null"
+                          },
+                          "reason": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 1024
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  "outputAtoms": {
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "value",
+                          "reason"
+                        ],
+                        "properties": {
+                          "value": {
+                            "type": "string",
+                            "pattern": "^(0|[1-9][0-9]*)$",
+                            "maxLength": 78
+                          },
+                          "reason": {
+                            "type": "null"
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "value",
+                          "reason"
+                        ],
+                        "properties": {
+                          "value": {
+                            "type": "null"
+                          },
+                          "reason": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 1024
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  "quoteAtoms": {
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "value",
+                          "reason"
+                        ],
+                        "properties": {
+                          "value": {
+                            "type": "string",
+                            "pattern": "^(0|[1-9][0-9]*)$",
+                            "maxLength": 78
+                          },
+                          "reason": {
+                            "type": "null"
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "value",
+                          "reason"
+                        ],
+                        "properties": {
+                          "value": {
+                            "type": "null"
+                          },
+                          "reason": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 1024
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              },
+              "maxItems": 6,
+              "minItems": 6
+            },
+            "skew2pct": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "value",
+                    "reason"
+                  ],
+                  "properties": {
+                    "value": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "numerator",
+                        "denominator"
+                      ],
+                      "properties": {
+                        "numerator": {
+                          "type": "string",
+                          "pattern": "^(0|-?[1-9][0-9]*)$",
+                          "maxLength": 160
+                        },
+                        "denominator": {
+                          "type": "string",
+                          "pattern": "^[1-9][0-9]*$",
+                          "maxLength": 1024
+                        }
+                      }
+                    },
+                    "reason": {
+                      "type": "null"
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "value",
+                    "reason"
+                  ],
+                  "properties": {
+                    "value": {
+                      "type": "null"
+                    },
+                    "reason": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 1024
+                    }
+                  }
+                }
+              ]
+            },
+            "volume1hQuoteAtoms": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]*)$",
+              "maxLength": 78
+            },
+            "cvd5mQuoteAtoms": {
+              "type": "string",
+              "pattern": "^(0|-?[1-9][0-9]*)$",
+              "maxLength": 160
+            },
+            "tradeCount": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100000
+            },
+            "vwap1h": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "value",
+                    "reason"
+                  ],
+                  "properties": {
+                    "value": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "numerator",
+                        "denominator"
+                      ],
+                      "properties": {
+                        "numerator": {
+                          "type": "string",
+                          "pattern": "^(0|[1-9][0-9]*)$",
+                          "maxLength": 78
+                        },
+                        "denominator": {
+                          "type": "string",
+                          "pattern": "^[1-9][0-9]*$",
+                          "maxLength": 1024
+                        }
+                      }
+                    },
+                    "reason": {
+                      "type": "null"
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "value",
+                    "reason"
+                  ],
+                  "properties": {
+                    "value": {
+                      "type": "null"
+                    },
+                    "reason": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 1024
+                    }
+                  }
+                }
+              ]
+            },
+            "printDecay": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "value",
+                    "reason"
+                  ],
+                  "properties": {
+                    "value": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "numerator",
+                        "denominator"
+                      ],
+                      "properties": {
+                        "numerator": {
+                          "type": "string",
+                          "pattern": "^(0|[1-9][0-9]*)$",
+                          "maxLength": 78
+                        },
+                        "denominator": {
+                          "type": "string",
+                          "pattern": "^[1-9][0-9]*$",
+                          "maxLength": 1024
+                        }
+                      }
+                    },
+                    "reason": {
+                      "type": "null"
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "value",
+                    "reason"
+                  ],
+                  "properties": {
+                    "value": {
+                      "type": "null"
+                    },
+                    "reason": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 1024
+                    }
+                  }
+                }
+              ]
+            },
+            "turnover1h": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "value",
+                    "reason"
+                  ],
+                  "properties": {
+                    "value": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "numerator",
+                        "denominator"
+                      ],
+                      "properties": {
+                        "numerator": {
+                          "type": "string",
+                          "pattern": "^(0|[1-9][0-9]*)$",
+                          "maxLength": 78
+                        },
+                        "denominator": {
+                          "type": "string",
+                          "pattern": "^[1-9][0-9]*$",
+                          "maxLength": 1024
+                        }
+                      }
+                    },
+                    "reason": {
+                      "type": "null"
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "value",
+                    "reason"
+                  ],
+                  "properties": {
+                    "value": {
+                      "type": "null"
+                    },
+                    "reason": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 1024
+                    }
+                  }
+                }
+              ]
+            },
+            "allowanceCapacityQuoteAtoms": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "value",
+                    "reason"
+                  ],
+                  "properties": {
+                    "value": {
+                      "type": "string",
+                      "pattern": "^(0|[1-9][0-9]*)$",
+                      "maxLength": 78
+                    },
+                    "reason": {
+                      "type": "null"
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "value",
+                    "reason"
+                  ],
+                  "properties": {
+                    "value": {
+                      "type": "null"
+                    },
+                    "reason": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 1024
+                    }
+                  }
+                }
+              ]
+            },
+            "allowanceOverhang": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "value",
+                    "reason"
+                  ],
+                  "properties": {
+                    "value": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "numerator",
+                        "denominator"
+                      ],
+                      "properties": {
+                        "numerator": {
+                          "type": "string",
+                          "pattern": "^(0|[1-9][0-9]*)$",
+                          "maxLength": 78
+                        },
+                        "denominator": {
+                          "type": "string",
+                          "pattern": "^[1-9][0-9]*$",
+                          "maxLength": 1024
+                        }
+                      }
+                    },
+                    "reason": {
+                      "type": "null"
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "value",
+                    "reason"
+                  ],
+                  "properties": {
+                    "value": {
+                      "type": "null"
+                    },
+                    "reason": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 1024
+                    }
+                  }
+                }
+              ]
+            },
+            "bidWithdrawal": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "value",
+                    "reason"
+                  ],
+                  "properties": {
+                    "value": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "numerator",
+                        "denominator"
+                      ],
+                      "properties": {
+                        "numerator": {
+                          "type": "string",
+                          "pattern": "^(0|-?[1-9][0-9]*)$",
+                          "maxLength": 160
+                        },
+                        "denominator": {
+                          "type": "string",
+                          "pattern": "^[1-9][0-9]*$",
+                          "maxLength": 1024
+                        }
+                      }
+                    },
+                    "reason": {
+                      "type": "null"
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "value",
+                    "reason"
+                  ],
+                  "properties": {
+                    "value": {
+                      "type": "null"
+                    },
+                    "reason": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 1024
+                    }
+                  }
+                }
+              ]
+            },
+            "marketBasis": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "value",
+                    "reason"
+                  ],
+                  "properties": {
+                    "value": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "numerator",
+                        "denominator"
+                      ],
+                      "properties": {
+                        "numerator": {
+                          "type": "string",
+                          "pattern": "^(0|-?[1-9][0-9]*)$",
+                          "maxLength": 160
+                        },
+                        "denominator": {
+                          "type": "string",
+                          "pattern": "^[1-9][0-9]*$",
+                          "maxLength": 1024
+                        }
+                      }
+                    },
+                    "reason": {
+                      "type": "null"
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "value",
+                    "reason"
+                  ],
+                  "properties": {
+                    "value": {
+                      "type": "null"
+                    },
+                    "reason": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 1024
+                    }
+                  }
+                }
+              ]
+            },
+            "marketSource": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "maxLength": 256
+            },
+            "printCounts": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "recent",
+                "baseline"
+              ],
+              "properties": {
+                "recent": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 100000
+                },
+                "baseline": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 100000
+                }
+              }
+            }
+          }
+        },
+        "quality": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "complete",
+            "reasons",
+            "windowStartNs",
+            "windowEndNs"
+          ],
+          "properties": {
+            "complete": {
+              "type": "boolean"
+            },
+            "reasons": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1024
+              },
+              "maxItems": 100
+            },
+            "windowStartNs": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]*)$",
+              "maxLength": 78
+            },
+            "windowEndNs": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]*)$",
+              "maxLength": 78
+            }
+          }
+        }
+      }
+    },
+    "prediction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "predictionId",
+        "frameId",
+        "modelId",
+        "chain",
+        "poolId",
+        "cutoffNs",
+        "horizon",
+        "probabilities",
+        "expectedMarkoutBps",
+        "admission",
+        "reason"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "1.0"
+        },
+        "predictionId": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "frameId": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "modelId": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "chain": {
+          "enum": [
+            "arbitrum",
+            "sui"
+          ]
+        },
+        "poolId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "cutoffNs": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "horizon": {
+          "enum": [
+            "next",
+            "1m",
+            "5m",
+            "15m"
+          ]
+        },
+        "probabilities": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "maxItems": 3,
+          "minItems": 3
+        },
+        "expectedMarkoutBps": {
+          "type": "number"
+        },
+        "admission": {
+          "enum": [
+            "research",
+            "validated"
+          ]
+        },
+        "reason": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1024
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "outcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "predictionId",
+        "frameId",
+        "cutoffNs",
+        "observedTimeNs",
+        "horizon",
+        "identity",
+        "price",
+        "markoutBps",
+        "netValueAtoms",
+        "baselineNetValueAtoms",
+        "evidence"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "1.0"
+        },
+        "predictionId": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "frameId": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "cutoffNs": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "observedTimeNs": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "horizon": {
+          "enum": [
+            "next",
+            "1m",
+            "5m",
+            "15m"
+          ]
+        },
+        "identity": {
+          "$ref": "#/$defs/identity"
+        },
+        "price": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "numerator",
+            "denominator"
+          ],
+          "properties": {
+            "numerator": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]*)$",
+              "maxLength": 78
+            },
+            "denominator": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]*$",
+              "maxLength": 1024
+            }
+          }
+        },
+        "markoutBps": {
+          "type": "number"
+        },
+        "netValueAtoms": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^(0|-?[1-9][0-9]*)$",
+              "maxLength": 160
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "baselineNetValueAtoms": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^(0|-?[1-9][0-9]*)$",
+              "maxLength": 160
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "evidence": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        }
+      }
+    },
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "modelId",
+        "featureRevision",
+        "chain",
+        "horizon",
+        "trainedThroughNs",
+        "mean",
+        "scale",
+        "weights",
+        "temperature",
+        "flatBandBps",
+        "classFrequency",
+        "classMeanMarkoutBps"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "1.0"
+        },
+        "modelId": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "featureRevision": {
+          "const": "depth-flow-v1"
+        },
+        "chain": {
+          "enum": [
+            "arbitrum",
+            "sui"
+          ]
+        },
+        "horizon": {
+          "enum": [
+            "next",
+            "1m",
+            "5m",
+            "15m"
+          ]
+        },
+        "trainedThroughNs": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "mean": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 32
+        },
+        "scale": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "maxItems": 32
+        },
+        "weights": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            },
+            "maxItems": 33
+          },
+          "maxItems": 3,
+          "minItems": 3
+        },
+        "temperature": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "flatBandBps": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "classFrequency": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3
+        },
+        "classMeanMarkoutBps": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3
+        }
+      }
+    },
+    "evaluationReport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "reportId",
+        "chain",
+        "horizon",
+        "modelId",
+        "datasetDigest",
+        "folds",
+        "testCount",
+        "testDays",
+        "classCounts",
+        "brier",
+        "baselineBrier",
+        "brierImprovement95",
+        "netImprovement95",
+        "admitted",
+        "reasons"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "1.0"
+        },
+        "reportId": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "chain": {
+          "enum": [
+            "arbitrum",
+            "sui"
+          ]
+        },
+        "horizon": {
+          "enum": [
+            "next",
+            "1m",
+            "5m",
+            "15m"
+          ]
+        },
+        "modelId": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "datasetDigest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "folds": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "train",
+              "calibration",
+              "test"
+            ],
+            "properties": {
+              "train": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "calibration": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "test": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          },
+          "maxItems": 3,
+          "minItems": 3
+        },
+        "testCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "testDays": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "classCounts": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "maxItems": 3,
+          "minItems": 3
+        },
+        "brier": {
+          "type": "number"
+        },
+        "baselineBrier": {
+          "type": "number"
+        },
+        "brierImprovement95": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 2,
+          "minItems": 2
+        },
+        "netImprovement95": {
+          "oneOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              },
+              "maxItems": 2,
+              "minItems": 2
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "admitted": {
+          "type": "boolean"
+        },
+        "reasons": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024
+          },
+          "maxItems": 20
+        }
+      }
+    }
+  }
+}

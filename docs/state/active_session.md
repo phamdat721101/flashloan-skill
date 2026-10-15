@@ -940,3 +940,59 @@ Public record: docs/deployments/arbitrum-one-liquidity-upgrade.json; tracked run
 User requested publishing the completed upgrade and latest deployment addresses to origin/main. README now documents canonical capture, conditional projection, both-direction sizing, unsigned Morpho/Balancer preparation and exact-payload shadow runtime integration, with native-unit cost/debt/profit inputs and explicit admission requirements. Installed skill instructions now select LIQUIDITY_UPGRADE_DEPLOYMENT and preserve historical revocations. Public deployment receipts and detailed formula/spec are explicitly included despite the local docs ignore rule. No secrets, signed bytes or .nim memory are included.
 
 Validation passed: 145 Node tests, four optional skips, Rust workspace tests, TypeScript checks, and 12 offline Solidity tests. Added metadata-to-receipt regression coverage for eight confirmed transactions and six pins. Production trading remains unadmitted; no new on-chain operations performed for publishing. Next: consume the published main revision; admit only a fresh executor-context route/canary with operator budgets.
+
+## Session 2026-10-15T04:51:35.397Z
+
+### Current goal
+
+verify level-2
+
+### Latest output or blocker
+
+Feature: level-2
+Flow: liquidity l2-follow|l2-replay|l2-inspect|l2-evaluate|l2-serve; runL2Candidates API -> Local protocol/runtime proofs only; production execution is not admitted.
+Edges: EDGE-01, EDGE-02, EDGE-03, EDGE-04, EDGE-05
+
+### Attempted solutions
+
+- None recorded.
+
+### Next steps
+
+Feature verified; continue with normal delivery check or release workflow.
+
+## Session 2026-10-15T04:51:37.160Z
+
+### Current goal
+
+Implement approved Level 2 market context and agent ingestion plan
+
+### Latest output or blocker
+
+Implemented typed schemas, canonical Arbitrum/Sui capture, optional external books, hash-linked incremental ingestion, exact depth/flow features, MCP/CLI, chronological prediction validation, runtime binding and persistent receipt risk reflection. Full npm test passed: 165 Node passes and four existing optional skips. Fresh source-bound proof: 20 passes, no skips. Strict AS-SCP compile: 33 verified symbols. Synthetic single-pool replay: p95 23.7 ms over 120 frames. Production admission remains false.
+
+### Attempted solutions
+
+- None recorded.
+
+### Next steps
+
+Run sustained multi-pool source acceptance and real historical walk-forward/paired shadow evaluation before operator admission; no deployment or live trades performed.
+
+## Session 2026-10-15T04:58:50.859Z
+
+### Current goal
+
+Publish Level 2 upgrade with current deployment addresses and liquid-pattern usage
+
+### Latest output or blocker
+
+README now lists corrected executor 0xba4681b7cae1a67c703f43f1476b25fef2635b0a and V4 quoter 0x552d73e6b424b98a9d74fb335e62ee198d0601ad, verified by public RPC at block 514959818, and explains capture, sizing, unsigned preparation and Level 2 MCP/shadow integration. Deployment record contains public readback. Existing Level 2 local proof has 20 passes; focused deployment tests have six passes. Release changes are ready for commit and push to origin/main.
+
+### Attempted solutions
+
+- None recorded.
+
+### Next steps
+
+Verify published main revision; retain disabled production trading until real source acceptance, historical validation, route admission and explicit operator budgets.

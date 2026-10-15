@@ -64,7 +64,7 @@ export class LiquidityRuntime {
     if (gas > uint(c.maxGasCost) || profit < gas + uint(c.minProfit)) throw new Error('INSUFFICIENT_NET_PROFIT');
     return profit - gas;
   }
-  async run(input: readonly RouteCandidate[], policy: RuntimePolicy): Promise<LiquidityDecision[]> {
+  async run(input: readonly RouteCandidate[], policy: RuntimePolicy, admissionGate?: (candidate: RouteCandidate, signal: AbortSignal) => Promise<void>): Promise<LiquidityDecision[]> {
     const timeout = policy.stepTimeoutMs ?? 15000;
     if (!Number.isSafeInteger(timeout) || timeout < 1 || timeout > 60000) throw new Error('INVALID_RUNTIME_TIMEOUT');
     if (!Number.isSafeInteger(policy.concurrency) || policy.concurrency < 1 || policy.concurrency > 64 || !Number.isSafeInteger(policy.maxCandidates) || policy.maxCandidates < 1 || input.length > policy.maxCandidates || !['shadow', 'auto'].includes(policy.mode) || uint(policy.maxDailyLoss) === 0n || uint(policy.minProfit) === 0n) throw new Error('INVALID_RUNTIME_POLICY');
@@ -102,11 +102,15 @@ export class LiquidityRuntime {
         this.validate(c, a, policy);
         await this.journal.prepare({ id: attemptId, lane, budgetAsset: c.profitAsset, candidateDigest, resource, state: 'prepared', transactionId: null, loss: c.maxGasCost, day: new Date(this.now()).toISOString().slice(0, 10) }, uint(policy.maxDailyLoss), uint(c.maxGasCost)); prepared = true;
         this.validate(c, a, policy);
+        if (admissionGate) await this.step(timeout, signal => admissionGate(c, signal));
+        this.validate(c, a, policy);
         const signed = await this.step(timeout, signal => a.sign(c, resource, signal));
         const validId = c.identity.chain === 'arbitrum' ? /^0x[0-9a-f]{64}$/.test(signed.transactionId) : isSuiDigest(signed.transactionId);
         if (!validId || !(signed.signedBytes instanceof Uint8Array) || signed.signedBytes.length === 0 || signed.resource !== resource || signed.payloadDigest !== c.payloadDigest) throw new Error('INVALID_SIGNED_TRANSACTION');
         transactionId = signed.transactionId;
         await this.journal.transition(attemptId, 'signed', transactionId);
+        this.validate(c, a, policy);
+        if (admissionGate) await this.step(timeout, signal => admissionGate(c, signal));
         this.validate(c, a, policy);
         const submitted = await this.step(timeout, signal => a.submit(signed.signedBytes, signal));
         if (submitted !== transactionId) throw new Error('SUBMISSION_ID_MISMATCH');
@@ -128,4 +132,4 @@ export class LiquidityRuntime {
     return decisions.sort((x, y) => x.candidateDigest.localeCompare(y.candidateDigest));
   }
 }
-function errorCode(e: unknown): string { return e instanceof Error && /^[A-Z_]+$/.test(e.message) ? e.message : 'ADAPTER_FAILURE'; }
+function errorCode(e: unknown): string { return e instanceof Error && /^[A-Z0-9_]+$/.test(e.message) ? e.message : 'ADAPTER_FAILURE'; }

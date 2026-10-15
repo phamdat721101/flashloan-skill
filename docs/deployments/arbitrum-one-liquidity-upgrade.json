@@ -230,5 +230,24 @@
   },
   "verifiedAt": "2026-10-14T15:43:23.031Z",
   "productionTradingEnabled": false,
-  "totalCostWei": "111984088950000"
+  "totalCostWei": "111984088950000",
+  "publicReadback": {
+    "checkedAt": "2026-10-15",
+    "rpcUrl": "https://arb1.arbitrum.io/rpc",
+    "chainId": 42161,
+    "blockNumber": "514959818",
+    "contracts": [
+      {
+        "address": "0xba4681b7cae1a67c703f43f1476b25fef2635b0a",
+        "runtimeCodeHash": "0xda41b5b572397eda5e3b97666ca8c00d44e61a4500bff024bcc1346ee948e992",
+        "deploymentReceiptStatus": "success"
+      },
+      {
+        "address": "0x552d73e6b424b98a9d74fb335e62ee198d0601ad",
+        "runtimeCodeHash": "0x0cdcb9dcb8a9bd103bfd89efd8bcb7beffe26056fe4284799b8996544c793556",
+        "deploymentReceiptStatus": "success"
+      }
+    ],
+    "scope": "Runtime hash and deployment receipt identity only; trading remains disabled"
+  }
 }
