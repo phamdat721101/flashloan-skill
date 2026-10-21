@@ -86,10 +86,10 @@ export function parseObservation(input: unknown): MarketObservation {
   if (ns(o.eventTimeNs) > ns(o.receivedTimeNs)) throw new Error('L2_EVENT_FROM_FUTURE');
   const identity = o.identity === null ? null : parseStateIdentity(o.identity);
   if (identity) {
-    if (identity.height === '0' ? o.parentDigest !== null : identity.chain === 'arbitrum' ? !/^0x[0-9a-f]{64}$/.test(String(o.parentDigest)) : !isSuiDigest(o.parentDigest)) throw new Error('L2_INVALID_PARENT');
+    if (identity.height === '0' ? o.parentDigest !== null : identity.chain !== 'sui' ? !/^0x[0-9a-f]{64}$/.test(String(o.parentDigest)) : !isSuiDigest(o.parentDigest)) throw new Error('L2_INVALID_PARENT');
   } else if (o.parentDigest !== null) throw new Error('L2_INVALID_PARENT');
   if (identity && !String(o.poolId).startsWith(`${identity.chain}:${identity.network}:`)) throw new Error('L2_CHAIN_MISMATCH');
-  if ((o.status === 'node-confirmed' && identity?.chain !== 'arbitrum') || (o.status === 'checkpoint-certified' && identity?.chain !== 'sui') || (o.status === 'external' && identity !== null)) throw new Error('L2_FINALITY_MISMATCH');
+  if ((o.status === 'node-confirmed' && (!identity || identity.chain === 'sui')) || (o.status === 'checkpoint-certified' && identity?.chain !== 'sui') || (o.status === 'external' && identity !== null)) throw new Error('L2_FINALITY_MISMATCH');
   const p = record(o.payload);
   if (p.kind === 'pool') {
     fields(p,['kind','pool','flowComplete']); const pool = parsePoolState(p.pool);
@@ -100,7 +100,7 @@ export function parseObservation(input: unknown): MarketObservation {
     if ((!identity && o.status !== 'provisional') || !['buy','sell'].includes(String(p.side)) || !uint(p.baseAtoms) || !uint(p.quoteAtoms) || o.status === 'external') throw new Error('L2_INVALID_TRADE');
   } else if (p.kind === 'allowance') {
     fields(p,['kind','owner','router','balanceAtoms','allowanceAtoms']);
-    if (identity?.chain !== 'arbitrum' || o.status !== 'node-confirmed' || !/^0x[0-9a-f]{40}$/.test(String(p.owner)) || !/^0x[0-9a-f]{40}$/.test(String(p.router))) throw new Error('L2_INVALID_ALLOWANCE');
+    if ((!identity || identity.chain === 'sui') || o.status !== 'node-confirmed' || !/^0x[0-9a-f]{40}$/.test(String(p.owner)) || !/^0x[0-9a-f]{40}$/.test(String(p.router))) throw new Error('L2_INVALID_ALLOWANCE');
     uint(p.balanceAtoms); uint(p.allowanceAtoms);
   } else if (p.kind === 'market-book') {
     fields(p,['kind','venue','baseAsset','quoteAsset','bids','asks','complete']);

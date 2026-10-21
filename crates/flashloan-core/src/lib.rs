@@ -29,8 +29,8 @@ impl EngineConfig {
         if self.schema_version != "2.0" {
             return Err(EngineError::InvalidConfig("schemaVersion must be 2.0"));
         }
-        if self.chain_id != ARBITRUM_CHAIN_ID {
-            return Err(EngineError::InvalidConfig("chainId must be 42161"));
+        if ![ARBITRUM_CHAIN_ID, 8453, 4663].contains(&self.chain_id) {
+            return Err(EngineError::InvalidConfig("unsupported EVM chainId"));
         }
         if self.factories.is_empty() {
             return Err(EngineError::InvalidConfig(

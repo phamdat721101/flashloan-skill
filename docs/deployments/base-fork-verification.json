@@ -1,0 +1,31 @@
+{
+  "schemaVersion": "1.0",
+  "chainId": 8453,
+  "source": "explicit Foundry target-fork host adapter",
+  "verifiedAt": "2026-10-21T07:44:25.994488Z",
+  "broadcast": false,
+  "logSha256": "f276fe4f2292127e9034b811615b1d531f374daa594d22901dc04220fffa304f",
+  "tests": [
+    {
+      "name": "testRequiredRealMorphoBorrowAndExactRepayment",
+      "status": "PASS"
+    },
+    {
+      "name": "testTargetImmutableAaveV4RealSwapsRejectUnfundedProfit",
+      "status": "PASS"
+    },
+    {
+      "name": "testTargetMultiVenueRealSwapsRejectUnfundedProfit",
+      "status": "PASS"
+    },
+    {
+      "name": "testTargetPortableSplitRealSwapsRejectUnfundedProfit",
+      "status": "PASS"
+    },
+    {
+      "name": "testTargetQuoterRealSwapRevertsManagerState",
+      "status": "PASS"
+    }
+  ],
+  "scope": "Real lender repayment, real AMM swaps reaching the unfunded-profit guard, atomic rollback and quoter state rollback. Does not establish profitable live receipt."
+}

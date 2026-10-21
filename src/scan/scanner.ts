@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { createPublicClient, decodeEventLog, http, type Address, type Hex } from 'viem';
-import { arbitrum } from 'viem/chains';
+import { evmProfile } from '../evm-chains.js';
 import type { PoolAdmission, ScannerConfig, ScanDiagnostic, ScanEnvelope, ScanOpportunity, ScanProtocol, VenueDescriptor } from './types.js';
 import { ScanStore } from './store.js';
 
@@ -62,8 +62,8 @@ export class ArbitrumScanner {
   private readonly morphoBorrowers = new Map<string, { marketId: Hex; borrower: Address }>();
 
   constructor(private readonly config: ScannerConfig) {
-    this.client = createPublicClient({ chain: arbitrum, transport: http(config.rpcUrl) });
-    this.store = new ScanStore(config.stateDir ?? '.flashloan-agent/scan');
+    this.client = createPublicClient({ chain: evmProfile(config.chainId).chain, transport: http(config.rpcUrl) });
+    this.store = new ScanStore(config.stateDir ?? `.flashloan-agent/${config.chainId}/scan`);
   }
 
   async scanOnce(): Promise<ScanEnvelope> {
@@ -244,3 +244,5 @@ export class ArbitrumScanner {
     }));
   }
 }
+
+export { ArbitrumScanner as EvmScanner };

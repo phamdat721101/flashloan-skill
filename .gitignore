@@ -25,3 +25,12 @@ docs/features/*
 !docs/features/level-2.spec.json
 !docs/features/level-2-map.md
 !docs/sui-flashloan/
+
+.nim-memory/
+!docs/features/evm-flashloan.md
+!docs/features/evm-flashloan.spec.json
+!docs/features/evm-flashloan-map.md
+!docs/deployments/
+docs/deployments/*
+!docs/deployments/base-*
+!docs/deployments/robinhood-*

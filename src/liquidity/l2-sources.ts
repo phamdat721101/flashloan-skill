@@ -115,7 +115,7 @@ export async function captureArbitrumL2(config: ArbitrumL2Capture): Promise<Mark
   const captured = await readArbitrumAnalyticsSnapshot(config.rpcUrl,config.sourceId,config.cursor,config.pools,config.blockNumber);
   const client = createPublicClient({ transport: http(config.rpcUrl,{ timeout: 15000,retryCount: 0 }) });
   const block = await client.getBlock({ blockNumber: BigInt(config.blockNumber) });
-  if (captured.snapshot.identity.chain !== 'arbitrum' || block.hash !== captured.snapshot.identity.blockHash) throw new Error('L2_BLOCK_DIVERGENCE');
+  if (captured.snapshot.identity.chain === 'sui' || block.hash !== captured.snapshot.identity.blockHash) throw new Error('L2_BLOCK_DIVERGENCE');
   const observations: MarketObservation[] = []; let cursor = BigInt(config.cursor);
   const add = (poolId: string,eventId: string,payload: MarketObservation['payload'],evidence: string) => observations.push(parseObservation({ schemaVersion: '1.0',eventId,sourceId: config.sourceId,cursor: (cursor++).toString(),generation: config.generation,poolId,identity: captured.snapshot.identity,parentDigest: block.parentHash,status: 'node-confirmed',eventTimeNs: (block.timestamp*1000000000n).toString(),receivedTimeNs: (BigInt(Date.now())*1000000n).toString(),evidence,payload }));
   for (const pool of captured.pools) {

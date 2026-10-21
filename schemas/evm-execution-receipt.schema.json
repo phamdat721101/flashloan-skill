@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "chainId",
+    "transactionHash",
+    "blockNumber",
+    "blockHash",
+    "netProfitUsdE8",
+    "gasWei",
+    "status",
+    "source"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "1.0"
+    },
+    "chainId": {
+      "enum": [
+        42161,
+        8453,
+        4663
+      ]
+    },
+    "transactionHash": {
+      "type": "string",
+      "pattern": "^0x[0-9a-f]{64}$"
+    },
+    "blockNumber": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)$"
+    },
+    "blockHash": {
+      "type": "string",
+      "pattern": "^0x[0-9a-f]{64}$"
+    },
+    "netProfitUsdE8": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)$"
+    },
+    "gasWei": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)$"
+    },
+    "status": {
+      "enum": [
+        "awaiting-finality",
+        "profitable-finalized",
+        "revert",
+        "halted"
+      ]
+    },
+    "source": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}

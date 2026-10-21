@@ -1,4 +1,4 @@
-import { arbitrum } from 'viem/chains';
+import { evmProfile } from './evm-chains.js';
 import { createPublicClient, createWalletClient, decodeFunctionData, formatUnits, http, parseEventLogs } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import type { ExecutorAdapter } from './connectors.js';
@@ -41,18 +41,19 @@ export function validateBroadcastEvidence(plan: AllocationPlan, latestBlock: big
 
 /** Arbitrum raw-call adapter. Strategy connectors supply already-encoded, executor-validated calldata. */
 export class ArbitrumExecutorAdapter implements ExecutorAdapter {
-  readonly chainId = 42161;
+  readonly chainId: number;
   private readonly account;
   private readonly publicClient;
   private readonly walletClient;
 
   constructor(private readonly config: SkillConfig, private readonly nativeTokenUsd: number) {
-    if (config.chainId !== this.chainId) throw new Error('ArbitrumExecutorAdapter only supports chain 42161');
+    this.chainId = config.chainId; evmProfile(this.chainId);
+    if (this.chainId !== 42161) throw new Error('Use the manifest-bound EVM liquidity execution path for new chains');
     if (!config.executorAddress || !config.operatorPrivateKey) throw new Error('executor address and operator key are required for Arbitrum execution');
     if (!Number.isFinite(nativeTokenUsd) || nativeTokenUsd <= 0) throw new Error('nativeTokenUsd must be positive');
     this.account = privateKeyToAccount(config.operatorPrivateKey);
-    this.publicClient = createPublicClient({ chain: arbitrum, transport: http(config.rpcUrl) });
-    this.walletClient = createWalletClient({ account: this.account, chain: arbitrum, transport: http(config.privateRelayUrl ?? config.rpcUrl) });
+    this.publicClient = createPublicClient({ chain: evmProfile(config.chainId).chain, transport: http(config.rpcUrl) });
+    this.walletClient = createWalletClient({ account: this.account, chain: evmProfile(config.chainId).chain, transport: http(config.privateRelayUrl ?? config.rpcUrl) });
   }
 
   async verify(config: SkillConfig): Promise<void> {
@@ -119,7 +120,7 @@ export class ArbitrumReadOnlySimulator {
   constructor(private readonly config: Pick<SkillConfig, 'chainId' | 'rpcUrl' | 'executorAddress'>, private readonly nativeTokenUsd: number) {
     if (config.chainId !== 42161 || !config.executorAddress) throw new Error('Arbitrum read-only simulation requires chain 42161 and executor address');
     if (!Number.isFinite(nativeTokenUsd) || nativeTokenUsd <= 0) throw new Error('nativeTokenUsd must be positive');
-    this.publicClient = createPublicClient({ chain: arbitrum, transport: http(config.rpcUrl) });
+    this.publicClient = createPublicClient({ chain: evmProfile(config.chainId).chain, transport: http(config.rpcUrl) });
   }
 
   async simulate(plan: AllocationPlan): Promise<SimulationResult> {

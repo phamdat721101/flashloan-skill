@@ -31,7 +31,7 @@ export async function runL2Candidates(runtime: LiquidityRuntime,candidates: read
     const id = digest(candidate), binding = bindings.find(b => b.candidateDigest === id), frame = binding ? frames.get(binding.frameId) : undefined;
     try {
       if (!binding || !frame || !frame.quality.complete || digest(candidate.identity) !== digest(frame.identity) || !candidate.poolIds.includes(frame.poolId) || now >= ns(binding.expiresAtNs)) throw new Error('L2_INVALID_EXECUTION_BINDING');
-      const age = now-ns(frame.receivedTimeNs), limit = frame.identity.chain === 'arbitrum' ? 2000000000n : 5000000000n;
+      const age = now-ns(frame.receivedTimeNs), limit = frame.identity.chain !== 'sui' ? 2000000000n : 5000000000n;
       if (age < 0n || age > limit) throw new Error('L2_STALE_STATE');
       if (policy.mode === 'auto') {
         const risk = risks?.get(`${candidate.identity.chain}:${candidate.identity.network}`);
@@ -55,7 +55,7 @@ export async function runL2Candidates(runtime: LiquidityRuntime,candidates: read
     if (signal.aborted) throw new Error('L2_ADMISSION_CANCELLED');
     const binding = bindings.find(b => b.candidateDigest === digest(candidate))!, frame = frames.get(binding.frameId)!;
     const now = ns(currentTime()), age = now-ns(frame.receivedTimeNs);
-    if (now >= ns(binding.expiresAtNs) || age < 0n || age > (frame.identity.chain === 'arbitrum' ? 2000000000n : 5000000000n)) throw new Error('L2_STALE_STATE');
+    if (now >= ns(binding.expiresAtNs) || age < 0n || age > (frame.identity.chain !== 'sui' ? 2000000000n : 5000000000n)) throw new Error('L2_STALE_STATE');
     const risk = riskJournal ? (await riskJournal.state()).states.get(`${candidate.identity.chain}:${candidate.identity.network}`) : undefined;
     if (signal.aborted) throw new Error('L2_ADMISSION_CANCELLED');
     if (policy.mode === 'auto' && (!risk || risk.halted || !binding.riskSizing || binding.riskSizing.riskDigest !== digest(risk) || uint(candidate.borrowAmount) > uint(binding.riskSizing.unscaledMaximum)*BigInt(risk.multiplierBps)/10000n)) throw new Error('L2_RISK_RESIZING_OR_RECONCILIATION_REQUIRED');
@@ -84,7 +84,7 @@ export class L2RiskJournal {
     return { states,ids,receipts,tail };
   }
   private reduce(event: ReflectionEvent,prior?: RiskReflection): RiskReflection {
-    if (!event || Object.keys(event).sort().join(',') !== 'eventId,lane,receiptDigest,source,status,unexpectedSlippageBps' || !/^(arbitrum:(42161|421614)|sui:(mainnet|testnet|localnet))$/.test(event.lane) || typeof event.eventId !== 'string' || !event.eventId || !event.source || !/^[a-f0-9]{64}$/.test(event.receiptDigest) || !['profitable','revert','defect','unknown'].includes(event.status) || !Number.isFinite(event.unexpectedSlippageBps) || event.unexpectedSlippageBps < 0) throw new Error('L2_INVALID_REFLECTION');
+    if (!event || Object.keys(event).sort().join(',') !== 'eventId,lane,receiptDigest,source,status,unexpectedSlippageBps' || !/^(arbitrum:(42161|421614)|base:8453|robinhood:4663|sui:(mainnet|testnet|localnet))$/.test(event.lane) || typeof event.eventId !== 'string' || !event.eventId || !event.source || !/^[a-f0-9]{64}$/.test(event.receiptDigest) || !['profitable','revert','defect','unknown'].includes(event.status) || !Number.isFinite(event.unexpectedSlippageBps) || event.unexpectedSlippageBps < 0) throw new Error('L2_INVALID_REFLECTION');
     const state = prior ? { ...prior } : { lane: event.lane,multiplierBps: 10000,cleanTrades: 0,halted: false };
     if (event.status === 'unknown') { state.halted = true; state.cleanTrades = 0; }
     else if (event.status !== 'profitable' || event.unexpectedSlippageBps > 25) { state.multiplierBps = 5000; state.cleanTrades = 0; }

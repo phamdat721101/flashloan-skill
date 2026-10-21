@@ -1,9 +1,10 @@
+import { isEvmChain, matchesEvmNetwork, type EvmChainKey } from '../evm-chains.js';
 import { createHash } from 'node:crypto';
 import { isValidTransactionDigest } from '@mysten/sui/utils';
 
-export type Chain = 'arbitrum' | 'sui';
+export type Chain = EvmChainKey | 'sui';
 export type StateIdentity =
-  | { chain: 'arbitrum'; network: '42161' | '421614'; height: string; blockHash: string }
+  | { chain: EvmChainKey; network: '42161' | '421614' | '8453' | '4663'; height: string; blockHash: string }
   | { chain: 'sui'; network: 'mainnet' | 'testnet' | 'localnet'; height: string; checkpointDigest: string };
 export interface LiquiditySnapshot {
   schemaVersion: '3.0';
@@ -45,9 +46,9 @@ function keys(v: Record<string, unknown>, expected: string[]): void {
 }
 export function parseStateIdentity(input: unknown): StateIdentity {
   const i = object(input);
-  if (i.chain === 'arbitrum') {
+  if (isEvmChain(i.chain)) {
     keys(i, ['chain', 'network', 'height', 'blockHash']);
-    if (typeof i.network !== 'string' || !['42161', '421614'].includes(i.network) || typeof i.blockHash !== 'string' || !/^0x[0-9a-f]{64}$/.test(i.blockHash)) throw new Error('INVALID_ARBITRUM_IDENTITY');
+    if (typeof i.network !== 'string' || !matchesEvmNetwork(i.chain, i.network) || typeof i.blockHash !== 'string' || !/^0x[0-9a-f]{64}$/.test(i.blockHash)) throw new Error('INVALID_ARBITRUM_IDENTITY');
   } else if (i.chain === 'sui') {
     keys(i, ['chain', 'network', 'height', 'checkpointDigest']);
     if (typeof i.network !== 'string' || !['mainnet', 'testnet', 'localnet'].includes(i.network) || !isSuiDigest(i.checkpointDigest)) throw new Error('INVALID_SUI_IDENTITY');

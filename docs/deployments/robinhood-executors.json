@@ -1,0 +1,153 @@
+{
+  "schemaVersion": "1.0",
+  "chainId": 4663,
+  "owner": "0xc75aAeBD1F395cFc9e7c7f291Ea32d5C9d4c270a",
+  "verifiedAtMs": 1792568499646,
+  "spentWei": "192990300588000",
+  "transactions": [
+    {
+      "label": "deploy:MultiVenueArbitrageExecutor",
+      "hash": "0xe58c840f7bc2213340e3d37fc7e6a6e9d0ddac78d302989f8aec7ce4ea6a82a0",
+      "nonce": 0,
+      "reservedWei": "86536512000000",
+      "status": "confirmed",
+      "submissionStarted": true,
+      "costWei": "71880898950000",
+      "contractAddress": "0xa27873424e74037d93dcf05d3a40556d07c2cfa8",
+      "blockNumber": "94098749"
+    },
+    {
+      "label": "configure:MultiVenueArbitrageExecutor:morpho",
+      "hash": "0x0f58fd2e44fa1761c97644af266b57f3e58742485deed6e06409e0b7831f8ad0",
+      "nonce": 1,
+      "reservedWei": "1303847798400",
+      "status": "confirmed",
+      "submissionStarted": true,
+      "costWei": "1062620000000",
+      "blockNumber": "94098852"
+    },
+    {
+      "label": "configure:MultiVenueArbitrageExecutor:v4-manager",
+      "hash": "0xe74d2b9152a001a1a418bf6cbb6df0a2439f0c8f1e146c92992430ff1c2f7dd6",
+      "nonce": 2,
+      "reservedWei": "1368292430400",
+      "status": "confirmed",
+      "submissionStarted": true,
+      "costWei": "1125788550000",
+      "blockNumber": "94098930"
+    },
+    {
+      "label": "deploy:PortableMultiSplitFlashExecutor",
+      "hash": "0xfb001c1eec2f68317e6424f24f4e2a726354fac01b69bc9a490888f8319a5ffb",
+      "nonce": 3,
+      "reservedWei": "106758142814400",
+      "status": "confirmed",
+      "submissionStarted": true,
+      "costWei": "88167228400000",
+      "contractAddress": "0xba1bb00447cd75b941b14aecd09e37f9ab461e38",
+      "blockNumber": "94099025"
+    },
+    {
+      "label": "configure:PortableMultiSplitFlashExecutor:morpho",
+      "hash": "0x4dc5b6cc7ec8dbd757d5aa10a8c723d28164d10d39cb2a06d092b44fbaaf6bf0",
+      "nonce": 4,
+      "reservedWei": "1301770780800",
+      "status": "confirmed",
+      "submissionStarted": true,
+      "costWei": "1066916496000",
+      "blockNumber": "94099126"
+    },
+    {
+      "label": "configure:PortableMultiSplitFlashExecutor:v4-manager",
+      "hash": "0x16e7811075c374a2a09ad20d78de3e2a6804a41b50471f670d926b650c5c5e2f",
+      "nonce": 5,
+      "reservedWei": "1372519764000",
+      "status": "confirmed",
+      "submissionStarted": true,
+      "costWei": "1116974992000",
+      "blockNumber": "94099222"
+    },
+    {
+      "label": "deploy:V4StateQuoter",
+      "hash": "0x46d0c543d9a700b078736f947f7b959188d0171da707a61820db10aa5e838250",
+      "nonce": 6,
+      "reservedWei": "34319819995200",
+      "status": "confirmed",
+      "submissionStarted": true,
+      "costWei": "28569873200000",
+      "contractAddress": "0x0caefeaa418d65ef03a19646d128ced8f3e4977f",
+      "blockNumber": "94099316"
+    }
+  ],
+  "verification": {
+    "schemaVersion": "1.0",
+    "chainId": 4663,
+    "deployments": [
+      {
+        "contract": "MultiVenueArbitrageExecutor",
+        "address": "0xa27873424e74037d93dcf05d3a40556d07c2cfa8",
+        "txHash": "0xe58c840f7bc2213340e3d37fc7e6a6e9d0ddac78d302989f8aec7ce4ea6a82a0",
+        "blockNumber": "94098749",
+        "runtimeCodeHash": "0xa6f9d66f2957d55530d41c04f4da5682799f14cddcac8907f7f03ec7e2d85d0d",
+        "artifactHash": "a95e4a2495f075dbde4dba3a60b685b614e9464cdfad84b2de4134c5e9d314a4",
+        "owner": "0xc75aAeBD1F395cFc9e7c7f291Ea32d5C9d4c270a",
+        "status": "verified",
+        "configurations": [
+          {
+            "role": "morpho",
+            "txHash": "0x0f58fd2e44fa1761c97644af266b57f3e58742485deed6e06409e0b7831f8ad0"
+          },
+          {
+            "role": "v4-manager",
+            "txHash": "0xe74d2b9152a001a1a418bf6cbb6df0a2439f0c8f1e146c92992430ff1c2f7dd6"
+          }
+        ],
+        "finalized": true
+      },
+      {
+        "contract": "PortableMultiSplitFlashExecutor",
+        "address": "0xba1bb00447cd75b941b14aecd09e37f9ab461e38",
+        "txHash": "0xfb001c1eec2f68317e6424f24f4e2a726354fac01b69bc9a490888f8319a5ffb",
+        "blockNumber": "94099025",
+        "runtimeCodeHash": "0x9fc305fbf69ff504107ee54657d41f90cad9a7f8bd7bf73fb86250a1fc55e367",
+        "artifactHash": "9657cdc0003cf0f46658035ff23751c986e9a6568474b2dbb5e6fded1a68be1a",
+        "owner": "0xc75aAeBD1F395cFc9e7c7f291Ea32d5C9d4c270a",
+        "status": "verified",
+        "configurations": [
+          {
+            "role": "morpho",
+            "txHash": "0x4dc5b6cc7ec8dbd757d5aa10a8c723d28164d10d39cb2a06d092b44fbaaf6bf0"
+          },
+          {
+            "role": "v4-manager",
+            "txHash": "0x16e7811075c374a2a09ad20d78de3e2a6804a41b50471f670d926b650c5c5e2f"
+          }
+        ],
+        "finalized": true
+      },
+      {
+        "contract": "V4StateQuoter",
+        "address": "0x0caefeaa418d65ef03a19646d128ced8f3e4977f",
+        "txHash": "0x46d0c543d9a700b078736f947f7b959188d0171da707a61820db10aa5e838250",
+        "blockNumber": "94099316",
+        "runtimeCodeHash": "0xafcacb144b3f02416c90ba8fc8e4b593f49d3eec54aed483f430c0f218417f44",
+        "artifactHash": "94cdf8da6e575049dcc564288b0419a44dc6c73e9d157ac1d7a6d09b98fed157",
+        "owner": null,
+        "status": "verified",
+        "configurations": [],
+        "finalized": true
+      }
+    ],
+    "exclusions": [
+      {
+        "contract": "ArbitrumMultiSplitFlashExecutor",
+        "reason": "Historical Arbitrum constants; replaced by portable authenticated split revision"
+      },
+      {
+        "contract": "ImmutableArbitrageExecutor",
+        "reason": "No authoritative Aave provider admitted for Robinhood"
+      }
+    ],
+    "tradingAdmission": "not-admitted"
+  }
+}

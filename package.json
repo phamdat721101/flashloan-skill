@@ -3,11 +3,23 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "files": ["dist", "skills", "schemas", "crates", "Cargo.toml", "Cargo.lock", "rust-toolchain.toml", ".env.example", "README.md"],
+  "files": [
+    "dist",
+    "skills",
+    "schemas",
+    "crates",
+    "Cargo.toml",
+    "Cargo.lock",
+    "rust-toolchain.toml",
+    ".env.example",
+    "README.md"
+  ],
   "bin": {
     "flashloan-agent": "dist/agent-cli.js"
   },
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc --noEmit -p tsconfig.json",
@@ -30,7 +42,12 @@
     "liquidity:proof": "npm run build && node dist/liquidity/local-proof.js",
     "l2:test": "npm run build && node --test dist/test/level-2-e2e.test.js",
     "l2": "tsx src/liquidity/cli.ts",
-    "l2:proof": "npm run build && node dist/liquidity/l2-proof.js"
+    "l2:proof": "npm run build && node dist/liquidity/l2-proof.js",
+    "evm": "tsx src/evm/cli.ts",
+    "evm:test": "forge build && npm run build && node --test dist/test/evm-*.test.js",
+    "evm:abi-check": "tsx src/evm/abi-check.ts",
+    "pretest": "forge build",
+    "evm:local-e2e": "npm run build && node scripts/evm-local-e2e.mjs"
   },
   "dependencies": {
     "@mysten/sui": "^2.0.0",

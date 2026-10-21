@@ -1,5 +1,4 @@
 import { createPublicClient, http } from 'viem';
-import { arbitrum } from 'viem/chains';
 import { buildDynamicPlan, type RouteQuote } from '../dynamic.js';
 import type { Hex } from '../types.js';
 import { discoverDexPairCandidates } from './dex-pair.js';
@@ -24,7 +23,8 @@ function usdValueE8(amount: bigint, priceUsdE8: bigint, decimals: number): bigin
 
 /** Runs exact, head-pinned DEX-pair discovery. It never constructs a wallet or broadcasts. */
 export async function runDexBridge(config: BridgeConfig): Promise<BridgeDecision[]> {
-  const client = createPublicClient({ chain: arbitrum, transport: http(config.rpcUrl) });
+  const client = createPublicClient({ transport: http(config.rpcUrl) });
+  if (await client.getChainId() !== config.chainId) throw new Error('SOURCE_CHAIN_MISMATCH');
   const head = await client.getBlock({ blockTag: 'latest' });
   if (!head.number || !head.hash) throw new Error('head block is incomplete');
   const reader = new ArbitrumDexQuoteReader(config.rpcUrl, config.quoters, { number: head.number, hash: head.hash });

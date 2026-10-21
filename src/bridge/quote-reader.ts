@@ -1,5 +1,4 @@
 import { createPublicClient, http, parseAbi, type PublicClient } from 'viem';
-import { arbitrum } from 'viem/chains';
 import type { Address, Hex } from '../types.js';
 import type { DexPairQuote, DexPairQuoteReader, DexVenue } from './dex-pair.js';
 
@@ -22,7 +21,7 @@ export class ArbitrumDexQuoteReader implements DexPairQuoteReader {
 
   constructor(rpcUrl: string, private readonly quoters: DexQuoterRegistry, block: { number: bigint; hash: Hex }) {
     this.block = block;
-    this.client = createPublicClient({ chain: arbitrum, transport: http(rpcUrl, { retryCount: 5, retryDelay: 1_000 }) });
+    this.client = createPublicClient({ transport: http(rpcUrl, { retryCount: 5, retryDelay: 1_000 }) });
   }
 
   async quote(input: { venue: DexVenue; tokenIn: Address; tokenOut: Address; amountInWei: bigint; uniFee: number }): Promise<DexPairQuote> {

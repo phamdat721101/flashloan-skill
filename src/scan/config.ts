@@ -1,3 +1,4 @@
+import { evmProfile } from '../evm-chains.js';
 import { readFile } from 'node:fs/promises';
 import type { Address } from '../types.js';
 import type { AssetRiskPolicy, ScannerConfig, VenueDescriptor } from './types.js';
@@ -42,7 +43,8 @@ export async function loadScannerConfig(filePath: string): Promise<ScannerConfig
   const raw: unknown = JSON.parse(await readFile(filePath, 'utf8'));
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new Error('scanner config must be an object');
   const value = raw as Record<string, unknown>;
-  if (value.chainId !== 42161) throw new Error('scanner currently supports Arbitrum One (chain 42161) only');
+  if (typeof value.chainId !== 'number' || !Number.isSafeInteger(value.chainId)) throw new Error('INVALID_EVM_CHAIN_ID');
+  evmProfile(value.chainId);
   if (typeof value.rpcUrl !== 'string' || !/^https?:\/\//.test(value.rpcUrl)) throw new Error('rpcUrl must be an HTTP(S) URL');
   if (typeof value.startBlock !== 'string' || !/^\d+$/.test(value.startBlock)) throw new Error('startBlock must be a decimal string');
   const protocols = value.protocols;
@@ -63,10 +65,10 @@ export async function loadScannerConfig(filePath: string): Promise<ScannerConfig
   })();
   const assetAllowlist = value.assetAllowlist === undefined ? undefined : (value.assetAllowlist as unknown[]).map((item) => address(item, 'assetAllowlist item'));
   return {
-    chainId: 42161,
+    chainId: value.chainId as number,
     rpcUrl: value.rpcUrl,
     startBlock: value.startBlock,
-    stateDir: typeof value.stateDir === 'string' ? value.stateDir : '.flashloan-agent/scan',
+    stateDir: typeof value.stateDir === 'string' ? value.stateDir : `.flashloan-agent/${value.chainId}/scan`,
     outputFile: typeof value.outputFile === 'string' ? value.outputFile : undefined,
     finalityBlocks: positiveInteger(value.finalityBlocks, 'finalityBlocks', 20),
     logChunkSize: positiveInteger(value.logChunkSize, 'logChunkSize', 2_000),

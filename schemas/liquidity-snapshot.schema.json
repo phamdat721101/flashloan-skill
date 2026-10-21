@@ -17,6 +17,8 @@
         { "type": "object", "additionalProperties": false, "required": ["chain", "network", "height", "blockHash"], "properties": {
           "chain": { "const": "arbitrum" }, "network": { "enum": ["42161", "421614"] }, "height": { "type": "string", "pattern": "^(0|[1-9][0-9]*)$", "maxLength": 20 }, "blockHash": { "type": "string", "pattern": "^0x[0-9a-f]{64}$" }
         } },
+{"type":"object","additionalProperties":false,"required":["chain","network","height","blockHash"],"properties":{"chain":{"const":"base"},"network":{"const":"8453"},"height":{"type":"string","pattern":"^(0|[1-9][0-9]*)$","maxLength":20},"blockHash":{"type":"string","pattern":"^0x[0-9a-f]{64}$"}}},
+{"type":"object","additionalProperties":false,"required":["chain","network","height","blockHash"],"properties":{"chain":{"const":"robinhood"},"network":{"const":"4663"},"height":{"type":"string","pattern":"^(0|[1-9][0-9]*)$","maxLength":20},"blockHash":{"type":"string","pattern":"^0x[0-9a-f]{64}$"}}},
         { "type": "object", "additionalProperties": false, "required": ["chain", "network", "height", "checkpointDigest"], "properties": {
           "chain": { "const": "sui" }, "network": { "enum": ["mainnet", "testnet", "localnet"] }, "height": { "type": "string", "pattern": "^(0|[1-9][0-9]*)$", "maxLength": 20 }, "checkpointDigest": { "type": "string", "pattern": "^[1-9A-HJ-NP-Za-km-z]{32,44}$" }
         } }

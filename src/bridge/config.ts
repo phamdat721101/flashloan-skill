@@ -1,3 +1,4 @@
+import { evmProfile } from '../evm-chains.js';
 import { readFile } from 'node:fs/promises';
 import type { Address } from '../types.js';
 import { parseDynamicSolverConfig, type DynamicSolverConfig } from '../dynamic.js';
@@ -16,7 +17,7 @@ export interface BridgePairConfig extends DexPairPolicy {
 }
 
 export interface BridgeConfig {
-  chainId: 42161;
+  chainId: number;
   rpcUrl: string;
   quoters: DexQuoterRegistry;
   pairs: BridgePairConfig[];
@@ -28,7 +29,9 @@ export async function loadBridgeConfig(path: string): Promise<BridgeConfig> {
   const raw: unknown = JSON.parse(await readFile(path, 'utf8'));
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new Error('bridge config must be an object');
   const value = raw as Record<string, unknown>;
-  if (value.chainId !== 42161 || typeof value.rpcUrl !== 'string' || !/^https:\/\//.test(value.rpcUrl)) throw new Error('bridge requires an HTTPS Arbitrum One RPC');
+  if (typeof value.chainId !== 'number' || !Number.isSafeInteger(value.chainId)) throw new Error('INVALID_EVM_CHAIN_ID');
+  evmProfile(value.chainId);
+  if ( typeof value.rpcUrl !== 'string' || !/^https:\/\//.test(value.rpcUrl)) throw new Error('bridge requires an HTTPS Arbitrum One RPC');
   if (!value.quoters || typeof value.quoters !== 'object' || Array.isArray(value.quoters)) throw new Error('bridge quoters are required');
   if (!Array.isArray(value.pairs) || value.pairs.length === 0) throw new Error('bridge requires at least one DEX pair');
   const quotersRaw = value.quoters as Record<string, unknown>;
@@ -43,5 +46,5 @@ export async function loadBridgeConfig(path: string): Promise<BridgeConfig> {
       minNetProfitUsd: typeof pair.minNetProfitUsd === 'string' ? pair.minNetProfitUsd : '', minProfitWei: typeof pair.minProfitWei === 'string' ? pair.minProfitWei : '', flashTokenUsdOracle: address(pair.flashTokenUsdOracle, `pairs[${index}].flashTokenUsdOracle`), targetTokenUsdOracle: address(pair.targetTokenUsdOracle, `pairs[${index}].targetTokenUsdOracle`), maxOracleAgeSeconds: pair.maxOracleAgeSeconds
     } as BridgePairConfig;
   });
-  return { chainId: 42161, rpcUrl: value.rpcUrl, quoters, pairs, solver: parseDynamicSolverConfig(value.solver) };
+  return { chainId: value.chainId as number, rpcUrl: value.rpcUrl, quoters, pairs, solver: parseDynamicSolverConfig(value.solver) };
 }

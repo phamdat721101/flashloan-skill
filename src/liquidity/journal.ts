@@ -2,7 +2,7 @@ import { mkdir, open, readFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import { ExecutionLock } from '../execution-lock.js';
 
-export type AttemptState = 'prepared' | 'signed' | 'submitted' | 'acceptance-unknown' | 'reconciled' | 'halted';
+export type AttemptState = 'prepared' | 'signed' | 'submitted' | 'acceptance-unknown' | 'reconciled' | 'halted' | 'cancelled';
 export interface AttemptRecord {
   id: string;
   lane: string;
@@ -15,11 +15,11 @@ export interface AttemptRecord {
   day: string;
 }
 const nextStates: Record<AttemptState, AttemptState[]> = {
-  prepared: ['signed', 'halted'], signed: ['submitted', 'acceptance-unknown', 'halted'],
-  submitted: ['reconciled', 'halted', 'acceptance-unknown'], 'acceptance-unknown': ['submitted', 'reconciled', 'halted'], reconciled: [], halted: ['reconciled']
+  prepared: ['signed', 'halted', 'cancelled'], signed: ['submitted', 'acceptance-unknown', 'halted', 'cancelled'],
+  submitted: ['reconciled', 'halted', 'acceptance-unknown'], 'acceptance-unknown': ['submitted', 'reconciled', 'halted'], reconciled: [], cancelled: [], halted: ['reconciled', 'cancelled']
 };
 function validateRecord(r: AttemptRecord): void {
-  if (!r || Object.keys(r).sort().join(',') !== 'budgetAsset,candidateDigest,day,id,lane,loss,resource,state,transactionId' || typeof r.id !== 'string' || !r.id || typeof r.lane !== 'string' || !/^(arbitrum:(42161|421614)|sui:(mainnet|testnet|localnet))$/.test(r.lane) || typeof r.budgetAsset !== 'string' || !r.budgetAsset.startsWith(`${r.lane}:`) || typeof r.resource !== 'string' || !r.resource || r.resource.length > 256 || !/^[a-f0-9]{64}$/.test(r.candidateDigest) || !Object.hasOwn(nextStates, r.state) || !/^(0|[1-9][0-9]*)$/.test(r.loss) || !/^\d{4}-\d{2}-\d{2}$/.test(r.day) || !(r.transactionId === null || typeof r.transactionId === 'string')) throw new Error('JOURNAL_CORRUPT');
+  if (!r || Object.keys(r).sort().join(',') !== 'budgetAsset,candidateDigest,day,id,lane,loss,resource,state,transactionId' || typeof r.id !== 'string' || !r.id || typeof r.lane !== 'string' || !/^(arbitrum:(42161|421614)|base:8453|robinhood:4663|sui:(mainnet|testnet|localnet))$/.test(r.lane) || typeof r.budgetAsset !== 'string' || !r.budgetAsset.startsWith(`${r.lane}:`) || typeof r.resource !== 'string' || !r.resource || r.resource.length > 256 || !/^[a-f0-9]{64}$/.test(r.candidateDigest) || !Object.hasOwn(nextStates, r.state) || !/^(0|[1-9][0-9]*)$/.test(r.loss) || !/^\d{4}-\d{2}-\d{2}$/.test(r.day) || !(r.transactionId === null || typeof r.transactionId === 'string')) throw new Error('JOURNAL_CORRUPT');
 }
 
 /** Never stores secrets, calldata or signed transaction bytes. Unresolved leases survive restart. */
@@ -56,7 +56,7 @@ export class AttemptJournal {
     validateRecord(record);
     await this.mutate(async () => {
       const prior = await this.latest();
-      if (prior.some(r => r.lane === record.lane && r.state !== 'reconciled')) throw new Error('UNRESOLVED_ATTEMPT');
+      if (prior.some(r => r.lane === record.lane && !['reconciled', 'cancelled'].includes(r.state))) throw new Error('UNRESOLVED_ATTEMPT');
       if (prior.some(r => r.id === record.id || r.candidateDigest === record.candidateDigest)) throw new Error('DUPLICATE_ATTEMPT');
       if (prior.some(r => r.lane === record.lane && r.day === record.day && r.budgetAsset !== record.budgetAsset)) throw new Error('BUDGET_ASSET_CHANGED');
       const used = prior.filter(r => r.lane === record.lane && r.day === record.day).reduce((n, r) => n + BigInt(r.loss), 0n);
@@ -70,8 +70,8 @@ export class AttemptJournal {
       const prior = (await this.latest()).find(r => r.id === id);
       if (!prior || !nextStates[prior.state].includes(state)) throw new Error('INVALID_ATTEMPT_TRANSITION');
       if (prior.transactionId && transactionId !== prior.transactionId) throw new Error('TRANSACTION_ID_CHANGED');
-      if (state !== 'halted' && !transactionId) throw new Error('MISSING_TRANSACTION_ID');
-      if (loss !== undefined && (loss < 0n || (state !== 'reconciled' && state !== 'halted'))) throw new Error('INVALID_LOSS');
+      if (state !== 'halted' && state !== 'cancelled' && !transactionId) throw new Error('MISSING_TRANSACTION_ID');
+      if (loss !== undefined && (loss < 0n || (state !== 'reconciled' && state !== 'halted' && state !== 'cancelled'))) throw new Error('INVALID_LOSS');
       await this.append({ ...prior, state, transactionId, loss: (loss ?? BigInt(prior.loss)).toString() });
     });
   }

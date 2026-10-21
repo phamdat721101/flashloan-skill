@@ -70,7 +70,7 @@ function probabilities(model: L2Model,features: number[]): [number,number,number
   return softmax(model.weights.map(w => w.reduce((s,v,i) => s+v*x[i],0)/model.temperature));
 }
 export function trainL2Model(examples: readonly TrainingExample[],chain: StateIdentity['chain'],horizon: Horizon,flatBandBps = 10): L2Model {
-  if (!['arbitrum','sui'].includes(chain) || !HORIZONS.includes(horizon) || !Number.isFinite(flatBandBps) || flatBandBps <= 0) throw new Error('L2_INVALID_TRAINING_CONFIG');
+  if (!['arbitrum','base','robinhood','sui'].includes(chain) || !HORIZONS.includes(horizon) || !Number.isFinite(flatBandBps) || flatBandBps <= 0) throw new Error('L2_INVALID_TRAINING_CONFIG');
   const rows = validateExamples(examples,chain,horizon), features = rows.map(e => frameFeatures(e.frame)), dims = features[0].length;
   const mean = Array.from({ length: dims },(_,i) => features.reduce((s,x) => s+x[i],0)/rows.length);
   const scale = mean.map((m,i) => Math.sqrt(features.reduce((s,x) => s+(x[i]-m)**2,0)/rows.length) || 1);

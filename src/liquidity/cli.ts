@@ -1,3 +1,4 @@
+import { evmProfile } from '../evm-chains.js';
 import { open, readFile } from 'node:fs/promises';
 import { runLiquidityAnalytics } from './analytics.js';
 import { readArbitrumHead, readArbitrumV2Snapshot, readArbitrumAnalyticsSnapshot, readSuiCheckpoint, readSuiHead, readSuiNativeCheckpoints, readSuiCetusAnalyticsSnapshot, SOURCE_CAPABILITIES, type V2SourcePool, type AnalyticsPoolConfig } from './sources.js';
@@ -25,7 +26,8 @@ async function readAnalyticsJson(path: string): Promise<unknown> {
 }
 
 async function main(): Promise<void> {
-  const [command, path] = process.argv.slice(2);
+  const [rawCommand, path] = process.argv.slice(2);
+  const command = rawCommand?.replace(/-evm$/, '-arbitrum');
   if (command?.startsWith('l2-')) { await (await import('./l2-cli.js')).runL2Cli(command,path); return; }
   if (command === 'sources') { console.log(JSON.stringify(SOURCE_CAPABILITIES)); return; }
   if (['snapshot-algebra-arbitrum','simulate-v4','snapshot-analytics-sui','stream-sui'].includes(command)) {
@@ -103,7 +105,7 @@ async function main(): Promise<void> {
       const isSui = command.endsWith('sui'), following = command.startsWith('follow-');
       const from = following ? config.start : isSui ? config.fromCheckpoint : config.fromBlock, to = isSui ? config.toCheckpoint : config.toBlock;
       if (typeof from !== 'string' || (!following && typeof to !== 'string') || (isSui ? typeof config.expectedChainIdentifier !== 'string' : !Array.isArray(config.pools))) throw new Error('INVALID_SOURCE_CONFIG');
-      const journal = new SourceJournal(config.journalPath, { sourceId: config.sourceId, chain: isSui ? 'sui' : 'arbitrum', network: config.network, chainIdentifier: isSui ? config.expectedChainIdentifier as string : config.network });
+      const journal = new SourceJournal(config.journalPath, { sourceId: config.sourceId, chain: isSui ? 'sui' : evmProfile(Number(config.network)).key, network: config.network, chainIdentifier: isSui ? config.expectedChainIdentifier as string : config.network });
       const read = async (height: string) => {
         if (isSui) {
           const checkpoint = await readSuiCheckpoint(config.rpcUrl as string, config.network as 'mainnet' | 'testnet' | 'localnet', height, config.expectedChainIdentifier as string);

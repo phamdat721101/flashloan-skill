@@ -1,3 +1,4 @@
+import { matchesEvmNetwork } from '../evm-chains.js';
 import { createReadStream } from 'node:fs';
 import { mkdir, open, stat } from 'node:fs/promises';
 import { dirname } from 'node:path';
@@ -17,7 +18,7 @@ export interface SourceRecord extends SourceFrame {
   payloadDigest: string; previousRecordDigest: string | null; recordDigest: string;
 }
 function chainDigest(identity: StateIdentity): string {
-  return identity.chain === 'arbitrum' ? identity.blockHash : identity.checkpointDigest;
+  return identity.chain !== 'sui' ? identity.blockHash : identity.checkpointDigest;
 }
 
 /** Bounded-memory JSONL recovery. A partial last record is never treated as committed. */
@@ -49,14 +50,14 @@ export class SourceJournal {
   private cached: { size: number; mtimeMs: number; ino: number; last: SourceRecord | null } | undefined;
   constructor(private readonly path: string, readonly binding: Readonly<SourceBinding>, private readonly maxRecordBytes = 4 * 1024 * 1024) {
     if (!binding || Object.keys(binding).sort().join(',') !== 'chain,chainIdentifier,network,sourceId' || !Number.isSafeInteger(maxRecordBytes) || maxRecordBytes < 256 || maxRecordBytes > 64 * 1024 * 1024 || typeof binding.sourceId !== 'string' || !binding.sourceId || binding.sourceId.length > 128 || typeof binding.network !== 'string' || typeof binding.chainIdentifier !== 'string') throw new Error('INVALID_SOURCE_JOURNAL_CONFIG');
-    const genesis = binding.chain === 'arbitrum' ? binding.chainIdentifier === binding.network : isSuiDigest(binding.chainIdentifier);
-    if (!genesis || !['arbitrum', 'sui'].includes(binding.chain) || !(binding.chain === 'arbitrum' ? ['42161', '421614'] : ['mainnet', 'testnet', 'localnet']).includes(binding.network)) throw new Error('INVALID_SOURCE_BINDING');
+    const genesis = binding.chain !== 'sui' ? binding.chainIdentifier === binding.network : isSuiDigest(binding.chainIdentifier);
+    if (!genesis || !(binding.chain !== 'sui' ? matchesEvmNetwork(binding.chain, binding.network) : ['mainnet', 'testnet', 'localnet'].includes(binding.network))) throw new Error('INVALID_SOURCE_BINDING');
     this.binding = Object.freeze(structuredClone(binding));
   }
   private validate(frame: SourceFrame): void {
     const identity = parseStateIdentity(frame.identity);
     if (identity.chain !== this.binding.chain || identity.network !== this.binding.network) throw new Error('SOURCE_CHAIN_MISMATCH');
-    const validParent = identity.chain === 'arbitrum' ? typeof frame.parentDigest === 'string' && /^0x[0-9a-f]{64}$/.test(frame.parentDigest) : isSuiDigest(frame.parentDigest);
+    const validParent = identity.chain !== 'sui' ? typeof frame.parentDigest === 'string' && /^0x[0-9a-f]{64}$/.test(frame.parentDigest) : isSuiDigest(frame.parentDigest);
     if (!(frame.parentDigest === null ? identity.height === '0' : validParent)) throw new Error('INVALID_SOURCE_PARENT');
     digest(frame.payload);
   }

@@ -1,0 +1,229 @@
+{
+  "schemaVersion": "1.0",
+  "chainId": 8453,
+  "owner": "0xc75aAeBD1F395cFc9e7c7f291Ea32d5C9d4c270a",
+  "verifiedAtMs": 1792568492471,
+  "spentWei": "69975982625293",
+  "transactions": [
+    {
+      "label": "deploy:MultiVenueArbitrageExecutor",
+      "hash": "0x2611a72de31759b12f9751f9913b5c9952ec52b2cc36ef0b0e6d1476de7c8d71",
+      "nonce": 0,
+      "reservedWei": "25128180462378",
+      "status": "confirmed",
+      "submissionStarted": true,
+      "costWei": "21347544012126",
+      "contractAddress": "0xa27873424e74037d93dcf05d3a40556d07c2cfa8",
+      "blockNumber": "52888580"
+    },
+    {
+      "label": "configure:MultiVenueArbitrageExecutor:morpho",
+      "hash": "0xea598fde3b68f9606b4de7040ef8248543a6a54d8911809e7e4a31cc0ae8a416",
+      "nonce": 1,
+      "reservedWei": "374056305620",
+      "status": "confirmed",
+      "submissionStarted": true,
+      "costWei": "315260080662",
+      "blockNumber": "52888631"
+    },
+    {
+      "label": "configure:MultiVenueArbitrageExecutor:v4-manager",
+      "hash": "0xeccbca8f09e90e54cea9816d8ee798cfff32bc0612e5444171fc8f4264fa67a6",
+      "nonce": 2,
+      "reservedWei": "392982460484",
+      "status": "confirmed",
+      "submissionStarted": true,
+      "costWei": "331261318149",
+      "blockNumber": "52888758"
+    },
+    {
+      "label": "configure:MultiVenueArbitrageExecutor:aave-provider",
+      "hash": "0x04621f621b735d6fb4ffa3f52b9c477615e179d4bbad1685caa5b9d29dda030e",
+      "nonce": 3,
+      "reservedWei": "371688359205",
+      "status": "confirmed",
+      "submissionStarted": true,
+      "costWei": "313158961125",
+      "blockNumber": "52888873"
+    },
+    {
+      "label": "deploy:PortableMultiSplitFlashExecutor",
+      "hash": "0xacdba2bd6329a25d8665f9cb62ba10813e42713396f4bb64679aaa434df3e00a",
+      "nonce": 4,
+      "reservedWei": "30957687232837",
+      "status": "confirmed",
+      "submissionStarted": true,
+      "costWei": "26290534491244",
+      "contractAddress": "0x0cd3a077aec94f51d32e8d55120cf90d5db7841c",
+      "blockNumber": "52888950"
+    },
+    {
+      "label": "configure:PortableMultiSplitFlashExecutor:morpho",
+      "hash": "0x4936750e2b7202c7243e25696f5002f6841d45a0e016528915809f40f18f3931",
+      "nonce": 5,
+      "reservedWei": "375659141951",
+      "status": "confirmed",
+      "submissionStarted": true,
+      "costWei": "315769662390",
+      "blockNumber": "52889004"
+    },
+    {
+      "label": "configure:PortableMultiSplitFlashExecutor:v4-manager",
+      "hash": "0x12cfac0498893c5985030e1259278910d132feb4df361b8ea146c8a856505373",
+      "nonce": 6,
+      "reservedWei": "394347718630",
+      "status": "confirmed",
+      "submissionStarted": true,
+      "costWei": "331662215237",
+      "blockNumber": "52889010"
+    },
+    {
+      "label": "configure:PortableMultiSplitFlashExecutor:aave-provider",
+      "hash": "0xb8299f2dca8e6a06490bf058f58185222f6e5bcab75aac4d106a5fe60bce62c0",
+      "nonce": 7,
+      "reservedWei": "372823834808",
+      "status": "confirmed",
+      "submissionStarted": true,
+      "costWei": "313554076474",
+      "blockNumber": "52889015"
+    },
+    {
+      "label": "deploy:V4StateQuoter",
+      "hash": "0x3b74bc7ae6222974ca555f428ae95aeb434348695435c0aa193b7ea38b4d4a12",
+      "nonce": 8,
+      "reservedWei": "9945891274159",
+      "status": "confirmed",
+      "submissionStarted": true,
+      "costWei": "8440025486767",
+      "contractAddress": "0x84f9615db5a1c6ac87acb686a3cb3fcb44ec1825",
+      "blockNumber": "52889021"
+    },
+    {
+      "label": "deploy:ImmutableArbitrageExecutor",
+      "hash": "0x02a51e42e8496acf1d2f6782d080d21e2ede874c1eca463b48583e6c55aa5973",
+      "nonce": 9,
+      "reservedWei": "13358349141214",
+      "status": "confirmed",
+      "submissionStarted": true,
+      "costWei": "11341357420300",
+      "contractAddress": "0x00cba652a1b4cf21063d443c5c1b0d495f477999",
+      "blockNumber": "52889026"
+    },
+    {
+      "label": "configure:ImmutableArbitrageExecutor:v4-manager",
+      "hash": "0x3088b0858c3ae52946dd2bac34ff0898111b93d2c3df2e55ba1ff7ca6c22a434",
+      "nonce": 10,
+      "reservedWei": "388308020093",
+      "status": "confirmed",
+      "submissionStarted": true,
+      "costWei": "326551884273",
+      "blockNumber": "52889032"
+    },
+    {
+      "label": "configure:ImmutableArbitrageExecutor:aave-provider",
+      "hash": "0xd78e434ba50ee8991f74a9f2903b920589eb9e286b365c1f991169d8ca930b49",
+      "nonce": 11,
+      "reservedWei": "364975445951",
+      "status": "confirmed",
+      "submissionStarted": true,
+      "costWei": "309303016546",
+      "blockNumber": "52889037"
+    }
+  ],
+  "verification": {
+    "schemaVersion": "1.0",
+    "chainId": 8453,
+    "deployments": [
+      {
+        "contract": "MultiVenueArbitrageExecutor",
+        "address": "0xa27873424e74037d93dcf05d3a40556d07c2cfa8",
+        "txHash": "0x2611a72de31759b12f9751f9913b5c9952ec52b2cc36ef0b0e6d1476de7c8d71",
+        "blockNumber": "52888580",
+        "runtimeCodeHash": "0xa6f9d66f2957d55530d41c04f4da5682799f14cddcac8907f7f03ec7e2d85d0d",
+        "artifactHash": "a95e4a2495f075dbde4dba3a60b685b614e9464cdfad84b2de4134c5e9d314a4",
+        "owner": "0xc75aAeBD1F395cFc9e7c7f291Ea32d5C9d4c270a",
+        "status": "verified",
+        "configurations": [
+          {
+            "role": "morpho",
+            "txHash": "0xea598fde3b68f9606b4de7040ef8248543a6a54d8911809e7e4a31cc0ae8a416"
+          },
+          {
+            "role": "v4-manager",
+            "txHash": "0xeccbca8f09e90e54cea9816d8ee798cfff32bc0612e5444171fc8f4264fa67a6"
+          },
+          {
+            "role": "aave-provider",
+            "txHash": "0x04621f621b735d6fb4ffa3f52b9c477615e179d4bbad1685caa5b9d29dda030e"
+          }
+        ],
+        "finalized": true
+      },
+      {
+        "contract": "PortableMultiSplitFlashExecutor",
+        "address": "0x0cd3a077aec94f51d32e8d55120cf90d5db7841c",
+        "txHash": "0xacdba2bd6329a25d8665f9cb62ba10813e42713396f4bb64679aaa434df3e00a",
+        "blockNumber": "52888950",
+        "runtimeCodeHash": "0x9fc305fbf69ff504107ee54657d41f90cad9a7f8bd7bf73fb86250a1fc55e367",
+        "artifactHash": "9657cdc0003cf0f46658035ff23751c986e9a6568474b2dbb5e6fded1a68be1a",
+        "owner": "0xc75aAeBD1F395cFc9e7c7f291Ea32d5C9d4c270a",
+        "status": "verified",
+        "configurations": [
+          {
+            "role": "morpho",
+            "txHash": "0x4936750e2b7202c7243e25696f5002f6841d45a0e016528915809f40f18f3931"
+          },
+          {
+            "role": "v4-manager",
+            "txHash": "0x12cfac0498893c5985030e1259278910d132feb4df361b8ea146c8a856505373"
+          },
+          {
+            "role": "aave-provider",
+            "txHash": "0xb8299f2dca8e6a06490bf058f58185222f6e5bcab75aac4d106a5fe60bce62c0"
+          }
+        ],
+        "finalized": true
+      },
+      {
+        "contract": "V4StateQuoter",
+        "address": "0x84f9615db5a1c6ac87acb686a3cb3fcb44ec1825",
+        "txHash": "0x3b74bc7ae6222974ca555f428ae95aeb434348695435c0aa193b7ea38b4d4a12",
+        "blockNumber": "52889021",
+        "runtimeCodeHash": "0xafcacb144b3f02416c90ba8fc8e4b593f49d3eec54aed483f430c0f218417f44",
+        "artifactHash": "94cdf8da6e575049dcc564288b0419a44dc6c73e9d157ac1d7a6d09b98fed157",
+        "owner": null,
+        "status": "verified",
+        "configurations": [],
+        "finalized": true
+      },
+      {
+        "contract": "ImmutableArbitrageExecutor",
+        "address": "0x00cba652a1b4cf21063d443c5c1b0d495f477999",
+        "txHash": "0x02a51e42e8496acf1d2f6782d080d21e2ede874c1eca463b48583e6c55aa5973",
+        "blockNumber": "52889026",
+        "runtimeCodeHash": "0xeaad1635253e83d99a3fbef43848d06cd4493abf5dc847e0fbde101d54df84fe",
+        "artifactHash": "53155fac3efc92ba11c9d510b290cf542da0b86e1aa5a933ce11d623876d665c",
+        "owner": "0xc75aAeBD1F395cFc9e7c7f291Ea32d5C9d4c270a",
+        "status": "verified",
+        "configurations": [
+          {
+            "role": "v4-manager",
+            "txHash": "0x3088b0858c3ae52946dd2bac34ff0898111b93d2c3df2e55ba1ff7ca6c22a434"
+          },
+          {
+            "role": "aave-provider",
+            "txHash": "0xd78e434ba50ee8991f74a9f2903b920589eb9e286b365c1f991169d8ca930b49"
+          }
+        ],
+        "finalized": true
+      }
+    ],
+    "exclusions": [
+      {
+        "contract": "ArbitrumMultiSplitFlashExecutor",
+        "reason": "Historical Arbitrum constants; replaced by portable authenticated split revision"
+      }
+    ],
+    "tradingAdmission": "not-admitted"
+  }
+}

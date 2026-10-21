@@ -56,7 +56,7 @@ export function parsePoolState(input: unknown): PoolStateEnvelope {
   if (!boundedText(value.poolId, 256) || !value.poolId.startsWith(`${identity.chain}:${identity.network}:`) || !boundedText(value.adapterRevision, 128) || !['canonical','projected'].includes(String(value.stateClass))) throw new Error('INVALID_POOL_BINDING');
   if (![value.decimals0, value.decimals1].every(n => typeof n === 'number' && Number.isInteger(n) && n >= 0 && n <= 255)) throw new Error('INVALID_DECIMALS');
   if (!Array.isArray(value.appliedOperations) || value.appliedOperations.length > 1000 || value.appliedOperations.some(v => typeof v !== 'string' || !/^[a-f0-9]{64}$/.test(v)) || new Set(value.appliedOperations).size !== value.appliedOperations.length) throw new Error('INVALID_OPERATION_HISTORY');
-  if (identity.chain === 'arbitrum') {
+  if (identity.chain !== 'sui') {
     if (![value.poolAddress,value.token0,value.token1].every(evmAddress) || typeof value.revisionHash !== 'string' || !/^0x[0-9a-f]{64}$/.test(value.revisionHash)) throw new Error('INVALID_POOL_BINDING');
     if (String(value.token0).toLowerCase() === String(value.token1).toLowerCase()) throw new Error('INVALID_POOL_ASSETS');
   } else {
@@ -68,11 +68,11 @@ export function parsePoolState(input: unknown): PoolStateEnvelope {
   const clmmFields = ['protocol','sqrtPriceX96','tick','liquidity','tickSpacing','bitmapWords','initializedTicks','lowerTick','upperTick'];
   if (state.protocol === 'uniswap-v2') {
     fields(state, ['protocol','reserve0','reserve1','feeNumerator','feeDenominator']);
-    if (identity.chain !== 'arbitrum') throw new Error('PROTOCOL_CHAIN_MISMATCH');
+    if (identity.chain === 'sui') throw new Error('PROTOCOL_CHAIN_MISMATCH');
     validateV2(state as unknown as V2State);
   } else if (state.protocol === 'uniswap-v3' || state.protocol === 'uniswap-v4') {
     fields(state, [...clmmFields, ...(state.protocol === 'uniswap-v3' ? ['feePips','unlocked'] : ['key','poolId','protocolFeePips','lpFeePips'])]);
-    if (identity.chain !== 'arbitrum') throw new Error('PROTOCOL_CHAIN_MISMATCH');
+    if (identity.chain === 'sui') throw new Error('PROTOCOL_CHAIN_MISMATCH');
     const price = uint(state.sqrtPriceX96, 160); uint(state.liquidity, 128);
     if (!Number.isInteger(state.tick) || !Number.isInteger(state.tickSpacing) || !Array.isArray(state.bitmapWords) || state.bitmapWords.length > 256 || !Array.isArray(state.initializedTicks) || state.initializedTicks.length > 10000) throw new Error('CLMM_INVALID_STATE');
     for (const entry of state.bitmapWords) {
@@ -144,7 +144,7 @@ export function projectPool(input: unknown, operation: unknown): ProjectionResul
   if (snapshotDigest !== request.snapshotDigest) throw new Error('SNAPSHOT_DIGEST_MISMATCH');
   if (pool.appliedOperations.includes(operationDigest)) throw new Error('OPERATION_ALREADY_APPLIED');
   if (pool.appliedOperations.length === 1000) throw new Error('OPERATION_HISTORY_EXHAUSTED');
-  const same = (a: string, b: string) => pool.identity.chain === 'arbitrum' ? a.toLowerCase() === b.toLowerCase() : a === b;
+  const same = (a: string, b: string) => pool.identity.chain !== 'sui' ? a.toLowerCase() === b.toLowerCase() : a === b;
   const zeroForOne = same(request.tokenIn, pool.token0);
   if (!zeroForOne && !same(request.tokenIn, pool.token1)) throw new Error('INVALID_INPUT_ASSET');
   let state = structuredClone(pool.state), amountOut: string, feeAmount: string, steps = 1, crossedTicks: number[] = [];
@@ -155,7 +155,7 @@ export function projectPool(input: unknown, operation: unknown): ProjectionResul
     amountOut = quote.amountOut; feeAmount = quote.feeAmount; steps = quote.steps; crossedTicks = quote.crossedTicks;
     state = { ...state, sqrtPriceX64: quote.sqrtPriceAfterX64, tick: quote.tickAfter, liquidity: quote.liquidityAfter };
   } else {
-    if (pool.identity.chain !== 'arbitrum') throw new Error('PROTOCOL_CHAIN_MISMATCH');
+    if (pool.identity.chain === 'sui') throw new Error('PROTOCOL_CHAIN_MISMATCH');
     const block = { chainId: Number(pool.identity.network), number: uint(pool.identity.height, 64), hash: pool.identity.blockHash as `0x${string}`, timestamp: 0n };
     const common = { ...state, block, token0: pool.token0 as `0x${string}`, token1: pool.token1 as `0x${string}`, runtimeCodeHash: pool.revisionHash as `0x${string}` };
     const quote = state.protocol === 'uniswap-v3'

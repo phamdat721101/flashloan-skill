@@ -1,0 +1,107 @@
+{
+  "spec_id": "SPEC-2026-102101",
+  "feature_name": "Base and Robinhood flashloan deployment and receipt-bound execution",
+  "source_evidence": [
+    {
+      "source_uri": "src/evm-chains.ts",
+      "entity_id": "evmProfile",
+      "hash": "sha256:0474f3077c6ff5cc17002c1852700997ccab7660bc30d96899c99d4110ba7827"
+    },
+    {
+      "source_uri": "src/evm/deployment.ts",
+      "entity_id": "EvmDeployment",
+      "hash": "sha256:171d27bafbef65f35214f24a7941507a30ae74cc11ca151deea90e35611f79c0"
+    },
+    {
+      "source_uri": "src/evm/budget.ts",
+      "entity_id": "EvmBudget",
+      "hash": "sha256:111f305ab2b34d19c4b186721bce58e8dab605af75e91f8af9a097ce75b7614f"
+    },
+    {
+      "source_uri": "src/evm/acceptance.ts",
+      "entity_id": "runAcceptance",
+      "hash": "sha256:9827ee2658fd1fa26556c39206e5b16de9ab65deb1a8e27f095afed95b1352a4"
+    },
+    {
+      "source_uri": "src/liquidity/arbitrum-execution.ts",
+      "entity_id": "EvmLiquidityExecutionAdapter",
+      "hash": "sha256:0798c1e8ca31c46558c8625a1044f9c76be015b75549f15ff8184f9b3f88b00f"
+    },
+    {
+      "source_uri": "src/evm-fees.ts",
+      "entity_id": "receiptNativeCost",
+      "hash": "sha256:6b0fa0e14a4444b9f8ff932a527e6e1f9183b237c369ceeae3c3785f733419f9"
+    }
+  ],
+  "dependencies": [
+    {
+      "package_or_module": "src/evm-chains.ts",
+      "symbol": "evmProfile",
+      "file_location": "src/evm-chains.ts"
+    },
+    {
+      "package_or_module": "src/evm/deployment.ts",
+      "symbol": "EvmDeployment",
+      "file_location": "src/evm/deployment.ts"
+    },
+    {
+      "package_or_module": "src/evm/budget.ts",
+      "symbol": "EvmBudget",
+      "file_location": "src/evm/budget.ts"
+    },
+    {
+      "package_or_module": "src/evm/acceptance.ts",
+      "symbol": "runAcceptance",
+      "file_location": "src/evm/acceptance.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/arbitrum-execution.ts",
+      "symbol": "EvmLiquidityExecutionAdapter",
+      "file_location": "src/liquidity/arbitrum-execution.ts"
+    },
+    {
+      "package_or_module": "src/evm-fees.ts",
+      "symbol": "receiptNativeCost",
+      "file_location": "src/evm-fees.ts"
+    }
+  ],
+  "architecture": {
+    "pattern": "shared EVM pipeline with explicit chain profiles, artifact-verified deployment, durable per-signer budgets and exact-head execution",
+    "isolation_boundaries": "Arbitrum and Sui retain separate identities; deployment does not grant trading admission; unknown submissions cannot be resent",
+    "execution_flow": [
+      "verify roots, chain identity and compiled ABI",
+      "deploy and configure within persistent deployment cap",
+      "capture pinned pools and validate independent admission evidence",
+      "size and simulate exact calldata, verify latest head, sign and persist intent",
+      "submit once, reconcile actual fees, custody and canonical finality"
+    ]
+  },
+  "data_contracts": {
+    "inputs": {
+      "manifest": "schemas/evm-deployment-manifest.schema.json",
+      "acceptance": "schemas/evm-acceptance-config.schema.json",
+      "snapshot": "liquidity snapshot/analytics 4.0 with base/8453 or robinhood/4663 identity"
+    },
+    "outputs": {
+      "deployment": "DeploymentState: owner, manifestHash, durable transactions, artifact/runtime hashes, root configuration receipts",
+      "execution": "schemas/evm-execution-receipt.schema.json plus canonical attempt journal and AcceptanceState"
+    },
+    "error_states": [
+      "UNSUPPORTED_EVM_CHAIN",
+      "ROOT_CODE_CHANGED",
+      "UNRESOLVED_BUDGET_RESERVATION",
+      "STATE_CHANGED",
+      "MISSING_EXECUTION_ADMISSION_EVIDENCE",
+      "RECEIPT_REORG",
+      "NO_PROFITABLE_OPPORTUNITY"
+    ]
+  },
+  "test_criteria": [
+    "all five local EDGE proofs pass",
+    "Node and Rust suites pass; compiled ABI/event parity verified",
+    "portable split exact repayment, unauthorized callbacks and opening-fund preservation tested",
+    "real lender fork proofs explicitly enabled on both chains",
+    "real deployment receipts and runtime/owner/root readback verified",
+    "live acceptance requires one finalized receipt per chain with at least $10 net; pending status never counts as success"
+  ]
+}

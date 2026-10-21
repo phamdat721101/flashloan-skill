@@ -48,7 +48,7 @@ export async function runL2Cli(command: string,path?: string): Promise<void> {
       bytes += Buffer.byteLength(line);
       if (examples.length >= 100000 || bytes > 128*1024*1024) throw new Error('L2_DATASET_LIMIT'); examples.push(JSON.parse(line));
     }
-    output(evaluateL2(examples,config.chain as 'arbitrum' | 'sui',config.horizon as 'next' | '1m' | '5m' | '15m')); return;
+    output(evaluateL2(examples,config.chain as 'arbitrum' | 'base' | 'robinhood' | 'sui',config.horizon as 'next' | '1m' | '5m' | '15m')); return;
   }
   if (command === 'l2-benchmark') {
     fields(config,['schemaVersion','journalPath'],['closedJournalPaths']); text(config.journalPath);

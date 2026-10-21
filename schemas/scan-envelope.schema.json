@@ -6,7 +6,7 @@
   "properties": {
     "schemaVersion": { "const": "2.0" },
     "runId": { "type": "string", "minLength": 1 },
-    "chainId": { "const": 42161 },
+    "chainId": { "enum": [42161, 8453, 4663] },
     "observedBlock": { "type": "object", "required": ["number", "hash", "timestamp"], "properties": { "number": { "type": "string", "pattern": "^[0-9]+$" }, "hash": { "type": "string", "pattern": "^0x[0-9a-fA-F]{64}$" }, "timestamp": { "type": "string", "format": "date-time" } } },
     "opportunities": { "type": "array", "items": { "$ref": "#/$defs/opportunity" } },
     "diagnostics": { "type": "array", "items": { "$ref": "#/$defs/diagnostic" } }

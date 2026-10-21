@@ -1,0 +1,711 @@
+{
+  "schemaVersion": "1.0",
+  "chainId": 4663,
+  "source": "bounded wallet-free public RPC probe",
+  "coverage": "standard WETH/stable keys plus Initialize events over the recorded range that touch a supported settlement asset; six largest raw-liquidity static V4 pools; simple two-to-six-hop cycles; 64 sampled sizes per direction; zero gas is optimistic, not execution admission",
+  "discoveryDegraded": null,
+  "capturedAtMs": 1792570733251,
+  "snapshot": {
+    "snapshot": {
+      "schemaVersion": "3.0",
+      "identity": {
+        "chain": "robinhood",
+        "network": "4663",
+        "height": "94137715",
+        "blockHash": "0xda2a906d0e096f0c0cb5e97c352db8489639369dac14e1fae54b683acf5d04c3"
+      },
+      "sourceId": "wallet-free-probe",
+      "cursor": "1",
+      "observedAtMs": 1792570732618,
+      "complete": true,
+      "poolIds": [
+        "robinhood:4663:0x8366a39cc670b4001a1121b8f6a443a643e40951:0x35d5055f7162c8e8e1742f0559f53376287e998c0e4845ffefd275d85cc1701a",
+        "robinhood:4663:0x8366a39cc670b4001a1121b8f6a443a643e40951:0x40ca5a156c82f4ca8a62eeb48e9b05aae710d104bac34d03b8abe1686bc05410",
+        "robinhood:4663:0x8366a39cc670b4001a1121b8f6a443a643e40951:0x4e61f742ae3516c0223997579cc13753b653a3ed299dcf40f3baf5a4daa6e353",
+        "robinhood:4663:0x8366a39cc670b4001a1121b8f6a443a643e40951:0x5287cfea0849598604fbe4daf67ecf729531000d16450d46dd703fc3fb06f6eb",
+        "robinhood:4663:0x8366a39cc670b4001a1121b8f6a443a643e40951:0x99ae4d23f9639b7ad6902488cbdbe63270b055fd57cb4d9c7edffb68b4a98e98",
+        "robinhood:4663:0x8366a39cc670b4001a1121b8f6a443a643e40951:0x553df43d8ce347d283cbe270bf9c6bf3ee0c1aebd9a616b94742c755d985c86a"
+      ],
+      "stateDigest": "2b32bfa092cdbaa75c8364274e7e03792afa8c1bedc28ffcefd7387a00551ea4"
+    },
+    "pools": [
+      {
+        "schemaVersion": "4.0",
+        "identity": {
+          "chain": "robinhood",
+          "network": "4663",
+          "height": "94137715",
+          "blockHash": "0xda2a906d0e096f0c0cb5e97c352db8489639369dac14e1fae54b683acf5d04c3"
+        },
+        "poolId": "robinhood:4663:0x8366a39cc670b4001a1121b8f6a443a643e40951:0x35d5055f7162c8e8e1742f0559f53376287e998c0e4845ffefd275d85cc1701a",
+        "poolAddress": "0x8366a39cc670b4001a1121b8f6a443a643e40951",
+        "adapterRevision": "v4:0xbd3881180b547f5fe817545743cfb4343e96b1bc6640dcd70c106b0066e95626",
+        "revisionHash": "0xbd3881180b547f5fe817545743cfb4343e96b1bc6640dcd70c106b0066e95626",
+        "token0": "0x0bd7d308f8e1639fab988df18a8011f41eacad73",
+        "token1": "0x5fc5360d0400a0fd4f2af552add042d716f1d168",
+        "decimals0": 18,
+        "decimals1": 6,
+        "stateClass": "canonical",
+        "appliedOperations": [],
+        "state": {
+          "protocol": "uniswap-v4",
+          "sqrtPriceX96": "3640373878473416797519403",
+          "tick": -199771,
+          "liquidity": "0",
+          "tickSpacing": 1,
+          "bitmapWords": [
+            {
+              "wordPosition": -784,
+              "bitmap": "0"
+            },
+            {
+              "wordPosition": -783,
+              "bitmap": "0"
+            },
+            {
+              "wordPosition": -782,
+              "bitmap": "0"
+            },
+            {
+              "wordPosition": -781,
+              "bitmap": "0"
+            },
+            {
+              "wordPosition": -780,
+              "bitmap": "0"
+            },
+            {
+              "wordPosition": -779,
+              "bitmap": "0"
+            },
+            {
+              "wordPosition": -778,
+              "bitmap": "0"
+            }
+          ],
+          "initializedTicks": [],
+          "lowerTick": -200704,
+          "upperTick": -198913,
+          "key": {
+            "currency0": "0x0bd7d308f8e1639fab988df18a8011f41eacad73",
+            "currency1": "0x5fc5360d0400a0fd4f2af552add042d716f1d168",
+            "fee": 100,
+            "tickSpacing": 1,
+            "hooks": "0x0000000000000000000000000000000000000000"
+          },
+          "poolId": "0x35d5055f7162c8e8e1742f0559f53376287e998c0e4845ffefd275d85cc1701a",
+          "protocolFeePips": 102425,
+          "lpFeePips": 100
+        }
+      },
+      {
+        "schemaVersion": "4.0",
+        "identity": {
+          "chain": "robinhood",
+          "network": "4663",
+          "height": "94137715",
+          "blockHash": "0xda2a906d0e096f0c0cb5e97c352db8489639369dac14e1fae54b683acf5d04c3"
+        },
+        "poolId": "robinhood:4663:0x8366a39cc670b4001a1121b8f6a443a643e40951:0x40ca5a156c82f4ca8a62eeb48e9b05aae710d104bac34d03b8abe1686bc05410",
+        "poolAddress": "0x8366a39cc670b4001a1121b8f6a443a643e40951",
+        "adapterRevision": "v4:0xbd3881180b547f5fe817545743cfb4343e96b1bc6640dcd70c106b0066e95626",
+        "revisionHash": "0xbd3881180b547f5fe817545743cfb4343e96b1bc6640dcd70c106b0066e95626",
+        "token0": "0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73",
+        "token1": "0xE90Cd0101A325bA2aD6c2E474c2d36C67bf6058E",
+        "decimals0": 18,
+        "decimals1": 18,
+        "stateClass": "canonical",
+        "appliedOperations": [],
+        "state": {
+          "protocol": "uniswap-v4",
+          "sqrtPriceX96": "25135685339936509999814510248241",
+          "tick": 115200,
+          "liquidity": "0",
+          "tickSpacing": 200,
+          "bitmapWords": [
+            {
+              "wordPosition": -1,
+              "bitmap": "0"
+            },
+            {
+              "wordPosition": 0,
+              "bitmap": "0"
+            },
+            {
+              "wordPosition": 1,
+              "bitmap": "0"
+            },
+            {
+              "wordPosition": 2,
+              "bitmap": "18446744073709551616"
+            },
+            {
+              "wordPosition": 3,
+              "bitmap": "0"
+            },
+            {
+              "wordPosition": 4,
+              "bitmap": "0"
+            },
+            {
+              "wordPosition": 5,
+              "bitmap": "0"
+            }
+          ],
+          "initializedTicks": [
+            {
+              "tick": 115200,
+              "liquidityGross": "3152019188766008768489",
+              "liquidityNet": "-3152019188766008768489"
+            }
+          ],
+          "lowerTick": -51200,
+          "upperTick": 307199,
+          "key": {
+            "currency0": "0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73",
+            "currency1": "0xE90Cd0101A325bA2aD6c2E474c2d36C67bf6058E",
+            "fee": 10000,
+            "tickSpacing": 200,
+            "hooks": "0x0000000000000000000000000000000000000000"
+          },
+          "poolId": "0x40ca5a156c82f4ca8a62eeb48e9b05aae710d104bac34d03b8abe1686bc05410",
+          "protocolFeePips": 4097000,
+          "lpFeePips": 10000
+        }
+      },
+      {
+        "schemaVersion": "4.0",
+        "identity": {
+          "chain": "robinhood",
+          "network": "4663",
+          "height": "94137715",
+          "blockHash": "0xda2a906d0e096f0c0cb5e97c352db8489639369dac14e1fae54b683acf5d04c3"
+        },
+        "poolId": "robinhood:4663:0x8366a39cc670b4001a1121b8f6a443a643e40951:0x4e61f742ae3516c0223997579cc13753b653a3ed299dcf40f3baf5a4daa6e353",
+        "poolAddress": "0x8366a39cc670b4001a1121b8f6a443a643e40951",
+        "adapterRevision": "v4:0xbd3881180b547f5fe817545743cfb4343e96b1bc6640dcd70c106b0066e95626",
+        "revisionHash": "0xbd3881180b547f5fe817545743cfb4343e96b1bc6640dcd70c106b0066e95626",
+        "token0": "0x0bd7d308f8e1639fab988df18a8011f41eacad73",
+        "token1": "0x5fc5360d0400a0fd4f2af552add042d716f1d168",
+        "decimals0": 18,
+        "decimals1": 6,
+        "stateClass": "canonical",
+        "appliedOperations": [],
+        "state": {
+          "protocol": "uniswap-v4",
+          "sqrtPriceX96": "3957291631382533686177375",
+          "tick": -198101,
+          "liquidity": "0",
+          "tickSpacing": 200,
+          "bitmapWords": [
+            {
+              "wordPosition": -7,
+              "bitmap": "0"
+            },
+            {
+              "wordPosition": -6,
+              "bitmap": "0"
+            },
+            {
+              "wordPosition": -5,
+              "bitmap": "0"
+            },
+            {
+              "wordPosition": -4,
+              "bitmap": "0"
+            },
+            {
+              "wordPosition": -3,
+              "bitmap": "0"
+            },
+            {
+              "wordPosition": -2,
+              "bitmap": "0"
+            },
+            {
+              "wordPosition": -1,
+              "bitmap": "0"
+            }
+          ],
+          "initializedTicks": [],
+          "lowerTick": -358400,
+          "upperTick": -1,
+          "key": {
+            "currency0": "0x0bd7d308f8e1639fab988df18a8011f41eacad73",
+            "currency1": "0x5fc5360d0400a0fd4f2af552add042d716f1d168",
+            "fee": 10000,
+            "tickSpacing": 200,
+            "hooks": "0x0000000000000000000000000000000000000000"
+          },
+          "poolId": "0x4e61f742ae3516c0223997579cc13753b653a3ed299dcf40f3baf5a4daa6e353",
+          "protocolFeePips": 4097000,
+          "lpFeePips": 10000
+        }
+      },
+      {
+        "schemaVersion": "4.0",
+        "identity": {
+          "chain": "robinhood",
+          "network": "4663",
+          "height": "94137715",
+          "blockHash": "0xda2a906d0e096f0c0cb5e97c352db8489639369dac14e1fae54b683acf5d04c3"
+        },
+        "poolId": "robinhood:4663:0x8366a39cc670b4001a1121b8f6a443a643e40951:0x5287cfea0849598604fbe4daf67ecf729531000d16450d46dd703fc3fb06f6eb",
+        "poolAddress": "0x8366a39cc670b4001a1121b8f6a443a643e40951",
+        "adapterRevision": "v4:0xbd3881180b547f5fe817545743cfb4343e96b1bc6640dcd70c106b0066e95626",
+        "revisionHash": "0xbd3881180b547f5fe817545743cfb4343e96b1bc6640dcd70c106b0066e95626",
+        "token0": "0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73",
+        "token1": "0x4fB641A81C6fE7Fe5b3541D58d58072CB9daE419",
+        "decimals0": 18,
+        "decimals1": 18,
+        "stateClass": "canonical",
+        "appliedOperations": [],
+        "state": {
+          "protocol": "uniswap-v4",
+          "sqrtPriceX96": "7922816251426433759354395033600000",
+          "tick": 230270,
+          "liquidity": "0",
+          "tickSpacing": 60,
+          "bitmapWords": [
+            {
+              "wordPosition": 11,
+              "bitmap": "0"
+            },
+            {
+              "wordPosition": 12,
+              "bitmap": "0"
+            },
+            {
+              "wordPosition": 13,
+              "bitmap": "0"
+            },
+            {
+              "wordPosition": 14,
+              "bitmap": "7237005577332262213973186563042994240829374041602535252466099000494570602496"
+            },
+            {
+              "wordPosition": 15,
+              "bitmap": "0"
+            },
+            {
+              "wordPosition": 16,
+              "bitmap": "0"
+            },
+            {
+              "wordPosition": 17,
+              "bitmap": "0"
+            }
+          ],
+          "initializedTicks": [
+            {
+              "tick": 230160,
+              "liquidityGross": "1005515983939682523157096",
+              "liquidityNet": "-1005515983939682523157096"
+            }
+          ],
+          "lowerTick": 168960,
+          "upperTick": 276479,
+          "key": {
+            "currency0": "0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73",
+            "currency1": "0x4fB641A81C6fE7Fe5b3541D58d58072CB9daE419",
+            "fee": 3000,
+            "tickSpacing": 60,
+            "hooks": "0x0000000000000000000000000000000000000000"
+          },
+          "poolId": "0x5287cfea0849598604fbe4daf67ecf729531000d16450d46dd703fc3fb06f6eb",
+          "protocolFeePips": 2048500,
+          "lpFeePips": 3000
+        }
+      },
+      {
+        "schemaVersion": "4.0",
+        "identity": {
+          "chain": "robinhood",
+          "network": "4663",
+          "height": "94137715",
+          "blockHash": "0xda2a906d0e096f0c0cb5e97c352db8489639369dac14e1fae54b683acf5d04c3"
+        },
+        "poolId": "robinhood:4663:0x8366a39cc670b4001a1121b8f6a443a643e40951:0x99ae4d23f9639b7ad6902488cbdbe63270b055fd57cb4d9c7edffb68b4a98e98",
+        "poolAddress": "0x8366a39cc670b4001a1121b8f6a443a643e40951",
+        "adapterRevision": "v4:0xbd3881180b547f5fe817545743cfb4343e96b1bc6640dcd70c106b0066e95626",
+        "revisionHash": "0xbd3881180b547f5fe817545743cfb4343e96b1bc6640dcd70c106b0066e95626",
+        "token0": "0x1Cdad396DB64BDa184d5182A97Dd9B3C62100b7D",
+        "token1": "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168",
+        "decimals0": 18,
+        "decimals1": 6,
+        "stateClass": "canonical",
+        "appliedOperations": [],
+        "state": {
+          "protocol": "uniswap-v4",
+          "sqrtPriceX96": "878629094272945791696810",
+          "tick": -228201,
+          "liquidity": "0",
+          "tickSpacing": 186,
+          "bitmapWords": [
+            {
+              "wordPosition": -8,
+              "bitmap": "0"
+            },
+            {
+              "wordPosition": -7,
+              "bitmap": "0"
+            },
+            {
+              "wordPosition": -6,
+              "bitmap": "0"
+            },
+            {
+              "wordPosition": -5,
+              "bitmap": "1298074214633706925147022591787008"
+            },
+            {
+              "wordPosition": -4,
+              "bitmap": "0"
+            },
+            {
+              "wordPosition": -3,
+              "bitmap": "0"
+            },
+            {
+              "wordPosition": -2,
+              "bitmap": "0"
+            }
+          ],
+          "initializedTicks": [
+            {
+              "tick": -228036,
+              "liquidityGross": "86474376233421",
+              "liquidityNet": "86474376233421"
+            },
+            {
+              "tick": -217620,
+              "liquidityGross": "86474376233421",
+              "liquidityNet": "-86474376233421"
+            }
+          ],
+          "lowerTick": -380928,
+          "upperTick": -47617,
+          "key": {
+            "currency0": "0x1Cdad396DB64BDa184d5182A97Dd9B3C62100b7D",
+            "currency1": "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168",
+            "fee": 18560,
+            "tickSpacing": 186,
+            "hooks": "0x0000000000000000000000000000000000000000"
+          },
+          "poolId": "0x99ae4d23f9639b7ad6902488cbdbe63270b055fd57cb4d9c7edffb68b4a98e98",
+          "protocolFeePips": 4097000,
+          "lpFeePips": 18560
+        }
+      },
+      {
+        "schemaVersion": "4.0",
+        "identity": {
+          "chain": "robinhood",
+          "network": "4663",
+          "height": "94137715",
+          "blockHash": "0xda2a906d0e096f0c0cb5e97c352db8489639369dac14e1fae54b683acf5d04c3"
+        },
+        "poolId": "robinhood:4663:0x8366a39cc670b4001a1121b8f6a443a643e40951:0x553df43d8ce347d283cbe270bf9c6bf3ee0c1aebd9a616b94742c755d985c86a",
+        "poolAddress": "0x8366a39cc670b4001a1121b8f6a443a643e40951",
+        "adapterRevision": "v4:0xbd3881180b547f5fe817545743cfb4343e96b1bc6640dcd70c106b0066e95626",
+        "revisionHash": "0xbd3881180b547f5fe817545743cfb4343e96b1bc6640dcd70c106b0066e95626",
+        "token0": "0x473974ECd1efFD64054D9967ce52e0a7DfDDc7B3",
+        "token1": "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168",
+        "decimals0": 18,
+        "decimals1": 6,
+        "stateClass": "canonical",
+        "appliedOperations": [],
+        "state": {
+          "protocol": "uniswap-v4",
+          "sqrtPriceX96": "792243410400884224932",
+          "tick": -368433,
+          "liquidity": "19498340478910",
+          "tickSpacing": 9901,
+          "bitmapWords": [
+            {
+              "wordPosition": -4,
+              "bitmap": "0"
+            },
+            {
+              "wordPosition": -3,
+              "bitmap": "0"
+            },
+            {
+              "wordPosition": -2,
+              "bitmap": "0"
+            },
+            {
+              "wordPosition": -1,
+              "bitmap": "187072209578355573530071658587684226515959365500928"
+            },
+            {
+              "wordPosition": 0,
+              "bitmap": "618970019642690137449562112"
+            },
+            {
+              "wordPosition": 1,
+              "bitmap": "0"
+            },
+            {
+              "wordPosition": 2,
+              "bitmap": "0"
+            }
+          ],
+          "initializedTicks": [
+            {
+              "tick": -881189,
+              "liquidityGross": "19498340478910",
+              "liquidityNet": "19498340478910"
+            },
+            {
+              "tick": 881189,
+              "liquidityGross": "19498340478910",
+              "liquidityNet": "-19498340478910"
+            }
+          ],
+          "lowerTick": -887272,
+          "upperTick": 887272,
+          "key": {
+            "currency0": "0x473974ECd1efFD64054D9967ce52e0a7DfDDc7B3",
+            "currency1": "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168",
+            "fee": 990099,
+            "tickSpacing": 9901,
+            "hooks": "0x0000000000000000000000000000000000000000"
+          },
+          "poolId": "0x553df43d8ce347d283cbe270bf9c6bf3ee0c1aebd9a616b94742c755d985c86a",
+          "protocolFeePips": 4097000,
+          "lpFeePips": 990099
+        }
+      }
+    ]
+  },
+  "discovery": {
+    "schemaVersion": "1.0",
+    "chainId": 4663,
+    "fromBlock": "94113357",
+    "toBlock": "94137357",
+    "blockHash": "0x69d58fe7c6d7cd7c80efb4be61593377a9b14e1a8e01b11b9a3df093b06110ac",
+    "examinedInitializeEvents": 117,
+    "coverage": "standard-keys-plus-range-connected-to-profit-assets",
+    "pools": [
+      {
+        "protocol": "uniswap-v4",
+        "address": "0x8366a39cc670b4001a1121b8f6a443a643e40951",
+        "expectedCodeHash": "0xbd3881180b547f5fe817545743cfb4343e96b1bc6640dcd70c106b0066e95626",
+        "adapterRevision": "v4:0xbd3881180b547f5fe817545743cfb4343e96b1bc6640dcd70c106b0066e95626",
+        "key": {
+          "currency0": "0x0bd7d308f8e1639fab988df18a8011f41eacad73",
+          "currency1": "0x5fc5360d0400a0fd4f2af552add042d716f1d168",
+          "fee": 100,
+          "tickSpacing": 1,
+          "hooks": "0x0000000000000000000000000000000000000000"
+        },
+        "bitmapWordPositions": [
+          -784,
+          -783,
+          -782,
+          -781,
+          -780,
+          -779,
+          -778
+        ],
+        "lowerTick": -200704,
+        "upperTick": -198913
+      },
+      {
+        "protocol": "uniswap-v4",
+        "address": "0x8366a39cc670b4001a1121b8f6a443a643e40951",
+        "expectedCodeHash": "0xbd3881180b547f5fe817545743cfb4343e96b1bc6640dcd70c106b0066e95626",
+        "adapterRevision": "v4:0xbd3881180b547f5fe817545743cfb4343e96b1bc6640dcd70c106b0066e95626",
+        "key": {
+          "currency0": "0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73",
+          "currency1": "0xE90Cd0101A325bA2aD6c2E474c2d36C67bf6058E",
+          "fee": 10000,
+          "tickSpacing": 200,
+          "hooks": "0x0000000000000000000000000000000000000000"
+        },
+        "bitmapWordPositions": [
+          -1,
+          0,
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "lowerTick": -51200,
+        "upperTick": 307199
+      },
+      {
+        "protocol": "uniswap-v4",
+        "address": "0x8366a39cc670b4001a1121b8f6a443a643e40951",
+        "expectedCodeHash": "0xbd3881180b547f5fe817545743cfb4343e96b1bc6640dcd70c106b0066e95626",
+        "adapterRevision": "v4:0xbd3881180b547f5fe817545743cfb4343e96b1bc6640dcd70c106b0066e95626",
+        "key": {
+          "currency0": "0x0bd7d308f8e1639fab988df18a8011f41eacad73",
+          "currency1": "0x5fc5360d0400a0fd4f2af552add042d716f1d168",
+          "fee": 10000,
+          "tickSpacing": 200,
+          "hooks": "0x0000000000000000000000000000000000000000"
+        },
+        "bitmapWordPositions": [
+          -7,
+          -6,
+          -5,
+          -4,
+          -3,
+          -2,
+          -1
+        ],
+        "lowerTick": -358400,
+        "upperTick": -1
+      },
+      {
+        "protocol": "uniswap-v4",
+        "address": "0x8366a39cc670b4001a1121b8f6a443a643e40951",
+        "expectedCodeHash": "0xbd3881180b547f5fe817545743cfb4343e96b1bc6640dcd70c106b0066e95626",
+        "adapterRevision": "v4:0xbd3881180b547f5fe817545743cfb4343e96b1bc6640dcd70c106b0066e95626",
+        "key": {
+          "currency0": "0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73",
+          "currency1": "0x4fB641A81C6fE7Fe5b3541D58d58072CB9daE419",
+          "fee": 3000,
+          "tickSpacing": 60,
+          "hooks": "0x0000000000000000000000000000000000000000"
+        },
+        "bitmapWordPositions": [
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17
+        ],
+        "lowerTick": 168960,
+        "upperTick": 276479
+      },
+      {
+        "protocol": "uniswap-v4",
+        "address": "0x8366a39cc670b4001a1121b8f6a443a643e40951",
+        "expectedCodeHash": "0xbd3881180b547f5fe817545743cfb4343e96b1bc6640dcd70c106b0066e95626",
+        "adapterRevision": "v4:0xbd3881180b547f5fe817545743cfb4343e96b1bc6640dcd70c106b0066e95626",
+        "key": {
+          "currency0": "0x1Cdad396DB64BDa184d5182A97Dd9B3C62100b7D",
+          "currency1": "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168",
+          "fee": 18560,
+          "tickSpacing": 186,
+          "hooks": "0x0000000000000000000000000000000000000000"
+        },
+        "bitmapWordPositions": [
+          -8,
+          -7,
+          -6,
+          -5,
+          -4,
+          -3,
+          -2
+        ],
+        "lowerTick": -380928,
+        "upperTick": -47617
+      },
+      {
+        "protocol": "uniswap-v4",
+        "address": "0x8366a39cc670b4001a1121b8f6a443a643e40951",
+        "expectedCodeHash": "0xbd3881180b547f5fe817545743cfb4343e96b1bc6640dcd70c106b0066e95626",
+        "adapterRevision": "v4:0xbd3881180b547f5fe817545743cfb4343e96b1bc6640dcd70c106b0066e95626",
+        "key": {
+          "currency0": "0x473974ECd1efFD64054D9967ce52e0a7DfDDc7B3",
+          "currency1": "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168",
+          "fee": 990099,
+          "tickSpacing": 9901,
+          "hooks": "0x0000000000000000000000000000000000000000"
+        },
+        "bitmapWordPositions": [
+          -4,
+          -3,
+          -2,
+          -1,
+          0,
+          1,
+          2
+        ],
+        "lowerTick": -887272,
+        "upperTick": 887272
+      }
+    ],
+    "omittedPools": 5
+  },
+  "price": {
+    "feed": "0x61B7e5650328764B076A108EFF5fa7282a1B9aD2",
+    "source": "https://docs.chain.link/data-feeds/price-feeds/addresses?network=robinhood",
+    "codeHash": "0xbd6f524cdc4268b6bd1bb6f77a8821faeea9c52ee9e0afa0b6d948ce82c966c2",
+    "usdE8": "100003481"
+  },
+  "lenderAvailable": "54480073932683",
+  "routes": [
+    {
+      "poolIds": [
+        "robinhood:4663:0x8366a39cc670b4001a1121b8f6a443a643e40951:0x4e61f742ae3516c0223997579cc13753b653a3ed299dcf40f3baf5a4daa6e353",
+        "robinhood:4663:0x8366a39cc670b4001a1121b8f6a443a643e40951:0x35d5055f7162c8e8e1742f0559f53376287e998c0e4845ffefd275d85cc1701a"
+      ],
+      "fees": [
+        10000,
+        100
+      ],
+      "result": {
+        "schemaVersion": "4.0",
+        "selectedDirection": null,
+        "selectedRequest": null,
+        "selected": null,
+        "forward": {
+          "schemaVersion": "4.0",
+          "status": "no-profitable-size",
+          "optimality": "best-found",
+          "snapshotDigest": "f1fb4760f758e0a8f550eb033d9daf77c1a6179d4c13bef18e26664502831c56",
+          "requestDigest": "d1971439329bd14d0b3acc9c5f0bb50d1a25ff2eb7de8cef029d3b152697c6f2",
+          "stateClass": "canonical",
+          "borrowAsset": "0x5fc5360d0400a0fd4f2af552add042d716f1d168",
+          "feasibleMinimum": "1",
+          "feasibleMaximum": "99996519121",
+          "quantum": "1",
+          "evaluations": 64,
+          "amountIn": "0",
+          "amountOut": "0",
+          "flashFee": "0",
+          "repayment": "0",
+          "costInBorrowAsset": "0",
+          "netProfit": "0",
+          "legs": [],
+          "rejectedQuotes": {
+            "CLMM_COVERAGE_EXHAUSTED": 64
+          }
+        },
+        "reverse": {
+          "schemaVersion": "4.0",
+          "status": "no-profitable-size",
+          "optimality": "best-found",
+          "snapshotDigest": "f1fb4760f758e0a8f550eb033d9daf77c1a6179d4c13bef18e26664502831c56",
+          "requestDigest": "0ef68497770367b7fe019a6dc2c942eb41eb57cbe1f91cd3c777edb4c2b8b19d",
+          "stateClass": "canonical",
+          "borrowAsset": "0x5fc5360d0400a0fd4f2af552add042d716f1d168",
+          "feasibleMinimum": "1",
+          "feasibleMaximum": "99996519121",
+          "quantum": "1",
+          "evaluations": 64,
+          "amountIn": "0",
+          "amountOut": "0",
+          "flashFee": "0",
+          "repayment": "0",
+          "costInBorrowAsset": "0",
+          "netProfit": "0",
+          "legs": [],
+          "rejectedQuotes": {
+            "CLMM_COVERAGE_EXHAUSTED": 64
+          }
+        },
+        "rejectedDirections": {}
+      }
+    }
+  ],
+  "selected": 0
+}

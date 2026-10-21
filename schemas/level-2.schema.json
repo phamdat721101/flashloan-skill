@@ -54,6 +54,8 @@
             }
           }
         },
+{"type":"object","additionalProperties":false,"required":["chain","network","height","blockHash"],"properties":{"chain":{"const":"base"},"network":{"const":"8453"},"height":{"type":"string","pattern":"^(0|[1-9][0-9]*)$","maxLength":78},"blockHash":{"type":"string","pattern":"^0x[0-9a-f]{64}$"}}},
+{"type":"object","additionalProperties":false,"required":["chain","network","height","blockHash"],"properties":{"chain":{"const":"robinhood"},"network":{"const":"4663"},"height":{"type":"string","pattern":"^(0|[1-9][0-9]*)$","maxLength":78},"blockHash":{"type":"string","pattern":"^0x[0-9a-f]{64}$"}}},
         {
           "type": "object",
           "additionalProperties": false,
@@ -1314,10 +1316,7 @@
           "pattern": "^[a-f0-9]{64}$"
         },
         "chain": {
-          "enum": [
-            "arbitrum",
-            "sui"
-          ]
+          "enum": ["arbitrum", "base", "robinhood", "sui"]
         },
         "poolId": {
           "type": "string",
@@ -1504,10 +1503,7 @@
           "const": "depth-flow-v1"
         },
         "chain": {
-          "enum": [
-            "arbitrum",
-            "sui"
-          ]
+          "enum": ["arbitrum", "base", "robinhood", "sui"]
         },
         "horizon": {
           "enum": [
@@ -1605,10 +1601,7 @@
           "pattern": "^[a-f0-9]{64}$"
         },
         "chain": {
-          "enum": [
-            "arbitrum",
-            "sui"
-          ]
+          "enum": ["arbitrum", "base", "robinhood", "sui"]
         },
         "horizon": {
           "enum": [

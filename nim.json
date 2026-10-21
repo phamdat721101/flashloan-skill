@@ -28,10 +28,22 @@
     "logCompact": {
       "strategy": "errors-only",
       "maxLines": 100,
-      "escalateOnEmpty": true
+      "escalateOnEmpty": true,
+      "artifactDir": ".nim/log-artifacts"
     },
     "search": {
       "topK": 3
+    },
+    "knowledge": {
+      "root": ".nim-memory",
+      "projectId": "rollover-skill",
+      "captureEpisodes": true
+    },
+    "cache": {
+      "provider": "openai",
+      "strategy": "prefix",
+      "minTokens": 1024,
+      "roi": true
     }
   },
   "workspace": {
@@ -71,6 +83,18 @@
             "npm run typecheck",
             "npm run l2:test",
             "nim-skill search compile --title \"Level 2 market context implementation\" --spec docs/features/level-2.spec.json"
+          ]
+        },
+        "evm-local": {
+          "contract": ".nim/deliver/evm-contract.json",
+          "configFiles": [
+            "config/base-mainnet.json",
+            "config/robinhood-mainnet.json"
+          ],
+          "commands": [
+            "npm run typecheck",
+            "npm run evm:test",
+            "nim-skill search compile --title \"Base and Robinhood flashloan implementation\" --spec docs/features/evm-flashloan.spec.json"
           ]
         }
       }

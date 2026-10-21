@@ -37,6 +37,12 @@ async fn main() {
         if let Err(e) = audit::run().await { eprintln!("{{\"event\":\"audit\",\"status\":\"error\",\"error\":\"{e}\"}}"); std::process::exit(1); }
         return;
     }
+    // Explicit Node host adapter: one shared manifest/budget implementation for new EVM deployments.
+    if a.get(1).map(String::as_str) == Some("deploy-evm") {
+        let status = std::process::Command::new("node").arg("dist/evm/cli.js").arg("deploy").args(&a[2..]).status();
+        match status { Ok(s) if s.success() => {}, _ => { eprintln!("EVM_DEPLOYMENT_FAILED"); std::process::exit(1); } }
+        return;
+    }
     if a.get(1).map(String::as_str) == Some("deploy-v4") {
         if let Err(e) = deploy::run(&a[2..]).await { eprintln!("{{\"event\":\"deploy-v4\",\"status\":\"error\",\"error\":\"{e}\"}}"); std::process::exit(1); }
         return;

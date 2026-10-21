@@ -49,7 +49,7 @@ export interface PreparedArbitrumTrade {
 export function prepareArbitrumTrade(inputs: unknown, request: unknown, snapshot: LiquiditySnapshot, binding: ArbitrumTradeBinding): PreparedArbitrumTrade {
   if (!Array.isArray(inputs)) throw new Error('INVALID_SIZING_POOLS');
   const pools = inputs.map(parsePoolState);
-  if (pools.some(pool => pool.identity.chain !== 'arbitrum' || pool.stateClass !== 'canonical')) throw new Error('UNSUPPORTED_TRADE_STATE');
+  if (pools.some(pool => pool.identity.chain === 'sui' || pool.stateClass !== 'canonical')) throw new Error('UNSUPPORTED_TRADE_STATE');
   for (const pool of pools) {
     const state = pool.state;
     if (state.protocol === 'cetus' || [pool.token0,pool.token1].some(token => /^0x0{40}$/i.test(token)) || (state.protocol === 'uniswap-v4' && (state.key.hooks !== `0x${'0'.repeat(40)}` || state.key.fee & 0x800000))) throw new Error('UNSUPPORTED_TRADE_PROTOCOL');

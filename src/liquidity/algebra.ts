@@ -1,3 +1,4 @@
+import { evmProfile, type EvmChainKey } from '../evm-chains.js';
 import { q96ExactInputStep, sqrtRatioAtTick, tickAtRatio } from './clmm.js';
 import { digest, uint } from './state.js';
 import { keccak256, parseAbi, type Address, type Hex } from 'viem';
@@ -83,9 +84,9 @@ const linkedAbi = parseAbi([
   'function ticks(int24) view returns(uint256 liquidityTotal,int128 liquidityDelta,int24 prevTick,int24 nextTick,uint256 outerFeeGrowth0Token,uint256 outerFeeGrowth1Token)'
 ]);
 /** Current Integral linked-state ABI, separate from the legacy tickTable/timepoint adapter. */
-export async function readAlgebraLinkedSnapshot(client: StateClient,address: Address,expectedCodeHash: Hex,lowerTick: number,upperTick: number): Promise<{ identity: { chain: 'arbitrum'; network: string; height: string; blockHash: Hex }; token0: string; token1: string; state: AlgebraLinkedState; revisionHash: Hex }> {
+export async function readAlgebraLinkedSnapshot(client: StateClient,address: Address,expectedCodeHash: Hex,lowerTick: number,upperTick: number): Promise<{ identity: { chain: EvmChainKey; network: string; height: string; blockHash: Hex }; token0: string; token1: string; state: AlgebraLinkedState; revisionHash: Hex }> {
   if (!/^0x[0-9a-fA-F]{40}$/.test(address) || !/^0x[0-9a-f]{64}$/.test(expectedCodeHash) || !Number.isInteger(lowerTick) || !Number.isInteger(upperTick) || lowerTick < -887272 || upperTick > 887272 || lowerTick >= upperTick) throw new Error('INVALID_ALGEBRA_CAPTURE');
-  const chain = await client.getChainId(); if (![42161,421614].includes(chain)) throw new Error('UNSUPPORTED_CHAIN');
+  const chain = await client.getChainId(); const profile = evmProfile(chain);
   const block = await client.getBlock(); if (!block.hash) throw new Error('INCOMPLETE_BLOCK');
   const code = await client.getCode({ address,blockNumber: block.number });
   if (!code || keccak256(code) !== expectedCodeHash) throw new Error('POOL_CODE_CHANGED');
@@ -108,5 +109,5 @@ export async function readAlgebraLinkedSnapshot(client: StateClient,address: Add
   }
   const state: AlgebraLinkedState = { schemaVersion: '4.0',revision: 'algebra-integral-linked-v1',sqrtPriceX96: String(global[0]),tick: Number(global[1]),lastFee: Number(global[2]),pluginConfig: Number(global[3]),communityFee: Number(global[4]),unlocked: global[5],liquidity: liquidity.toString(),plugin: plugin.toLowerCase(),prevTickGlobal: prev,nextTickGlobal: next,lowerTick,upperTick,ticks: [...ticks.values()].sort((a,b) => a.tick - b.tick) };
   if ((await client.getBlock({ blockNumber: block.number })).hash !== block.hash) throw new Error('BLOCK_REORG');
-  return { identity: { chain: 'arbitrum',network: String(chain),height: block.number.toString(),blockHash: block.hash },token0,token1,state,revisionHash: expectedCodeHash };
+  return { identity: { chain: profile.key,network: String(chain),height: block.number.toString(),blockHash: block.hash },token0,token1,state,revisionHash: expectedCodeHash };
 }

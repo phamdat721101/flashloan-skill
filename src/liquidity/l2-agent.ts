@@ -34,7 +34,7 @@ export class L2AgentServer {
   private current(poolId: string): MicrostructureFrame { text(poolId,256); return this.engine.inspect(poolId,this.now()); }
   private resource(uri: string): unknown {
     text(uri,2048);
-    const match = /^l2:\/\/(arbitrum|sui)\/([^/]+)\/(?:pool\/([^/]+)\/state|watchlist\/ranked)$/.exec(uri);
+    const match = /^l2:\/\/(arbitrum|base|robinhood|sui)\/([^/]+)\/(?:pool\/([^/]+)\/state|watchlist\/ranked)$/.exec(uri);
     if (!match) throw new Error('L2_RESOURCE_NOT_FOUND');
     const frames = this.engine.snapshot().filter(f => f.identity.chain === match[1] && f.identity.network === match[2]);
     if (match[3]) {

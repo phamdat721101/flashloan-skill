@@ -2,28 +2,30 @@
 
 ## Project Structure & Module Organization
 
-This repository is currently a scaffold: it has no application source, tests, package manifest, or build configuration. Keep future code organized by responsibility. Recommended baseline:
+This repository contains a TypeScript agent, Rust scanner, Solidity executors and Sui Move guard.
 
-- `src/` for production source code.
-- `tests/` for automated tests that mirror `src/` paths.
-- `assets/` for static, non-code resources.
-- `scripts/` for repeatable developer and release tasks.
-- `docs/` for design notes and operational documentation.
+- `src/` contains production TypeScript; `src/test/` contains Node tests.
+- `src/evm/` contains shared EVM deployment, budget, discovery and acceptance logic.
+- `crates/` contains the Rust scanner and engine.
+- `contracts/` and `test/` contain Solidity and Foundry tests.
+- `schemas/` and `config/` hold versioned public contracts and configuration.
+- `scripts/` holds repeatable local proof and root-verification adapters.
+- `docs/` holds design and public deployment evidence. `.nim/` is local state.
 
-Do not commit generated output, local secrets, or dependency directories. Document new top-level directories here when they become part of the project contract.
+Do not commit generated output, local secrets, or dependency directories.
 
 ## Build, Test, and Development Commands
 
-No build, test, formatter, linter, or local-development commands are configured yet. When adding tooling, expose common workflows through the project’s task runner and document them here. For example:
-
 ```sh
-npm run dev      # start local development
-npm test         # run the full test suite
-npm run lint     # check code style and static issues
-npm run build    # produce a production build
+npm run build      # TypeScript artifacts
+npm run typecheck  # TypeScript static checks
+npm test           # Forge build, Node tests and Rust workspace tests
+npm run evm:test   # focused EVM tests and compiled ABI parity
+forge test         # Solidity unit tests; real forks require explicit opt-in
 ```
 
-Commands should run from the repository root and avoid unrecorded global dependencies.
+Node 20+, Rust and Foundry are required. Live fork and deployment commands need
+explicit RPC access; default local tests do not establish profitable live execution.
 
 ## Coding Style & Naming Conventions
 
@@ -35,7 +37,7 @@ Add tests with every behavior change once a test framework is introduced. Place 
 
 ## Commit & Pull Request Guidelines
 
-No Git history is available in this scaffold. Until a convention is established, write short imperative subjects, such as `Add rollover validation`. Keep each commit focused. Pull requests should describe intent, tests, configuration changes, and follow-up work; link the issue and include screenshots for user-visible changes.
+Write short imperative subjects, such as `Add rollover validation`. Keep each commit focused. Pull requests should describe intent, tests, configuration changes, and follow-up work; link the issue and include screenshots for user-visible changes.
 
 ## Security & Configuration
 

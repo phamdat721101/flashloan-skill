@@ -1,6 +1,6 @@
 # Flashloan Agent Skill
 
-Install a prompt-driven Arbitrum flashloan skill for Codex agents. Its Rust/Alloy live-state engine is source-built and deliberately wallet-free until a reviewed executor capability and private relay are configured.
+Install a prompt-driven Arbitrum, Base, Robinhood and Sui flashloan skill for Codex agents. Its Rust/Alloy live-state engine is source-built and deliberately wallet-free until a reviewed executor capability and private relay are configured.
 
 ## Install
 
@@ -20,6 +20,31 @@ Use $flashloan-agent to scan Aave, Morpho, Balancer, and Uniswap v4 using my sca
 For a configured executor, private relay, and dedicated wallet, ask the agent to simulate or autonomously execute a schema-valid opportunity file. The runtime verifies chain, executor bytecode, owner signer, capability selector, proposal freshness, private relay, and final simulation before broadcast; it persists realized P&L and halts if P&L cannot be valued.
 
 For the liquid-pattern workflow, start with [capture, size and prepare](#use-a-liquid-pattern-to-prepare-a-flashloan), then add [Level 2 agent context](#level-2-market-context-for-agents). Current public contracts are listed in [deployment addresses](#recorded-deployment-addresses).
+
+## Base and Robinhood execution
+
+The shared EVM pipeline supports Base (8453) and Robinhood (4663), with separate
+chain/signer budgets, artifact-verified deployment, exact-head simulation and
+durable receipt recovery. See [the implementation and operating contract](docs/features/evm-flashloan.md)
+for schemas, approved limits, exclusions and current live acceptance status.
+Install Foundry as well as Node and Rust; `npm test` builds Solidity artifacts
+before checking ABI parity. Run `npm run evm:test` for focused EVM coverage.
+
+```sh
+npm run build
+node dist/evm/cli.js profiles
+node dist/evm/cli.js deployment-status --manifest config/base-mainnet.json --state .nim/deployments/base.json
+node dist/evm/cli.js deployment-status --manifest config/robinhood-mainnet.json --state .nim/deployments/robinhood.json
+```
+
+Deployment requires an explicit local `--env-file` holding `OPERATOR_PRIVATE_KEY`;
+it never sources that file as shell code. Public submission is supported under
+the approved policy. A verified deployment alone does not admit a live trade.
+Use the matching manifest and RPC variable (`BASE_RPC_URL` or
+`ROBINHOOD_RPC_URL`) for discovery, deployment-status, and acceptance. The
+skill reads pinned V4 state, sizes a bounded two-to-six-hop return cycle, and
+only signs after fresh exact-head simulation, artifact-bound proof evidence,
+and the per-chain/signer budget checks pass.
 
 ## Configuration
 
@@ -129,7 +154,19 @@ authorize sending or establish liquidity-pattern production admission.
 | Arbitrum One / multi-split | `0xb1aac2079c52fd31e038ec348505a0f55859d60f` | Separate `executeMultiSplitPairArbitrage` ABI; not the repaired multi-lender ABI |
 | Arbitrum One / historical multi-venue | `0xd130b45b7e7d08fb7dbb1c79fa5d9b95ea8e27b2` | V4 revoked; V2/V3 require their existing gates |
 | Arbitrum One / historical V4-only | `0xfcd8f1257d8f37f4c51b4e6ac923137e5b6a2a16` | Execution revoked |
+| Base 8453 / MultiVenueArbitrageExecutor | `0xa27873424e74037d93dcf05d3a40556d07c2cfa8` | Finalized; Morpho, V4 manager, and Aave provider configured |
+| Base 8453 / PortableMultiSplitFlashExecutor | `0x0cd3a077aec94f51d32e8d55120cf90d5db7841c` | Finalized portable split executor; Morpho, V4 manager, and Aave provider configured |
+| Base 8453 / V4StateQuoter | `0x84f9615db5a1c6ac87acb686a3cb3fcb44ec1825` | Finalized read-only V4 state quoter |
+| Base 8453 / ImmutableArbitrageExecutor | `0x00cba652a1b4cf21063d443c5c1b0d495f477999` | Finalized immutable executor; V4 manager and Aave provider configured |
+| Robinhood 4663 / MultiVenueArbitrageExecutor | `0xa27873424e74037d93dcf05d3a40556d07c2cfa8` | Finalized; Morpho and V4 manager configured |
+| Robinhood 4663 / PortableMultiSplitFlashExecutor | `0xba1bb00447cd75b941b14aecd09e37f9ab461e38` | Finalized portable split executor; Morpho and V4 manager configured |
+| Robinhood 4663 / V4StateQuoter | `0x0caefeaa418d65ef03a19646d128ced8f3e4977f` | Finalized read-only V4 state quoter |
 | Sui mainnet / active guard | `0x96859191011298474c3e9944d52237083ce2b5a7065797036543fb8be9ed0c81` | Terminal profit guard only; not a lender or route executor |
+
+The Base and Robinhood addresses, deployment transactions, runtime hashes,
+owner checks, and finality evidence are in the [Base record](docs/deployments/base-executors.json)
+and [Robinhood record](docs/deployments/robinhood-executors.json). Robinhood has
+no admitted Aave provider, so its immutable Aave executor is deliberately excluded.
 
 The multi-split record references deployment transaction
 [`0x0996…0f5ef`](https://arbiscan.io/tx/0x0996d0328a43ae3f23cb5d0297c76292d910f59a88a1276c928578a52010f5ef).

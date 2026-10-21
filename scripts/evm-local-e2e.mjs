@@ -1,0 +1,34 @@
+import assert from 'node:assert/strict';
+import { readFile, mkdtemp, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
+import { createPublicClient, createWalletClient, http, keccak256 } from 'viem';
+import { privateKeyToAccount } from 'viem/accounts';
+import { defineChain } from 'viem';
+import { EvmDeployment } from '../dist/evm/deployment.js';
+import { atomicJson } from '../dist/evm/storage.js';
+
+// Public Anvil development account. This script never loads the operator environment.
+const account=privateKeyToAccount('0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80');
+const rpc='http://127.0.0.1:19543', repository=process.cwd();
+const chain=defineChain({id:4663,name:'local rehearsal',nativeCurrency:{name:'ETH',symbol:'ETH',decimals:18},rpcUrls:{default:{http:[rpc]}}});
+const client=createPublicClient({transport:http(rpc)}), wallet=createWalletClient({account,chain,transport:http(rpc)});
+assert.equal(await client.getChainId(),4663);
+const mock=JSON.parse(await readFile('out/MultiVenueArbitrageExecutor.t.sol/TestMorphoLender.json','utf8'));
+const hash=await wallet.sendTransaction({data:mock.bytecode.object});
+const receipt=await client.waitForTransactionReceipt({hash});assert.equal(receipt.status,'success');assert.ok(receipt.contractAddress);
+const code=await client.getCode({address:receipt.contractAddress});assert.ok(code);
+const manifest={schemaVersion:'1.0',chainId:4663,roots:[{role:'morpho',address:receipt.contractAddress,codeHash:keccak256(code),source:'https://example.invalid/local-fixture-not-mainnet'}],contracts:['MultiVenueArbitrageExecutor','PortableMultiSplitFlashExecutor','V4StateQuoter'],exclusions:[{contract:'ImmutableArbitrageExecutor',reason:'No Aave in local fixture'}]};
+const directory=await mkdtemp(join(tmpdir(),'evm-deployment-e2e-'));
+process.chdir(directory);
+const engine=new EvmDeployment(manifest,rpc,rpc,account,join(directory,'report.json'),resolve(repository,'out'));
+const state=await engine.run();
+assert.equal(state.deployments.length,3);assert.ok(state.deployments.every(d=>d.status==='verified'));
+const nonce=await client.getTransactionCount({address:account.address});
+const resumed=await new EvmDeployment(manifest,rpc,rpc,account,join(directory,'alternate-report.json'),resolve(repository,'out')).run();
+assert.deepEqual(resumed.deployments,state.deployments);
+assert.equal(await client.getTransactionCount({address:account.address}),nonce,'restart redeployed or reconfigured');
+assert.ok(BigInt(state.spentWei)<=10000000000000000n);
+const evidence={verified:true,source:'local-anvil-real-transactions',chainId:4663,mainnet:false,deployments:state.deployments,spentWei:state.spentWei,restartAdditionalTransactions:0};
+await atomicJson(resolve(repository,'.nim/e2e/evm-local-deployment.json'),evidence);
+console.log(JSON.stringify({verified:true,check:'local-deployment-configure-runtime-owner-restart',contracts:3,mainnet:false}));

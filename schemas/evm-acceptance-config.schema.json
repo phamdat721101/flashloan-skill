@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "chainId",
+    "manifestPath",
+    "deploymentStatePath",
+    "evidencePath",
+    "statePath",
+    "pools",
+    "venueRoots",
+    "profitAsset",
+    "assetUsdFeed",
+    "nativeUsdFeed",
+    "feedCodePins",
+    "maxPriceAgeSeconds",
+    "maxRounds",
+    "pollIntervalMs"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "1.0"
+    },
+    "chainId": {
+      "enum": [
+        8453,
+        4663
+      ]
+    },
+    "manifestPath": {
+      "type": "string",
+      "minLength": 1
+    },
+    "deploymentStatePath": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evidencePath": {
+      "type": "string",
+      "minLength": 1
+    },
+    "statePath": {
+      "type": "string",
+      "minLength": 1
+    },
+    "pools": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 6,
+      "items": {
+        "type": "object"
+      }
+    },
+    "venueRoots": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^0x[0-9a-fA-F]{40}$"
+      }
+    },
+    "profitAsset": {
+      "type": "string",
+      "pattern": "^0x[0-9a-fA-F]{40}$"
+    },
+    "assetUsdFeed": {
+      "type": "string",
+      "pattern": "^0x[0-9a-fA-F]{40}$"
+    },
+    "nativeUsdFeed": {
+      "type": "string",
+      "pattern": "^0x[0-9a-fA-F]{40}$"
+    },
+    "feedCodePins": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^0x[0-9a-f]{64}$"
+      }
+    },
+    "maxPriceAgeSeconds": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 86400
+    },
+    "maxRounds": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 86400
+    },
+    "pollIntervalMs": {
+      "type": "integer",
+      "minimum": 1000,
+      "maximum": 60000
+    }
+  }
+}

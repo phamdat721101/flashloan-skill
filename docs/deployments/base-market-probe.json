@@ -1,0 +1,1342 @@
+{
+  "schemaVersion": "1.0",
+  "chainId": 8453,
+  "source": "bounded wallet-free public RPC probe",
+  "coverage": "four standard WETH/stable V4 keys only; 64 sampled sizes per direction; zero gas is optimistic, not execution admission",
+  "discoveryDegraded": "public RPC refused Initialize-log discovery; standard settlement-pair keys only",
+  "capturedAtMs": 1792569874803,
+  "snapshot": {
+    "snapshot": {
+      "schemaVersion": "3.0",
+      "identity": {
+        "chain": "base",
+        "network": "8453",
+        "height": "52890258",
+        "blockHash": "0x287bf0bcf20c5f88208abde0a9485df6c5d7648cf445c2623e9eede3cdb756d6"
+      },
+      "sourceId": "wallet-free-probe",
+      "cursor": "1",
+      "observedAtMs": 1792569873678,
+      "complete": true,
+      "poolIds": [
+        "base:8453:0x498581ff718922c3f8e6a244956af099b2652b2b:0x4949ca7a256e6eb04214e80f98c890bba07658bc314e42a676bdafa2704662b7",
+        "base:8453:0x498581ff718922c3f8e6a244956af099b2652b2b:0xf97566d3f65c048c9fa568ac3346c7970fd8030e62eeb5c0bdf409fe17c7c511",
+        "base:8453:0x498581ff718922c3f8e6a244956af099b2652b2b:0x90333bb05c258fe0dddb2840ef66f1a05165aa7dac6815d24e807cc6ebd943a0",
+        "base:8453:0x498581ff718922c3f8e6a244956af099b2652b2b:0x1d8c55f347727c0fb4f5e1b65cdb93639e0c7102580a7d345e1144cd5a718f54"
+      ],
+      "stateDigest": "630437eb571c390c5f9c031a9c9f845bd8b64c4783aaa40158378ea9057f57df"
+    },
+    "pools": [
+      {
+        "schemaVersion": "4.0",
+        "identity": {
+          "chain": "base",
+          "network": "8453",
+          "height": "52890258",
+          "blockHash": "0x287bf0bcf20c5f88208abde0a9485df6c5d7648cf445c2623e9eede3cdb756d6"
+        },
+        "poolId": "base:8453:0x498581ff718922c3f8e6a244956af099b2652b2b:0x4949ca7a256e6eb04214e80f98c890bba07658bc314e42a676bdafa2704662b7",
+        "poolAddress": "0x498581ff718922c3f8e6a244956af099b2652b2b",
+        "adapterRevision": "v4:0x83b2af6e9f3158defc2811cbcb0db71ecf8b2ba2abea39c39e370ac5c6f43eb6",
+        "revisionHash": "0x83b2af6e9f3158defc2811cbcb0db71ecf8b2ba2abea39c39e370ac5c6f43eb6",
+        "token0": "0x4200000000000000000000000000000000000006",
+        "token1": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "decimals0": 18,
+        "decimals1": 6,
+        "stateClass": "canonical",
+        "appliedOperations": [],
+        "state": {
+          "protocol": "uniswap-v4",
+          "sqrtPriceX96": "4125593611853186161943899",
+          "tick": -197268,
+          "liquidity": "0",
+          "tickSpacing": 200,
+          "bitmapWords": [
+            {
+              "wordPosition": -7,
+              "bitmap": "0"
+            },
+            {
+              "wordPosition": -6,
+              "bitmap": "0"
+            },
+            {
+              "wordPosition": -5,
+              "bitmap": "0"
+            },
+            {
+              "wordPosition": -4,
+              "bitmap": "0"
+            },
+            {
+              "wordPosition": -3,
+              "bitmap": "0"
+            },
+            {
+              "wordPosition": -2,
+              "bitmap": "0"
+            },
+            {
+              "wordPosition": -1,
+              "bitmap": "0"
+            }
+          ],
+          "initializedTicks": [],
+          "lowerTick": -358400,
+          "upperTick": -1,
+          "key": {
+            "currency0": "0x4200000000000000000000000000000000000006",
+            "currency1": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+            "fee": 10000,
+            "tickSpacing": 200,
+            "hooks": "0x0000000000000000000000000000000000000000"
+          },
+          "poolId": "0x4949ca7a256e6eb04214e80f98c890bba07658bc314e42a676bdafa2704662b7",
+          "protocolFeePips": 0,
+          "lpFeePips": 10000
+        }
+      },
+      {
+        "schemaVersion": "4.0",
+        "identity": {
+          "chain": "base",
+          "network": "8453",
+          "height": "52890258",
+          "blockHash": "0x287bf0bcf20c5f88208abde0a9485df6c5d7648cf445c2623e9eede3cdb756d6"
+        },
+        "poolId": "base:8453:0x498581ff718922c3f8e6a244956af099b2652b2b:0xf97566d3f65c048c9fa568ac3346c7970fd8030e62eeb5c0bdf409fe17c7c511",
+        "poolAddress": "0x498581ff718922c3f8e6a244956af099b2652b2b",
+        "adapterRevision": "v4:0x83b2af6e9f3158defc2811cbcb0db71ecf8b2ba2abea39c39e370ac5c6f43eb6",
+        "revisionHash": "0x83b2af6e9f3158defc2811cbcb0db71ecf8b2ba2abea39c39e370ac5c6f43eb6",
+        "token0": "0x4200000000000000000000000000000000000006",
+        "token1": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "decimals0": 18,
+        "decimals1": 6,
+        "stateClass": "canonical",
+        "appliedOperations": [],
+        "state": {
+          "protocol": "uniswap-v4",
+          "sqrtPriceX96": "4125593611853186161943899",
+          "tick": -197268,
+          "liquidity": "0",
+          "tickSpacing": 1,
+          "bitmapWords": [
+            {
+              "wordPosition": -774,
+              "bitmap": "0"
+            },
+            {
+              "wordPosition": -773,
+              "bitmap": "0"
+            },
+            {
+              "wordPosition": -772,
+              "bitmap": "0"
+            },
+            {
+              "wordPosition": -771,
+              "bitmap": "0"
+            },
+            {
+              "wordPosition": -770,
+              "bitmap": "0"
+            },
+            {
+              "wordPosition": -769,
+              "bitmap": "0"
+            },
+            {
+              "wordPosition": -768,
+              "bitmap": "0"
+            }
+          ],
+          "initializedTicks": [],
+          "lowerTick": -198144,
+          "upperTick": -196353,
+          "key": {
+            "currency0": "0x4200000000000000000000000000000000000006",
+            "currency1": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+            "fee": 100,
+            "tickSpacing": 1,
+            "hooks": "0x0000000000000000000000000000000000000000"
+          },
+          "poolId": "0xf97566d3f65c048c9fa568ac3346c7970fd8030e62eeb5c0bdf409fe17c7c511",
+          "protocolFeePips": 0,
+          "lpFeePips": 100
+        }
+      },
+      {
+        "schemaVersion": "4.0",
+        "identity": {
+          "chain": "base",
+          "network": "8453",
+          "height": "52890258",
+          "blockHash": "0x287bf0bcf20c5f88208abde0a9485df6c5d7648cf445c2623e9eede3cdb756d6"
+        },
+        "poolId": "base:8453:0x498581ff718922c3f8e6a244956af099b2652b2b:0x90333bb05c258fe0dddb2840ef66f1a05165aa7dac6815d24e807cc6ebd943a0",
+        "poolAddress": "0x498581ff718922c3f8e6a244956af099b2652b2b",
+        "adapterRevision": "v4:0x83b2af6e9f3158defc2811cbcb0db71ecf8b2ba2abea39c39e370ac5c6f43eb6",
+        "revisionHash": "0x83b2af6e9f3158defc2811cbcb0db71ecf8b2ba2abea39c39e370ac5c6f43eb6",
+        "token0": "0x4200000000000000000000000000000000000006",
+        "token1": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "decimals0": 18,
+        "decimals1": 6,
+        "stateClass": "canonical",
+        "appliedOperations": [],
+        "state": {
+          "protocol": "uniswap-v4",
+          "sqrtPriceX96": "3924242950033520910106265",
+          "tick": -198269,
+          "liquidity": "70155013192023",
+          "tickSpacing": 10,
+          "bitmapWords": [
+            {
+              "wordPosition": -81,
+              "bitmap": "0"
+            },
+            {
+              "wordPosition": -80,
+              "bitmap": "340282366920938463463374607431768211456"
+            },
+            {
+              "wordPosition": -79,
+              "bitmap": "431359146674410236714672241392314090778194310763010342939092586594304"
+            },
+            {
+              "wordPosition": -78,
+              "bitmap": "408111225010291960026792372442647404903245395996472621662208"
+            },
+            {
+              "wordPosition": -77,
+              "bitmap": "10141204801825835211973625643008"
+            },
+            {
+              "wordPosition": -76,
+              "bitmap": "0"
+            },
+            {
+              "wordPosition": -75,
+              "bitmap": "3"
+            }
+          ],
+          "initializedTicks": [
+            {
+              "tick": -203520,
+              "liquidityGross": "62383612464322",
+              "liquidityNet": "62383612464322"
+            },
+            {
+              "tick": -201530,
+              "liquidityGross": "83436897688",
+              "liquidityNet": "83436897688"
+            },
+            {
+              "tick": -199960,
+              "liquidityGross": "83436897688",
+              "liquidityNet": "-83436897688"
+            },
+            {
+              "tick": -198780,
+              "liquidityGross": "6916122074466",
+              "liquidityNet": "6916122074466"
+            },
+            {
+              "tick": -198480,
+              "liquidityGross": "43524834735",
+              "liquidityNet": "43524834735"
+            },
+            {
+              "tick": -198420,
+              "liquidityGross": "37403807267",
+              "liquidityNet": "37403807267"
+            },
+            {
+              "tick": -198360,
+              "liquidityGross": "161239930635",
+              "liquidityNet": "161239930635"
+            },
+            {
+              "tick": -198300,
+              "liquidityGross": "38053233141",
+              "liquidityNet": "38053233141"
+            },
+            {
+              "tick": -198180,
+              "liquidityGross": "6916122074466",
+              "liquidityNet": "-6916122074466"
+            },
+            {
+              "tick": -197880,
+              "liquidityGross": "43524834735",
+              "liquidityNet": "-43524834735"
+            },
+            {
+              "tick": -197820,
+              "liquidityGross": "37403807267",
+              "liquidityNet": "-37403807267"
+            },
+            {
+              "tick": -197760,
+              "liquidityGross": "161239930635",
+              "liquidityNet": "-161239930635"
+            },
+            {
+              "tick": -197700,
+              "liquidityGross": "38053233141",
+              "liquidityNet": "-38053233141"
+            },
+            {
+              "tick": -196090,
+              "liquidityGross": "62383612464322",
+              "liquidityNet": "-62383612464322"
+            },
+            {
+              "tick": -192000,
+              "liquidityGross": "70000",
+              "liquidityNet": "70000"
+            },
+            {
+              "tick": -191990,
+              "liquidityGross": "70000",
+              "liquidityNet": "-70000"
+            }
+          ],
+          "lowerTick": -207360,
+          "upperTick": -189441,
+          "key": {
+            "currency0": "0x4200000000000000000000000000000000000006",
+            "currency1": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+            "fee": 500,
+            "tickSpacing": 10,
+            "hooks": "0x0000000000000000000000000000000000000000"
+          },
+          "poolId": "0x90333bb05c258fe0dddb2840ef66f1a05165aa7dac6815d24e807cc6ebd943a0",
+          "protocolFeePips": 512125,
+          "lpFeePips": 500
+        }
+      },
+      {
+        "schemaVersion": "4.0",
+        "identity": {
+          "chain": "base",
+          "network": "8453",
+          "height": "52890258",
+          "blockHash": "0x287bf0bcf20c5f88208abde0a9485df6c5d7648cf445c2623e9eede3cdb756d6"
+        },
+        "poolId": "base:8453:0x498581ff718922c3f8e6a244956af099b2652b2b:0x1d8c55f347727c0fb4f5e1b65cdb93639e0c7102580a7d345e1144cd5a718f54",
+        "poolAddress": "0x498581ff718922c3f8e6a244956af099b2652b2b",
+        "adapterRevision": "v4:0x83b2af6e9f3158defc2811cbcb0db71ecf8b2ba2abea39c39e370ac5c6f43eb6",
+        "revisionHash": "0x83b2af6e9f3158defc2811cbcb0db71ecf8b2ba2abea39c39e370ac5c6f43eb6",
+        "token0": "0x4200000000000000000000000000000000000006",
+        "token1": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "decimals0": 18,
+        "decimals1": 6,
+        "stateClass": "canonical",
+        "appliedOperations": [],
+        "state": {
+          "protocol": "uniswap-v4",
+          "sqrtPriceX96": "3920326651974187486636701",
+          "tick": -198289,
+          "liquidity": "24256678478278744",
+          "tickSpacing": 60,
+          "bitmapWords": [
+            {
+              "wordPosition": -16,
+              "bitmap": "0"
+            },
+            {
+              "wordPosition": -15,
+              "bitmap": "28269553036454149273332760011886696253572049348956132298171650985752002560"
+            },
+            {
+              "wordPosition": -14,
+              "bitmap": "114101945641669749622181229929264538174140052414522863906552254610037327020034"
+            },
+            {
+              "wordPosition": -13,
+              "bitmap": "3454243166728675735664333077851070062474473999702993490227846247726548"
+            },
+            {
+              "wordPosition": -12,
+              "bitmap": "664613997892609052179355358787010560"
+            },
+            {
+              "wordPosition": -11,
+              "bitmap": "0"
+            },
+            {
+              "wordPosition": -10,
+              "bitmap": "0"
+            }
+          ],
+          "initializedTicks": [
+            {
+              "tick": -223320,
+              "liquidityGross": "2030094144205705",
+              "liquidityNet": "2030094144205705"
+            },
+            {
+              "tick": -215760,
+              "liquidityGross": "26211148579",
+              "liquidityNet": "26211148579"
+            },
+            {
+              "tick": -214980,
+              "liquidityGross": "235781040",
+              "liquidityNet": "235781040"
+            },
+            {
+              "tick": -214200,
+              "liquidityGross": "1016328025258420",
+              "liquidityNet": "1016328025258420"
+            },
+            {
+              "tick": -211140,
+              "liquidityGross": "195492284",
+              "liquidityNet": "195492284"
+            },
+            {
+              "tick": -209040,
+              "liquidityGross": "3232089184",
+              "liquidityNet": "3232089184"
+            },
+            {
+              "tick": -207240,
+              "liquidityGross": "370272009371",
+              "liquidityNet": "370272009371"
+            },
+            {
+              "tick": -204660,
+              "liquidityGross": "53552145169214",
+              "liquidityNet": "53552145169214"
+            },
+            {
+              "tick": -204600,
+              "liquidityGross": "258357681716697",
+              "liquidityNet": "258357681716697"
+            },
+            {
+              "tick": -204360,
+              "liquidityGross": "625549686990285",
+              "liquidityNet": "625549686990285"
+            },
+            {
+              "tick": -203880,
+              "liquidityGross": "7055491905312672",
+              "liquidityNet": "7055491905312672"
+            },
+            {
+              "tick": -203520,
+              "liquidityGross": "40332961148730",
+              "liquidityNet": "40332961148730"
+            },
+            {
+              "tick": -203400,
+              "liquidityGross": "36430362556080",
+              "liquidityNet": "36430362556080"
+            },
+            {
+              "tick": -203220,
+              "liquidityGross": "73231709746194",
+              "liquidityNet": "73231709746194"
+            },
+            {
+              "tick": -203160,
+              "liquidityGross": "2320807573788160",
+              "liquidityNet": "-1739380714623250"
+            },
+            {
+              "tick": -202920,
+              "liquidityGross": "112713056355960",
+              "liquidityNet": "112713056355960"
+            },
+            {
+              "tick": -202740,
+              "liquidityGross": "4031278611",
+              "liquidityNet": "4031278611"
+            },
+            {
+              "tick": -202500,
+              "liquidityGross": "144634949893904",
+              "liquidityNet": "144634949893904"
+            },
+            {
+              "tick": -202380,
+              "liquidityGross": "392823020119828",
+              "liquidityNet": "392823020119828"
+            },
+            {
+              "tick": -202320,
+              "liquidityGross": "27861442258848",
+              "liquidityNet": "27861442258848"
+            },
+            {
+              "tick": -202260,
+              "liquidityGross": "474346462290107",
+              "liquidityNet": "474346462290107"
+            },
+            {
+              "tick": -202200,
+              "liquidityGross": "319331039360",
+              "liquidityNet": "319331039360"
+            },
+            {
+              "tick": -202080,
+              "liquidityGross": "91125938636801",
+              "liquidityNet": "91125938636801"
+            },
+            {
+              "tick": -202020,
+              "liquidityGross": "151327646919294",
+              "liquidityNet": "151327646919294"
+            },
+            {
+              "tick": -201900,
+              "liquidityGross": "3119559317451537",
+              "liquidityNet": "3119559317451537"
+            },
+            {
+              "tick": -201720,
+              "liquidityGross": "19574649893",
+              "liquidityNet": "19574649893"
+            },
+            {
+              "tick": -201660,
+              "liquidityGross": "347405909565",
+              "liquidityNet": "-347405909565"
+            },
+            {
+              "tick": -201600,
+              "liquidityGross": "392823020119828",
+              "liquidityNet": "-392823020119828"
+            },
+            {
+              "tick": -201300,
+              "liquidityGross": "22264442577232",
+              "liquidityNet": "22264442577232"
+            },
+            {
+              "tick": -201180,
+              "liquidityGross": "638399985112301",
+              "liquidityNet": "-612699388868269"
+            },
+            {
+              "tick": -201120,
+              "liquidityGross": "319331039360",
+              "liquidityNet": "-319331039360"
+            },
+            {
+              "tick": -200940,
+              "liquidityGross": "920523770",
+              "liquidityNet": "-920523770"
+            },
+            {
+              "tick": -200820,
+              "liquidityGross": "5177291694293",
+              "liquidityNet": "-5177291694293"
+            },
+            {
+              "tick": -200760,
+              "liquidityGross": "934008875539484",
+              "liquidityNet": "934008875539484"
+            },
+            {
+              "tick": -200640,
+              "liquidityGross": "1016155187230868",
+              "liquidityNet": "1016155187230868"
+            },
+            {
+              "tick": -200580,
+              "liquidityGross": "28782050931176",
+              "liquidityNet": "-26940833586520"
+            },
+            {
+              "tick": -200280,
+              "liquidityGross": "3132386609553955",
+              "liquidityNet": "-3132386609553955"
+            },
+            {
+              "tick": -200040,
+              "liquidityGross": "582488517832647",
+              "liquidityNet": "582488517832647"
+            },
+            {
+              "tick": -199980,
+              "liquidityGross": "3193020949877253",
+              "liquidityNet": "2028043914211959"
+            },
+            {
+              "tick": -199920,
+              "liquidityGross": "14310127104165118",
+              "liquidityNet": "9089062240075906"
+            },
+            {
+              "tick": -199860,
+              "liquidityGross": "15148509382992189",
+              "liquidityNet": "-8250679961248835"
+            },
+            {
+              "tick": -199800,
+              "liquidityGross": "4833881759081841",
+              "liquidityNet": "-387183108872975"
+            },
+            {
+              "tick": -199740,
+              "liquidityGross": "582488520066048",
+              "liquidityNet": "-582488520066048"
+            },
+            {
+              "tick": -199560,
+              "liquidityGross": "469005598672733",
+              "liquidityNet": "-469005598672733"
+            },
+            {
+              "tick": -199440,
+              "liquidityGross": "55783677821",
+              "liquidityNet": "55783677821"
+            },
+            {
+              "tick": -199320,
+              "liquidityGross": "22264442577232",
+              "liquidityNet": "-22264442577232"
+            },
+            {
+              "tick": -199260,
+              "liquidityGross": "32777617287737",
+              "liquidityNet": "32777617287737"
+            },
+            {
+              "tick": -199200,
+              "liquidityGross": "19574649893",
+              "liquidityNet": "-19574649893"
+            },
+            {
+              "tick": -199080,
+              "liquidityGross": "669201961729",
+              "liquidityNet": "669201961729"
+            },
+            {
+              "tick": -199020,
+              "liquidityGross": "3488112901876961",
+              "liquidityNet": "3488001334521319"
+            },
+            {
+              "tick": -198960,
+              "liquidityGross": "5457520938532",
+              "liquidityNet": "5457520938532"
+            },
+            {
+              "tick": -198900,
+              "liquidityGross": "1089916664282661",
+              "liquidityNet": "1089916664282661"
+            },
+            {
+              "tick": -198780,
+              "liquidityGross": "5102100900782890",
+              "liquidityNet": "5102100900782890"
+            },
+            {
+              "tick": -198720,
+              "liquidityGross": "1013602434582015",
+              "liquidityNet": "-366582498192063"
+            },
+            {
+              "tick": -198600,
+              "liquidityGross": "1149894458802646",
+              "liquidityNet": "1149894458802646"
+            },
+            {
+              "tick": -198540,
+              "liquidityGross": "920608672328",
+              "liquidityNet": "-920608672328"
+            },
+            {
+              "tick": -198480,
+              "liquidityGross": "43023355940",
+              "liquidityNet": "-43023355940"
+            },
+            {
+              "tick": -198420,
+              "liquidityGross": "50081039128",
+              "liquidityNet": "-50081039128"
+            },
+            {
+              "tick": -198240,
+              "liquidityGross": "32777617287737",
+              "liquidityNet": "-32777617287737"
+            },
+            {
+              "tick": -198180,
+              "liquidityGross": "305315100537309",
+              "liquidityNet": "305307037980087"
+            },
+            {
+              "tick": -198120,
+              "liquidityGross": "6741049411197",
+              "liquidityNet": "-6741049411197"
+            },
+            {
+              "tick": -198060,
+              "liquidityGross": "1016328025258420",
+              "liquidityNet": "-1016328025258420"
+            },
+            {
+              "tick": -197940,
+              "liquidityGross": "7900807948645820",
+              "liquidityNet": "-7900661560467620"
+            },
+            {
+              "tick": -197640,
+              "liquidityGross": "2141119674548339",
+              "liquidityNet": "-2133791284474349"
+            },
+            {
+              "tick": -197520,
+              "liquidityGross": "242189351794684",
+              "liquidityNet": "-242189351794684"
+            },
+            {
+              "tick": -197460,
+              "liquidityGross": "1016155187230868",
+              "liquidityNet": "-1016155187230868"
+            },
+            {
+              "tick": -197400,
+              "liquidityGross": "838374289073873",
+              "liquidityNet": "-838374289073873"
+            },
+            {
+              "tick": -197340,
+              "liquidityGross": "1274952115847926",
+              "liquidityNet": "-1274952115847926"
+            },
+            {
+              "tick": -197100,
+              "liquidityGross": "73194089100",
+              "liquidityNet": "-73194089100"
+            },
+            {
+              "tick": -196920,
+              "liquidityGross": "296135914985443",
+              "liquidityNet": "-296135914985443"
+            },
+            {
+              "tick": -196860,
+              "liquidityGross": "305311069258698",
+              "liquidityNet": "-305311069258698"
+            },
+            {
+              "tick": -196800,
+              "liquidityGross": "316768918783779",
+              "liquidityNet": "-316768918783779"
+            },
+            {
+              "tick": -196740,
+              "liquidityGross": "112365650446395",
+              "liquidityNet": "-112365650446395"
+            },
+            {
+              "tick": -196680,
+              "liquidityGross": "3664195036995",
+              "liquidityNet": "-3664195036995"
+            },
+            {
+              "tick": -196620,
+              "liquidityGross": "999054959407271",
+              "liquidityNet": "-999054959407271"
+            },
+            {
+              "tick": -196560,
+              "liquidityGross": "73181628707066",
+              "liquidityNet": "-73181628707066"
+            },
+            {
+              "tick": -196380,
+              "liquidityGross": "40332961148730",
+              "liquidityNet": "-40332961148730"
+            },
+            {
+              "tick": -196320,
+              "liquidityGross": "144634949893904",
+              "liquidityNet": "-144634949893904"
+            },
+            {
+              "tick": -196260,
+              "liquidityGross": "7055491905312672",
+              "liquidityNet": "-7055491905312672"
+            },
+            {
+              "tick": -196200,
+              "liquidityGross": "365908689190459",
+              "liquidityNet": "-365908689190459"
+            },
+            {
+              "tick": -196020,
+              "liquidityGross": "23006019598",
+              "liquidityNet": "-23006019598"
+            },
+            {
+              "tick": -195240,
+              "liquidityGross": "91125938636801",
+              "liquidityNet": "-91125938636801"
+            },
+            {
+              "tick": -195180,
+              "liquidityGross": "3232089184",
+              "liquidityNet": "-3232089184"
+            },
+            {
+              "tick": -193860,
+              "liquidityGross": "163571923081",
+              "liquidityNet": "-163571923081"
+            },
+            {
+              "tick": -190800,
+              "liquidityGross": "26211148579",
+              "liquidityNet": "-26211148579"
+            },
+            {
+              "tick": -189300,
+              "liquidityGross": "370272009371",
+              "liquidityNet": "-370272009371"
+            },
+            {
+              "tick": -186420,
+              "liquidityGross": "36429442032310",
+              "liquidityNet": "-36429442032310"
+            },
+            {
+              "tick": -185820,
+              "liquidityGross": "258357681716697",
+              "liquidityNet": "-258357681716697"
+            },
+            {
+              "tick": -179700,
+              "liquidityGross": "235781040",
+              "liquidityNet": "-235781040"
+            },
+            {
+              "tick": -177180,
+              "liquidityGross": "195492284",
+              "liquidityNet": "-195492284"
+            }
+          ],
+          "lowerTick": -245760,
+          "upperTick": -138241,
+          "key": {
+            "currency0": "0x4200000000000000000000000000000000000006",
+            "currency1": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+            "fee": 3000,
+            "tickSpacing": 60,
+            "hooks": "0x0000000000000000000000000000000000000000"
+          },
+          "poolId": "0x1d8c55f347727c0fb4f5e1b65cdb93639e0c7102580a7d345e1144cd5a718f54",
+          "protocolFeePips": 2048500,
+          "lpFeePips": 3000
+        }
+      }
+    ]
+  },
+  "discovery": {
+    "schemaVersion": "1.0",
+    "chainId": 8453,
+    "fromBlock": "52890255",
+    "toBlock": "52890255",
+    "blockHash": "0xe6196204d527bc006a8cfa361846143d2e7438385b78eea80190813b2038741c",
+    "examinedInitializeEvents": 0,
+    "coverage": "four-standard-erc20-keys-only",
+    "pools": [
+      {
+        "protocol": "uniswap-v4",
+        "address": "0x498581ff718922c3f8e6a244956af099b2652b2b",
+        "expectedCodeHash": "0x83b2af6e9f3158defc2811cbcb0db71ecf8b2ba2abea39c39e370ac5c6f43eb6",
+        "adapterRevision": "v4:0x83b2af6e9f3158defc2811cbcb0db71ecf8b2ba2abea39c39e370ac5c6f43eb6",
+        "key": {
+          "currency0": "0x4200000000000000000000000000000000000006",
+          "currency1": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+          "fee": 10000,
+          "tickSpacing": 200,
+          "hooks": "0x0000000000000000000000000000000000000000"
+        },
+        "bitmapWordPositions": [
+          -7,
+          -6,
+          -5,
+          -4,
+          -3,
+          -2,
+          -1
+        ],
+        "lowerTick": -358400,
+        "upperTick": -1
+      },
+      {
+        "protocol": "uniswap-v4",
+        "address": "0x498581ff718922c3f8e6a244956af099b2652b2b",
+        "expectedCodeHash": "0x83b2af6e9f3158defc2811cbcb0db71ecf8b2ba2abea39c39e370ac5c6f43eb6",
+        "adapterRevision": "v4:0x83b2af6e9f3158defc2811cbcb0db71ecf8b2ba2abea39c39e370ac5c6f43eb6",
+        "key": {
+          "currency0": "0x4200000000000000000000000000000000000006",
+          "currency1": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+          "fee": 100,
+          "tickSpacing": 1,
+          "hooks": "0x0000000000000000000000000000000000000000"
+        },
+        "bitmapWordPositions": [
+          -774,
+          -773,
+          -772,
+          -771,
+          -770,
+          -769,
+          -768
+        ],
+        "lowerTick": -198144,
+        "upperTick": -196353
+      },
+      {
+        "protocol": "uniswap-v4",
+        "address": "0x498581ff718922c3f8e6a244956af099b2652b2b",
+        "expectedCodeHash": "0x83b2af6e9f3158defc2811cbcb0db71ecf8b2ba2abea39c39e370ac5c6f43eb6",
+        "adapterRevision": "v4:0x83b2af6e9f3158defc2811cbcb0db71ecf8b2ba2abea39c39e370ac5c6f43eb6",
+        "key": {
+          "currency0": "0x4200000000000000000000000000000000000006",
+          "currency1": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+          "fee": 500,
+          "tickSpacing": 10,
+          "hooks": "0x0000000000000000000000000000000000000000"
+        },
+        "bitmapWordPositions": [
+          -81,
+          -80,
+          -79,
+          -78,
+          -77,
+          -76,
+          -75
+        ],
+        "lowerTick": -207360,
+        "upperTick": -189441
+      },
+      {
+        "protocol": "uniswap-v4",
+        "address": "0x498581ff718922c3f8e6a244956af099b2652b2b",
+        "expectedCodeHash": "0x83b2af6e9f3158defc2811cbcb0db71ecf8b2ba2abea39c39e370ac5c6f43eb6",
+        "adapterRevision": "v4:0x83b2af6e9f3158defc2811cbcb0db71ecf8b2ba2abea39c39e370ac5c6f43eb6",
+        "key": {
+          "currency0": "0x4200000000000000000000000000000000000006",
+          "currency1": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+          "fee": 3000,
+          "tickSpacing": 60,
+          "hooks": "0x0000000000000000000000000000000000000000"
+        },
+        "bitmapWordPositions": [
+          -16,
+          -15,
+          -14,
+          -13,
+          -12,
+          -11,
+          -10
+        ],
+        "lowerTick": -245760,
+        "upperTick": -138241
+      }
+    ],
+    "omittedPools": 0
+  },
+  "price": {
+    "feed": "0x7e860098F58bBFC8648a4311b374B1D669a2bc6B",
+    "source": "https://docs.chain.link/data-feeds/price-feeds/addresses?network=base",
+    "codeHash": "0xbd6f524cdc4268b6bd1bb6f77a8821faeea9c52ee9e0afa0b6d948ce82c966c2",
+    "usdE8": "99982505"
+  },
+  "lenderAvailable": "240130262093305",
+  "routes": [
+    {
+      "poolIds": [
+        "base:8453:0x498581ff718922c3f8e6a244956af099b2652b2b:0x4949ca7a256e6eb04214e80f98c890bba07658bc314e42a676bdafa2704662b7",
+        "base:8453:0x498581ff718922c3f8e6a244956af099b2652b2b:0x1d8c55f347727c0fb4f5e1b65cdb93639e0c7102580a7d345e1144cd5a718f54"
+      ],
+      "fees": [
+        10000,
+        3000
+      ],
+      "result": {
+        "schemaVersion": "4.0",
+        "selectedDirection": null,
+        "selectedRequest": null,
+        "selected": null,
+        "forward": {
+          "schemaVersion": "4.0",
+          "status": "no-profitable-size",
+          "optimality": "best-found",
+          "snapshotDigest": "91affce898e559b99ac91c47a9716faa38b36bbca9394a8ce062e49481a8dac4",
+          "requestDigest": "20d1b12be026dda1729dd9f09abcc4151e2b68d9c75c304a03c072b828bd88ae",
+          "stateClass": "canonical",
+          "borrowAsset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+          "feasibleMinimum": "1",
+          "feasibleMaximum": "100017498061",
+          "quantum": "1",
+          "evaluations": 64,
+          "amountIn": "0",
+          "amountOut": "0",
+          "flashFee": "0",
+          "repayment": "0",
+          "costInBorrowAsset": "0",
+          "netProfit": "0",
+          "legs": [],
+          "rejectedQuotes": {
+            "CLMM_COVERAGE_EXHAUSTED": 64
+          }
+        },
+        "reverse": {
+          "schemaVersion": "4.0",
+          "status": "no-profitable-size",
+          "optimality": "best-found",
+          "snapshotDigest": "91affce898e559b99ac91c47a9716faa38b36bbca9394a8ce062e49481a8dac4",
+          "requestDigest": "581afc6b7ce16d7676581c15e0e5b0ec8bb9379ca32574aeb801157b3fdbaacd",
+          "stateClass": "canonical",
+          "borrowAsset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+          "feasibleMinimum": "1",
+          "feasibleMaximum": "100017498061",
+          "quantum": "1",
+          "evaluations": 64,
+          "amountIn": "0",
+          "amountOut": "0",
+          "flashFee": "0",
+          "repayment": "0",
+          "costInBorrowAsset": "0",
+          "netProfit": "0",
+          "legs": [],
+          "rejectedQuotes": {
+            "ZERO_ROUTE_OUTPUT": 1,
+            "CLMM_COVERAGE_EXHAUSTED": 63
+          }
+        },
+        "rejectedDirections": {}
+      }
+    },
+    {
+      "poolIds": [
+        "base:8453:0x498581ff718922c3f8e6a244956af099b2652b2b:0x90333bb05c258fe0dddb2840ef66f1a05165aa7dac6815d24e807cc6ebd943a0",
+        "base:8453:0x498581ff718922c3f8e6a244956af099b2652b2b:0x1d8c55f347727c0fb4f5e1b65cdb93639e0c7102580a7d345e1144cd5a718f54"
+      ],
+      "fees": [
+        500,
+        3000
+      ],
+      "result": {
+        "schemaVersion": "4.0",
+        "selectedDirection": null,
+        "selectedRequest": null,
+        "selected": null,
+        "forward": {
+          "schemaVersion": "4.0",
+          "status": "no-profitable-size",
+          "optimality": "best-found",
+          "snapshotDigest": "b65e27990e9556e0e92006334fcc38f48ac733c737e80682355a4d1eb41ebbef",
+          "requestDigest": "736b670eec0ad95ae1aad6550edfe80a82cbd08e9285a736bd050f10525a03e6",
+          "stateClass": "canonical",
+          "borrowAsset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+          "feasibleMinimum": "1",
+          "feasibleMaximum": "100017498061",
+          "quantum": "1",
+          "evaluations": 64,
+          "amountIn": "0",
+          "amountOut": "0",
+          "flashFee": "0",
+          "repayment": "0",
+          "costInBorrowAsset": "0",
+          "netProfit": "0",
+          "legs": [],
+          "rejectedQuotes": {
+            "ZERO_ROUTE_OUTPUT": 1,
+            "CLMM_COVERAGE_EXHAUSTED": 63
+          }
+        },
+        "reverse": {
+          "schemaVersion": "4.0",
+          "status": "no-profitable-size",
+          "optimality": "best-found",
+          "snapshotDigest": "b65e27990e9556e0e92006334fcc38f48ac733c737e80682355a4d1eb41ebbef",
+          "requestDigest": "7ce09c30b521e8cf3aec62c25352f43dff564f6960f00f9dba672f42ce375586",
+          "stateClass": "canonical",
+          "borrowAsset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+          "feasibleMinimum": "1",
+          "feasibleMaximum": "100017498061",
+          "quantum": "1",
+          "evaluations": 64,
+          "amountIn": "0",
+          "amountOut": "0",
+          "flashFee": "0",
+          "repayment": "0",
+          "costInBorrowAsset": "0",
+          "netProfit": "0",
+          "legs": [],
+          "rejectedQuotes": {
+            "ZERO_ROUTE_OUTPUT": 1,
+            "CLMM_COVERAGE_EXHAUSTED": 63
+          }
+        },
+        "rejectedDirections": {}
+      }
+    },
+    {
+      "poolIds": [
+        "base:8453:0x498581ff718922c3f8e6a244956af099b2652b2b:0xf97566d3f65c048c9fa568ac3346c7970fd8030e62eeb5c0bdf409fe17c7c511",
+        "base:8453:0x498581ff718922c3f8e6a244956af099b2652b2b:0x1d8c55f347727c0fb4f5e1b65cdb93639e0c7102580a7d345e1144cd5a718f54"
+      ],
+      "fees": [
+        100,
+        3000
+      ],
+      "result": {
+        "schemaVersion": "4.0",
+        "selectedDirection": null,
+        "selectedRequest": null,
+        "selected": null,
+        "forward": {
+          "schemaVersion": "4.0",
+          "status": "no-profitable-size",
+          "optimality": "best-found",
+          "snapshotDigest": "fe05845ede7196e6db57bca958b54eede4fc3972604ccaa9c9afd3a84d414028",
+          "requestDigest": "315a5b8699d82d76be5af422c0ea7ebd72f770a48a4e0b78e19a6c6b666b9c18",
+          "stateClass": "canonical",
+          "borrowAsset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+          "feasibleMinimum": "1",
+          "feasibleMaximum": "100017498061",
+          "quantum": "1",
+          "evaluations": 64,
+          "amountIn": "0",
+          "amountOut": "0",
+          "flashFee": "0",
+          "repayment": "0",
+          "costInBorrowAsset": "0",
+          "netProfit": "0",
+          "legs": [],
+          "rejectedQuotes": {
+            "CLMM_COVERAGE_EXHAUSTED": 64
+          }
+        },
+        "reverse": {
+          "schemaVersion": "4.0",
+          "status": "no-profitable-size",
+          "optimality": "best-found",
+          "snapshotDigest": "fe05845ede7196e6db57bca958b54eede4fc3972604ccaa9c9afd3a84d414028",
+          "requestDigest": "5779a03b541ea5af8bdf1a9a156244e2d3595dd953c7d87c3f82b434f3e21530",
+          "stateClass": "canonical",
+          "borrowAsset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+          "feasibleMinimum": "1",
+          "feasibleMaximum": "100017498061",
+          "quantum": "1",
+          "evaluations": 64,
+          "amountIn": "0",
+          "amountOut": "0",
+          "flashFee": "0",
+          "repayment": "0",
+          "costInBorrowAsset": "0",
+          "netProfit": "0",
+          "legs": [],
+          "rejectedQuotes": {
+            "ZERO_ROUTE_OUTPUT": 1,
+            "CLMM_COVERAGE_EXHAUSTED": 63
+          }
+        },
+        "rejectedDirections": {}
+      }
+    },
+    {
+      "poolIds": [
+        "base:8453:0x498581ff718922c3f8e6a244956af099b2652b2b:0x90333bb05c258fe0dddb2840ef66f1a05165aa7dac6815d24e807cc6ebd943a0",
+        "base:8453:0x498581ff718922c3f8e6a244956af099b2652b2b:0x4949ca7a256e6eb04214e80f98c890bba07658bc314e42a676bdafa2704662b7"
+      ],
+      "fees": [
+        500,
+        10000
+      ],
+      "result": {
+        "schemaVersion": "4.0",
+        "selectedDirection": null,
+        "selectedRequest": null,
+        "selected": null,
+        "forward": {
+          "schemaVersion": "4.0",
+          "status": "no-profitable-size",
+          "optimality": "best-found",
+          "snapshotDigest": "4467f258acc213f34f55a9284edefbe9b1c9ede4bc2cfbdd050147125bfb7880",
+          "requestDigest": "1a356ad542ec875bf692d2cd2724e988790039b9a2a4b9dd9b540af8857db4a2",
+          "stateClass": "canonical",
+          "borrowAsset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+          "feasibleMinimum": "1",
+          "feasibleMaximum": "100017498061",
+          "quantum": "1",
+          "evaluations": 64,
+          "amountIn": "0",
+          "amountOut": "0",
+          "flashFee": "0",
+          "repayment": "0",
+          "costInBorrowAsset": "0",
+          "netProfit": "0",
+          "legs": [],
+          "rejectedQuotes": {
+            "ZERO_ROUTE_OUTPUT": 1,
+            "CLMM_COVERAGE_EXHAUSTED": 63
+          }
+        },
+        "reverse": {
+          "schemaVersion": "4.0",
+          "status": "no-profitable-size",
+          "optimality": "best-found",
+          "snapshotDigest": "4467f258acc213f34f55a9284edefbe9b1c9ede4bc2cfbdd050147125bfb7880",
+          "requestDigest": "f540ac3c7343279950bac149b86fca95d4860478a6ef491f0a853af615874c7b",
+          "stateClass": "canonical",
+          "borrowAsset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+          "feasibleMinimum": "1",
+          "feasibleMaximum": "100017498061",
+          "quantum": "1",
+          "evaluations": 64,
+          "amountIn": "0",
+          "amountOut": "0",
+          "flashFee": "0",
+          "repayment": "0",
+          "costInBorrowAsset": "0",
+          "netProfit": "0",
+          "legs": [],
+          "rejectedQuotes": {
+            "CLMM_COVERAGE_EXHAUSTED": 64
+          }
+        },
+        "rejectedDirections": {}
+      }
+    },
+    {
+      "poolIds": [
+        "base:8453:0x498581ff718922c3f8e6a244956af099b2652b2b:0xf97566d3f65c048c9fa568ac3346c7970fd8030e62eeb5c0bdf409fe17c7c511",
+        "base:8453:0x498581ff718922c3f8e6a244956af099b2652b2b:0x4949ca7a256e6eb04214e80f98c890bba07658bc314e42a676bdafa2704662b7"
+      ],
+      "fees": [
+        100,
+        10000
+      ],
+      "result": {
+        "schemaVersion": "4.0",
+        "selectedDirection": null,
+        "selectedRequest": null,
+        "selected": null,
+        "forward": {
+          "schemaVersion": "4.0",
+          "status": "no-profitable-size",
+          "optimality": "best-found",
+          "snapshotDigest": "4d086175400210a72816c3f1d3e0d84b8afa647809e5bef0d131b9891e703f32",
+          "requestDigest": "98cf968c2a5aff382c80eaa6aba8a688b94eee3e17aad37eaded63ad13f090dc",
+          "stateClass": "canonical",
+          "borrowAsset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+          "feasibleMinimum": "1",
+          "feasibleMaximum": "100017498061",
+          "quantum": "1",
+          "evaluations": 64,
+          "amountIn": "0",
+          "amountOut": "0",
+          "flashFee": "0",
+          "repayment": "0",
+          "costInBorrowAsset": "0",
+          "netProfit": "0",
+          "legs": [],
+          "rejectedQuotes": {
+            "CLMM_COVERAGE_EXHAUSTED": 64
+          }
+        },
+        "reverse": {
+          "schemaVersion": "4.0",
+          "status": "no-profitable-size",
+          "optimality": "best-found",
+          "snapshotDigest": "4d086175400210a72816c3f1d3e0d84b8afa647809e5bef0d131b9891e703f32",
+          "requestDigest": "e696a93b548ab289d55dbf47573714c56f68692dcf8cb40f12f3a0d240355859",
+          "stateClass": "canonical",
+          "borrowAsset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+          "feasibleMinimum": "1",
+          "feasibleMaximum": "100017498061",
+          "quantum": "1",
+          "evaluations": 64,
+          "amountIn": "0",
+          "amountOut": "0",
+          "flashFee": "0",
+          "repayment": "0",
+          "costInBorrowAsset": "0",
+          "netProfit": "0",
+          "legs": [],
+          "rejectedQuotes": {
+            "CLMM_COVERAGE_EXHAUSTED": 64
+          }
+        },
+        "rejectedDirections": {}
+      }
+    },
+    {
+      "poolIds": [
+        "base:8453:0x498581ff718922c3f8e6a244956af099b2652b2b:0xf97566d3f65c048c9fa568ac3346c7970fd8030e62eeb5c0bdf409fe17c7c511",
+        "base:8453:0x498581ff718922c3f8e6a244956af099b2652b2b:0x90333bb05c258fe0dddb2840ef66f1a05165aa7dac6815d24e807cc6ebd943a0"
+      ],
+      "fees": [
+        100,
+        500
+      ],
+      "result": {
+        "schemaVersion": "4.0",
+        "selectedDirection": null,
+        "selectedRequest": null,
+        "selected": null,
+        "forward": {
+          "schemaVersion": "4.0",
+          "status": "no-profitable-size",
+          "optimality": "best-found",
+          "snapshotDigest": "398cebbbe5657b88f81dfdcfa7e04c123659e6d3a8b2b4e8d3f013ba6edddec6",
+          "requestDigest": "30c0b6123bc46d658c376372310c64342724ce2aa1e7caeff342c55bbde43faf",
+          "stateClass": "canonical",
+          "borrowAsset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+          "feasibleMinimum": "1",
+          "feasibleMaximum": "100017498061",
+          "quantum": "1",
+          "evaluations": 64,
+          "amountIn": "0",
+          "amountOut": "0",
+          "flashFee": "0",
+          "repayment": "0",
+          "costInBorrowAsset": "0",
+          "netProfit": "0",
+          "legs": [],
+          "rejectedQuotes": {
+            "CLMM_COVERAGE_EXHAUSTED": 64
+          }
+        },
+        "reverse": {
+          "schemaVersion": "4.0",
+          "status": "no-profitable-size",
+          "optimality": "best-found",
+          "snapshotDigest": "398cebbbe5657b88f81dfdcfa7e04c123659e6d3a8b2b4e8d3f013ba6edddec6",
+          "requestDigest": "a32ff24db1e5dd028ae5bec73fe4b25fdd01caa44b059175f16dbd92a97b8505",
+          "stateClass": "canonical",
+          "borrowAsset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+          "feasibleMinimum": "1",
+          "feasibleMaximum": "100017498061",
+          "quantum": "1",
+          "evaluations": 64,
+          "amountIn": "0",
+          "amountOut": "0",
+          "flashFee": "0",
+          "repayment": "0",
+          "costInBorrowAsset": "0",
+          "netProfit": "0",
+          "legs": [],
+          "rejectedQuotes": {
+            "ZERO_ROUTE_OUTPUT": 1,
+            "CLMM_COVERAGE_EXHAUSTED": 63
+          }
+        },
+        "rejectedDirections": {}
+      }
+    }
+  ],
+  "selected": 0
+}

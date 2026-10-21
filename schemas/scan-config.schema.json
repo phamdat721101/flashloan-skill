@@ -4,7 +4,7 @@
   "type": "object",
   "required": ["chainId", "rpcUrl", "startBlock", "protocols"],
   "properties": {
-    "chainId": { "const": 42161 },
+    "chainId": { "enum": [42161, 8453, 4663] },
     "rpcUrl": { "type": "string", "format": "uri" },
     "startBlock": { "type": "string", "pattern": "^[0-9]+$" },
     "finalityBlocks": { "type": "integer", "minimum": 1, "default": 20 },

@@ -37,6 +37,16 @@ For >= $100,000 multi-pool split and multi-hop triangular arbitrage, use `Arbitr
 
 The runtime verifies executor bytecode, chain ID, ABI selector, and `owner()` signer; requires every split to total 10,000 bps; enforces gas/price-impact/daily-loss limits; rejects stale proposals; and repeats the exact simulation immediately before broadcast. Unknown receipt P&L halts future autonomous sends until reviewed.
 
+## Base and Robinhood
+
+Use the shared EVM CLI `node dist/evm/cli.js` and chain-specific manifests in
+`config/base-mainnet.json` and `config/robinhood-mainnet.json`. The host adapter
+is Node/viem; Rust `deploy-evm` explicitly delegates to it. The legacy Arbitrum
+opportunity signer remains Arbitrum-only. Never reuse an Arbitrum deployment or
+ABI pin for a new chain. Read `docs/features/evm-flashloan.md` for exact schemas,
+receipt evidence, budgets, recovery and current admission status. The EVM adapter
+is `EvmLiquidityExecutionAdapter`; its old Arbitrum export remains compatible.
+
 ## Constraints
 
 - **Level 2 context:** use `node dist/liquidity/cli.js l2-sources` to inspect actual

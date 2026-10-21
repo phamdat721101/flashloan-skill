@@ -28,10 +28,10 @@ test('EDGE-01 loads a secret-free Arbitrum scanner configuration with conservati
   assert.equal(JSON.stringify(config).includes('operatorPrivateKey'), false);
 });
 
-test('rejects a non-Arbitrum config and malformed protocol address before RPC use', async () => {
+test('rejects an unsupported EVM config and malformed protocol address before RPC use', async () => {
   const wrongChain = await configFile({ chainId: 1, rpcUrl: 'https://rpc.example', startBlock: '1', protocols: {} });
   const badAddress = await configFile({ chainId: 42161, rpcUrl: 'https://rpc.example', startBlock: '1', protocols: { uniswapV4: { poolManager: 'bad' } } });
-  await assert.rejects(() => loadScannerConfig(wrongChain), /Arbitrum/);
+  await assert.rejects(() => loadScannerConfig(wrongChain), /UNSUPPORTED_EVM_CHAIN/);
   await assert.rejects(() => loadScannerConfig(badAddress), /20-byte/);
 });
 

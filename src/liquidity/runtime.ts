@@ -105,7 +105,7 @@ export class LiquidityRuntime {
         if (admissionGate) await this.step(timeout, signal => admissionGate(c, signal));
         this.validate(c, a, policy);
         const signed = await this.step(timeout, signal => a.sign(c, resource, signal));
-        const validId = c.identity.chain === 'arbitrum' ? /^0x[0-9a-f]{64}$/.test(signed.transactionId) : isSuiDigest(signed.transactionId);
+        const validId = c.identity.chain !== 'sui' ? /^0x[0-9a-f]{64}$/.test(signed.transactionId) : isSuiDigest(signed.transactionId);
         if (!validId || !(signed.signedBytes instanceof Uint8Array) || signed.signedBytes.length === 0 || signed.resource !== resource || signed.payloadDigest !== c.payloadDigest) throw new Error('INVALID_SIGNED_TRANSACTION');
         transactionId = signed.transactionId;
         await this.journal.transition(attemptId, 'signed', transactionId);

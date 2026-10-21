@@ -1,6 +1,6 @@
 import { createPublicClient, http, keccak256, parseAbi, type Address } from 'viem';
 import { GrpcTypes, SuiGrpcClient } from '@mysten/sui/grpc';
-import { arbitrum,arbitrumSepolia } from 'viem/chains';
+import { evmProfile } from '../evm-chains.js';
 import { normalizeSuiAddress } from '@mysten/sui/utils';
 import type { SuiVersionedRef } from './sui-state.js';
 import { decodeCetusCheckpoint, type CheckpointObjectSet, type CetusDecodeConfig, type PinnedSuiObject } from '../sui/cetus.js';
@@ -39,7 +39,7 @@ function endpoint(url: string): string {
 
 /** Heads are scheduling hints only; eligible state is re-read at exact heights. */
 export async function readArbitrumHead(url: string, network: string): Promise<string> {
-  if (!['42161', '421614'].includes(network)) throw new Error('UNSUPPORTED_NETWORK');
+  try { evmProfile(Number(network)); } catch { throw new Error('UNSUPPORTED_NETWORK'); }
   const client = createPublicClient({ transport: http(endpoint(url), { timeout: 15000, retryCount: 0 }) });
   if (String(await client.getChainId()) !== network) throw new Error('SOURCE_CHAIN_MISMATCH');
   return (await client.getBlockNumber({ cacheTime: 0 })).toString();
@@ -65,7 +65,7 @@ export async function readArbitrumV2Snapshot(url: string, sourceId: string, pool
   if (blockNumber !== undefined) uint(blockNumber, 64);
   const client = createPublicClient({ transport: http(endpoint(url), { timeout: 15000, retryCount: 0 }) });
   const chainId = await client.getChainId();
-  if (chainId !== 42161 && chainId !== 421614) throw new Error('UNSUPPORTED_CHAIN');
+  const profile = evmProfile(chainId);
   const head = await client.getBlock(blockNumber === undefined ? { blockTag: 'latest' } : { blockNumber: uint(blockNumber, 64) });
   if (head.number === null || !head.hash || !/^0x[0-9a-f]{64}$/.test(head.parentHash)) throw new Error('INCOMPLETE_BLOCK');
   const observed: V2PoolObservation[] = [];
@@ -77,11 +77,11 @@ export async function readArbitrumV2Snapshot(url: string, sourceId: string, pool
       client.readContract({ address: pool.address, abi: poolAbi, functionName: 'token1', blockNumber: head.number }),
       client.readContract({ address: pool.address, abi: poolAbi, functionName: 'getReserves', blockNumber: head.number })
     ]);
-    observed.push({ poolId: `arbitrum:${chainId}:${pool.address.toLowerCase()}`, token0, token1, reserve0: reserves[0].toString(), reserve1: reserves[1].toString(), runtimeCodeHash: pool.expectedCodeHash });
+    observed.push({ poolId: `${profile.key}:${chainId}:${pool.address.toLowerCase()}`, token0, token1, reserve0: reserves[0].toString(), reserve1: reserves[1].toString(), runtimeCodeHash: pool.expectedCodeHash });
   }
   const final = await client.getBlock({ blockNumber: head.number });
   if (final.hash !== head.hash) throw new Error('BLOCK_REORG');
-  return { snapshot: parseSnapshot({ schemaVersion: '3.0', identity: { chain: 'arbitrum', network: String(chainId), height: head.number.toString(), blockHash: head.hash }, sourceId, cursor, complete: true, observedAtMs: Date.now(), poolIds: observed.map(p => p.poolId), stateDigest: digest(observed) }), pools: observed, parentHash: head.parentHash };
+  return { snapshot: parseSnapshot({ schemaVersion: '3.0', identity: { chain: profile.key, network: String(chainId), height: head.number.toString(), blockHash: head.hash }, sourceId, cursor, complete: true, observedAtMs: Date.now(), poolIds: observed.map(p => p.poolId), stateDigest: digest(observed) }), pools: observed, parentHash: head.parentHash };
 }
 
 /** Common-head analytics capture. V2 fee profiles must be revision-admitted by the operator;
@@ -99,13 +99,13 @@ export async function readArbitrumAnalyticsSnapshot(url: string, sourceId: strin
   }
   const transport = http(endpoint(url), { timeout: 15000,retryCount: 0 });
   const probe = createPublicClient({ transport });
-  const chainId = await probe.getChainId(); if (![42161,421614].includes(chainId)) throw new Error('UNSUPPORTED_CHAIN');
+  const chainId = await probe.getChainId(); const profile = evmProfile(chainId);
   // Use viem's existing Multicall3 batching for view-only CLMM reads. Tick workers
   // stay bounded, but no longer require one provider HTTP request per tick.
-  const client = createPublicClient({ chain: chainId === 42161 ? arbitrum : arbitrumSepolia,transport,batch: { multicall: { batchSize: 4096,wait: 10 } } });
+  const client = createPublicClient({ chain: profile.chain,transport,batch: { multicall: { batchSize: 4096,wait: 10 } } });
   const head = await client.getBlock(blockNumber === undefined ? { blockTag: 'latest' } : { blockNumber: uint(blockNumber,64) });
   if (head.number === null || !head.hash) throw new Error('INCOMPLETE_BLOCK');
-  const identity = parseStateIdentity({ chain: 'arbitrum',network: String(chainId),height: head.number.toString(),blockHash: head.hash });
+  const identity = parseStateIdentity({ chain: profile.key,network: String(chainId),height: head.number.toString(),blockHash: head.hash });
   const pinned = { getChainId: () => Promise.resolve(chainId),getBlock: (args?: { blockNumber?: bigint }) => client.getBlock({ blockNumber: args?.blockNumber ?? head.number! }),getCode: client.getCode,readContract: client.readContract } as unknown as StateClient;
   const pools: PoolStateEnvelope[] = [];
   for (const config of configs) {
@@ -126,7 +126,7 @@ export async function readArbitrumAnalyticsSnapshot(url: string, sourceId: strin
     const decimalsAbi = parseAbi(['function decimals() view returns(uint8)']);
     const tokenClient = config.protocol === 'uniswap-v2' ? probe : client;
     const [decimals0,decimals1] = await Promise.all([token0,token1].map(address => address === '0x0000000000000000000000000000000000000000' ? Promise.resolve(18) : tokenClient.readContract({ address,abi: decimalsAbi,functionName: 'decimals',blockNumber: head.number! })));
-    pools.push(parsePoolState({ schemaVersion: '4.0',identity,poolId: `arbitrum:${chainId}:${config.address.toLowerCase()}${state.protocol === 'uniswap-v4' ? `:${state.poolId}` : ''}`,poolAddress: config.address,adapterRevision: config.adapterRevision,revisionHash: config.expectedCodeHash,token0,token1,decimals0,decimals1,stateClass: 'canonical',appliedOperations: [],state }));
+    pools.push(parsePoolState({ schemaVersion: '4.0',identity,poolId: `${profile.key}:${chainId}:${config.address.toLowerCase()}${state.protocol === 'uniswap-v4' ? `:${state.poolId}` : ''}`,poolAddress: config.address,adapterRevision: config.adapterRevision,revisionHash: config.expectedCodeHash,token0,token1,decimals0,decimals1,stateClass: 'canonical',appliedOperations: [],state }));
   }
   if (new Set(pools.map(pool => pool.poolId)).size !== pools.length) throw new Error('DUPLICATE_ANALYTICS_POOL');
   if ((await client.getBlock({ blockNumber: head.number })).hash !== head.hash) throw new Error('BLOCK_REORG');
@@ -257,3 +257,7 @@ export async function* readSuiNativeCheckpoints(url: string,network: 'mainnet' |
     if (!signal?.aborted) throw new Error('NATIVE_CHECKPOINT_STREAM_CLOSED');
   } finally { controller.abort(); signal?.removeEventListener('abort',abort); }
 }
+
+export const readEvmHead = readArbitrumHead;
+export const readEvmV2Snapshot = readArbitrumV2Snapshot;
+export const readEvmAnalyticsSnapshot = readArbitrumAnalyticsSnapshot;

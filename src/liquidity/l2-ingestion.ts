@@ -132,7 +132,7 @@ export class L2ContextEngine {
     if (prior && o.payload.kind !== 'pool' && o.payload.kind !== 'deepbook' && ns(o.eventTimeNs) < ns(prior.quality.windowStartNs)) return null;
     if (prior && prior.generation !== o.generation) throw new Error('L2_INVALIDATION_REQUIRED');
     if (prior && ['pool','deepbook'].includes(o.payload.kind)) {
-      const reason = BigInt(o.identity!.height) !== BigInt(prior.identity.height)+1n ? 'L2_CANONICAL_GAP' : o.parentDigest !== (prior.identity.chain === 'arbitrum' ? prior.identity.blockHash : prior.identity.checkpointDigest) ? 'L2_PARENT_DIVERGENCE' : null;
+      const reason = BigInt(o.identity!.height) !== BigInt(prior.identity.height)+1n ? 'L2_CANONICAL_GAP' : o.parentDigest !== (prior.identity.chain !== 'sui' ? prior.identity.blockHash : prior.identity.checkpointDigest) ? 'L2_PARENT_DIVERGENCE' : null;
       if (reason) { this.invalid.add(key); this.frames.delete(o.poolId); this.history.delete(key); for (const id of this.seen.keys()) if (id.startsWith(`${key}:`)) this.seen.delete(id); this.rejected.set(o.poolId,reason); throw new Error(reason); }
     }
     if (history.length && ns(o.receivedTimeNs) < ns(history[history.length-1].receivedTimeNs)) throw new Error('L2_NON_MONOTONIC_ARRIVAL');
@@ -154,7 +154,7 @@ export class L2ContextEngine {
   inspect(poolId: string,nowNs: string): MicrostructureFrame {
     const frame = this.frames.get(poolId);
     if (!frame) throw new Error(this.rejected.has(poolId) ? 'L2_RESYNC_REQUIRED' : 'L2_POOL_NOT_FOUND');
-    const age = ns(nowNs)-ns(frame.receivedTimeNs), limit = frame.identity.chain === 'arbitrum' ? 2000000000n : 5000000000n;
+    const age = ns(nowNs)-ns(frame.receivedTimeNs), limit = frame.identity.chain !== 'sui' ? 2000000000n : 5000000000n;
     if (age < 0n || age > limit) throw new Error('L2_STALE_STATE');
     return structuredClone(frame);
   }

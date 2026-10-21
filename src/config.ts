@@ -1,3 +1,4 @@
+import { evmProfile } from './evm-chains.js';
 import type { Address, Hex, RiskPolicy, SkillConfig } from './types.js';
 import { MINIMUM_NET_PROFIT_USD } from './risk.js';
 
@@ -58,7 +59,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): SkillConfig {
   // EDGE-01: malformed secret or configuration input is rejected before connector creation.
   const chainId = Number(env.CHAIN_ID ?? '42161');
   if (!Number.isInteger(chainId) || chainId <= 0) throw new Error('CHAIN_ID must be a positive integer');
-  const rpcUrl = env.ARBITRUM_RPC_URL ?? 'https://arb1.arbitrum.io/rpc';
+  const profile = evmProfile(chainId);
+  const rpcUrl = env.EVM_RPC_URL ?? env[profile.rpcEnv] ?? profile.chain.rpcUrls.default.http[0];
   try { new URL(rpcUrl); } catch { throw new Error('ARBITRUM_RPC_URL must be a valid URL'); }
 
   return {

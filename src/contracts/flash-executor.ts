@@ -1,4 +1,4 @@
-import { toFunctionSelector } from 'viem';
+import { parseAbi, toFunctionSelector } from 'viem';
 import type { Address, Hex } from '../types.js';
 
 /**
@@ -226,3 +226,13 @@ export const FLASH_EXECUTOR_ABI = [
     { indexed: true, name: 'routeHash', type: 'bytes32' }, { indexed: true, name: 'asset', type: 'address' }, { indexed: false, name: 'flashAmount', type: 'uint256' }, { indexed: false, name: 'netProfit', type: 'uint256' }, { indexed: false, name: 'legs', type: 'uint256' }
   ], anonymous: false }
 ] as const;
+
+/** Authenticated V4-route ABI. The legacy generic calls ABI above targets a different executor. */
+export const IMMUTABLE_V4_EXECUTOR_ABI = parseAbi([
+  'function executeV4Arbitrage((address aaveProvider,address poolManager,address flashAsset,uint256 flashAmount,((address currency0,address currency1,uint24 fee,int24 tickSpacing,address hooks) key,bytes32 poolId,bool zeroForOne,uint160 sqrtPriceLimitX96,bytes hookData)[] hops,uint256 minProfit,uint256 deadline) route)',
+  'event V4ArbitrageExecuted(address indexed token,uint256 flashAmount,uint256 netProfit)'
+]);
+export const PORTABLE_SPLIT_ABI = parseAbi([
+  'function executeSplitArbitrage((uint8 kind,address lender,address flashAsset,uint256 flashAmount,(uint256 amountIn,(uint8 venueVersion,address root,address pool,address tokenIn,address tokenOut,uint256 minAmountOut,uint24 fee,uint160 sqrtPriceLimitX96,int24 tickSpacing,address hooks,bytes hookData)[] legs)[] branches,uint256 minProfit,uint256 deadline) route)',
+  'event SplitArbitrageExecuted(bytes32 indexed routeHash,address indexed asset,uint256 principal,uint256 profit,uint256 branches)'
+]);

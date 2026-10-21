@@ -17,7 +17,7 @@ export const V4_STATE_QUOTER_ABI = parseAbi(['function quoteExactInput(address m
  */
 export async function simulateV4Projection(client: StateClient,rawPool: unknown,rawRequest: unknown,binding: V4SimulationBinding): Promise<SimulatedV4Quote> {
   const pool = parsePoolState(rawPool), request = parseProjectionRequest(rawRequest), snapshotDigest = digest(pool), operationDigest = digest({ operationId: request.operationId });
-  if (pool.identity.chain !== 'arbitrum' || pool.state.protocol !== 'uniswap-v4' || pool.stateClass !== 'canonical') throw new Error('UNSUPPORTED_V4_SIMULATION_STATE');
+  if (pool.identity.chain === 'sui' || pool.state.protocol !== 'uniswap-v4' || pool.stateClass !== 'canonical') throw new Error('UNSUPPORTED_V4_SIMULATION_STATE');
   if (request.snapshotDigest !== snapshotDigest || pool.appliedOperations.includes(operationDigest) || pool.appliedOperations.length >= 1000) throw new Error('INVALID_V4_SIMULATION_REQUEST');
   if (!binding || Object.keys(binding).sort().join(',') !== 'hookCodeHash,hookData,quoter,quoterCodeHash' || !/^0x[0-9a-fA-F]{40}$/.test(binding.quoter) || !/^0x[0-9a-f]{64}$/.test(binding.quoterCodeHash) || !/^0x[0-9a-f]{64}$/.test(binding.hookCodeHash) || !/^0x([a-f0-9]{2})*$/.test(binding.hookData) || binding.hookData.length > 8194) throw new Error('INVALID_V4_SIMULATION_BINDING');
   const zeroForOne = request.tokenIn.toLowerCase() === pool.token0.toLowerCase();

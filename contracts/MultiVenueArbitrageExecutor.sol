@@ -23,7 +23,7 @@ contract MultiVenueArbitrageExecutor {
     uint8 private constant V2 = 2; uint8 private constant V3 = 3; uint8 private constant V4 = 4; uint8 private constant ALGEBRA = 5; uint256 private constant MAX_HOPS = 6;
     enum Phase { Idle, AwaitingFlash, AwaitingV3Swap, UnlockingV4 }
     address public immutable owner;
-    Phase private phase;
+    Phase internal phase;
     address private activeAaveProvider;
     address private expectedCallback;
     uint256 private expectedInput;
@@ -89,14 +89,14 @@ contract MultiVenueArbitrageExecutor {
         activeLoanHash = bytes32(0); loanOpeningBalance = 0; loanCallbackCompleted = false;
     }
 
-    function onMorphoFlashLoan(uint256 assets, bytes calldata data) external {
+    function onMorphoFlashLoan(uint256 assets, bytes calldata data) public virtual {
         LenderRoute memory route = _checkLoanCallback(1, data);
         if (assets != route.flashAmount) revert InvalidRoute();
         _executeLoanRoute(route, 0);
         _safeApprove(route.flashAsset, msg.sender, assets);
     }
 
-    function receiveFlashLoan(address[] calldata tokens, uint256[] calldata amounts, uint256[] calldata fees, bytes calldata data) external {
+    function receiveFlashLoan(address[] calldata tokens, uint256[] calldata amounts, uint256[] calldata fees, bytes calldata data) public virtual {
         LenderRoute memory route = _checkLoanCallback(2, data);
         if (tokens.length != 1 || amounts.length != 1 || fees.length != 1 || tokens[0] != route.flashAsset || amounts[0] != route.flashAmount) revert InvalidRoute();
         _executeLoanRoute(route, fees[0]);
@@ -195,7 +195,7 @@ contract MultiVenueArbitrageExecutor {
 
     function withdraw(address token, uint256 amount, address recipient) external onlyOwner onlyIdle { _safeTransfer(token, recipient, amount); }
 
-    function _executeLeg(Leg memory leg, uint256 amountIn) private returns (uint256 amountOut) {
+    function _executeLeg(Leg memory leg, uint256 amountIn) internal returns (uint256 amountOut) {
         if (amountIn == 0 || leg.tokenIn == address(0) || leg.tokenOut == address(0) || leg.tokenIn == leg.tokenOut) revert InvalidRoute();
         uint256 beforeOut = IMVToken(leg.tokenOut).balanceOf(address(this));
         if (leg.venueVersion == V2) {
@@ -226,7 +226,7 @@ contract MultiVenueArbitrageExecutor {
         if (!_trustedAaveProvider(route.aaveProvider)) revert InvalidRoute();
         _validateLegs(route.flashAsset, route.flashAmount, route.legs, route.deadline);
     }
-    function _validateLegs(address asset, uint256 amount, Leg[] memory legs, uint256 deadline) private view {
+    function _validateLegs(address asset, uint256 amount, Leg[] memory legs, uint256 deadline) internal view {
         if (block.timestamp > deadline || amount == 0 || asset == address(0) || legs.length < 2 || legs.length > MAX_HOPS) revert InvalidRoute();
         address token = asset;
         for (uint256 i; i < legs.length; ++i) { if (legs[i].tokenIn != token || legs[i].minAmountOut == 0) revert InvalidRoute(); token = legs[i].tokenOut; }
@@ -237,8 +237,8 @@ contract MultiVenueArbitrageExecutor {
     function _trustedV2Factory(address a) private view returns (bool) { return trustedV2FactoryCodeHash[a] != bytes32(0) && a.codehash == trustedV2FactoryCodeHash[a]; }
     function _trustedV3Factory(address a) private view returns (bool) { return trustedV3FactoryCodeHash[a] != bytes32(0) && a.codehash == trustedV3FactoryCodeHash[a]; }
     function _trustedV4Manager(address a) private view returns (bool) { return trustedV4ManagerCodeHash[a] != bytes32(0) && a.codehash == trustedV4ManagerCodeHash[a]; }
-    function _safeApprove(address token, address spender, uint256 amount) private { (bool ok, bytes memory data) = token.call(abi.encodeWithSelector(IMVToken.approve.selector, spender, amount)); if (!ok || (data.length != 0 && !abi.decode(data, (bool)))) revert TransferFailed(); }
-    function _safeTransfer(address token, address recipient, uint256 amount) private { (bool ok, bytes memory data) = token.call(abi.encodeWithSelector(IMVToken.transfer.selector, recipient, amount)); if (!ok || (data.length != 0 && !abi.decode(data, (bool)))) revert TransferFailed(); }
+    function _safeApprove(address token, address spender, uint256 amount) internal { (bool ok, bytes memory data) = token.call(abi.encodeWithSelector(IMVToken.approve.selector, spender, amount)); if (!ok || (data.length != 0 && !abi.decode(data, (bool)))) revert TransferFailed(); }
+    function _safeTransfer(address token, address recipient, uint256 amount) internal { (bool ok, bytes memory data) = token.call(abi.encodeWithSelector(IMVToken.transfer.selector, recipient, amount)); if (!ok || (data.length != 0 && !abi.decode(data, (bool)))) revert TransferFailed(); }
     modifier onlyOwner() { if (msg.sender != owner) revert Unauthorized(); _; }
     modifier onlyIdle() { if (phase != Phase.Idle) revert Busy(); _; }
 }

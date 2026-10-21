@@ -43,7 +43,7 @@ export function compareRouteDirections(inputs: unknown, rawRequest: unknown): Ro
   const forward = evaluate('forward',request), byId = new Map(pools.map(pool => [pool.poolId,pool]));
   const reverseRequest: SizingRequest = { ...request,route: [...request.route].reverse().map(leg => {
     const pool = byId.get(leg.poolId)!;
-    const matches = pool.identity.chain === 'arbitrum' ? leg.tokenIn.toLowerCase() === pool.token0.toLowerCase() : leg.tokenIn === pool.token0;
+    const matches = pool.identity.chain !== 'sui' ? leg.tokenIn.toLowerCase() === pool.token0.toLowerCase() : leg.tokenIn === pool.token0;
     const tokenIn = matches ? pool.token1 : pool.token0;
     return { poolId: leg.poolId,tokenIn };
   }),boundaryInputs: [] };
@@ -72,7 +72,7 @@ export function sizeRoute(inputs: unknown, rawRequest: unknown): SizingResult {
   if (snapshotDigest !== request.snapshotDigest) throw new Error('SNAPSHOT_DIGEST_MISMATCH');
   const identityDigest = digest(pools[0].identity), byId = new Map(pools.map(pool => [pool.poolId,pool]));
   if (byId.size !== pools.length || request.route.length !== pools.length || new Set(request.route.map(leg => leg.poolId)).size !== request.route.length || pools.some(pool => digest(pool.identity) !== identityDigest)) throw new Error('INCOHERENT_ROUTE_STATE');
-  const same = (a: string,b: string) => pools[0].identity.chain === 'arbitrum' ? a.toLowerCase() === b.toLowerCase() : a === b;
+  const same = (a: string,b: string) => pools[0].identity.chain !== 'sui' ? a.toLowerCase() === b.toLowerCase() : a === b;
   let token = request.borrowAsset;
   const route: Array<{ pool: PoolStateEnvelope; tokenIn: string; zeroForOne: boolean }> = [];
   for (const leg of request.route) {
@@ -183,10 +183,10 @@ export function sizeConditionalCycle(raw: ConditionalVenue[],rawRequest: unknown
   const request = parseSizingRequest(rawRequest);
   if (!Array.isArray(raw) || raw.length < 2 || raw.length > 6 || digest(raw) !== request.snapshotDigest) throw new Error('INVALID_CONDITIONAL_ROUTE');
   const venues = structuredClone(raw), byId = new Map(venues.map(v => [v.poolId,v]));
-  const identity = parseStateIdentity(venues[0].identity), equal = (a: string,b: string) => identity.chain === 'arbitrum' ? a.toLowerCase() === b.toLowerCase() : a === b;
+  const identity = parseStateIdentity(venues[0].identity), equal = (a: string,b: string) => identity.chain !== 'sui' ? a.toLowerCase() === b.toLowerCase() : a === b;
   for (const venue of venues) {
     if (!venue || Object.keys(venue).sort().join(',') !== 'feeResolutions,identity,kind,poolId,state,token0,token1' || !['pool','algebra','deepbook'].includes(venue.kind) || digest(parseStateIdentity(venue.identity)) !== digest(identity) || typeof venue.poolId !== 'string' || !venue.poolId.startsWith(`${identity.chain}:${identity.network}:`) || typeof venue.token0 !== 'string' || typeof venue.token1 !== 'string' || equal(venue.token0,venue.token1) || !Array.isArray(venue.feeResolutions) || venue.feeResolutions.length > 512) throw new Error('INVALID_CONDITIONAL_ROUTE');
-    if ((venue.kind === 'algebra' && identity.chain !== 'arbitrum') || (venue.kind === 'deepbook' && identity.chain !== 'sui')) throw new Error('PROTOCOL_CHAIN_MISMATCH');
+    if ((venue.kind === 'algebra' && identity.chain === 'sui') || (venue.kind === 'deepbook' && identity.chain !== 'sui')) throw new Error('PROTOCOL_CHAIN_MISMATCH');
     if (venue.kind === 'deepbook' && identity.chain === 'sui' && (venue.state as DeepBookBookState).checkpointDigest !== identity.checkpointDigest) throw new Error('CONDITIONAL_CHECKPOINT_MISMATCH');
     if (venue.kind === 'pool') {
       const pool = parsePoolState(venue.state);
