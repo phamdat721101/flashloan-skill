@@ -1,0 +1,89 @@
+{
+  "schemaVersion": "1.0",
+  "chainId": 8453,
+  "roots": [
+    {
+      "role": "morpho",
+      "address": "0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb",
+      "codeHash": "0xaa76348c0b91e5dfcece228ef6847b0c5081656d2def05c5617bcab659f0b819",
+      "source": "https://api.morpho.org/graphql"
+    },
+    {
+      "role": "aero-factory",
+      "address": "0x420dd381b31aef6683db6b902084cb0ffece40da",
+      "codeHash": "0xe2a176e5d2bcfb214b784ec6d6733708a6376a464f203cc265c284c9f349fea3",
+      "source": "https://github.com/aerodrome-finance/contracts/blob/1ba30815bba620f7e9faa34769ffd00c214c9b82/README.md",
+      "generation": 1
+    },
+    {
+      "role": "aero-pool",
+      "address": "0xcdac0d6c6c59727a65f871236188350531885c43",
+      "codeHash": "0x7dd6ffe6daf4e82054c91becd71b8c9ba0a135f0f403da1ef7b0f81bb8ba4408",
+      "source": "https://basescan.org/address/0xcdac0d6c6c59727a65f871236188350531885c43#code",
+      "implementation": "0xa4e46b4f701c62e14df11b48dce76a7d793cd6d7",
+      "implementationCodeHash": "0xd22754a0a3b39db7298dbbc2be1e34b34320988ea67065c85fa28ae66c02d31e"
+    },
+    {
+      "role": "aero-pool",
+      "address": "0x3548029694fbb241d45fb24ba0cd9c9d4e745f16",
+      "codeHash": "0x7dd6ffe6daf4e82054c91becd71b8c9ba0a135f0f403da1ef7b0f81bb8ba4408",
+      "source": "https://basescan.org/address/0x3548029694fbb241d45fb24ba0cd9c9d4e745f16#code",
+      "implementation": "0xa4e46b4f701c62e14df11b48dce76a7d793cd6d7",
+      "implementationCodeHash": "0xd22754a0a3b39db7298dbbc2be1e34b34320988ea67065c85fa28ae66c02d31e"
+    },
+    {
+      "role": "aero-factory",
+      "address": "0x5e7bb104d84c7cb9b682aac2f3d509f5f406809a",
+      "codeHash": "0x7340cf80843bd721bcaefbfc050e38304cb4174c239e6e914e3056f27f39b11c",
+      "source": "https://github.com/aerodrome-finance/slipstream/blob/f8717faaae6e6717db3c8e3850149c01a79c0603/README.md",
+      "generation": 2
+    },
+    {
+      "role": "aero-pool",
+      "address": "0xb2cc224c1c9fee385f8ad6a55b4d94e92359dc59",
+      "codeHash": "0xacd6710f7037ad095b1e4d5f8ee5b2681069cb4dd316e77e4e0cb8f85716a2a1",
+      "source": "https://basescan.org/address/0xb2cc224c1c9fee385f8ad6a55b4d94e92359dc59#code",
+      "implementation": "0xec8e5342b19977b4ef8892e02d8daecfa1315831",
+      "implementationCodeHash": "0x772fb5c610b40a122036f544e5b9b5bce6becb19db9524331289d1aaed2d5888"
+    },
+    {
+      "role": "aero-factory",
+      "address": "0xade65c38cd4849adba595a4323a8c7ddfe89716a",
+      "codeHash": "0x0e72100f63ce8e32c95370fa9636d38c8cf434a820f2a7a69985e50930d2cb85",
+      "source": "https://github.com/aerodrome-finance/slipstream/blob/f8717faaae6e6717db3c8e3850149c01a79c0603/README.md",
+      "generation": 3
+    },
+    {
+      "role": "aero-pool",
+      "address": "0xc758d81b9b81a6fcdad075bd471874a2c46b54e0",
+      "codeHash": "0x18308290b554b22918ea53c7e4e49eb871181d182749bf9e3a65ef949d3be808",
+      "source": "https://basescan.org/address/0xc758d81b9b81a6fcdad075bd471874a2c46b54e0#code",
+      "implementation": "0x942e97a4c6fdc38b4cd1c0298d37d81fdd8e5a16",
+      "implementationCodeHash": "0x916bc5496cc07ea86289bc3a08a90f93dcae34686be6634f6e89ef260c3df4fa"
+    },
+    {
+      "role": "aero-factory",
+      "address": "0xf8f2eb4940cfe7d13603dddd87f123820fc061ef",
+      "codeHash": "0x4961963494e47f363617ab9a0f3999a28b33c519e51392952db06350cce700bd",
+      "source": "https://github.com/aerodrome-finance/slipstream/blob/f8717faaae6e6717db3c8e3850149c01a79c0603/README.md",
+      "generation": 4
+    },
+    {
+      "role": "aero-pool",
+      "address": "0x3fe04a59ebd38cf06080a6f60a98d124eb59392a",
+      "codeHash": "0xad8972486d67a48db1f32f254a4c2f4be28df0b5f399559d1e7cd8fbcfbedc96",
+      "source": "https://basescan.org/address/0x3fe04a59ebd38cf06080a6f60a98d124eb59392a#code",
+      "implementation": "0xc770898522d2a9c8da7a10d63989b6b58305b665",
+      "implementationCodeHash": "0xe63484f408c701770737a3c40e435c8183c66b1663f3a8777ce44dd73aff339b"
+    }
+  ],
+  "contracts": [
+    "AeroSplitFlashExecutor"
+  ],
+  "exclusions": [
+    {
+      "contract": "Balancer V2 funding",
+      "reason": "Supported by unit tests; this deployment activates only the pinned Morpho lender."
+    }
+  ]
+}

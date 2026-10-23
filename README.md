@@ -46,6 +46,51 @@ skill reads pinned V4 state, sizes a bounded two-to-six-hop return cycle, and
 only signs after fresh exact-head simulation, artifact-bound proof evidence,
 and the per-chain/signer budget checks pass.
 
+## Aerodrome split routing on Base
+
+The Base deployment now includes a separate, owner-gated Aerodrome executor
+for classic volatile/stable pools and three pinned Slipstream generations. It
+captures a single block, applies integer quote math, searches split allocations,
+simulates the complete flashloan, and binds calldata to the executor artifact
+and verified pool/factory implementations.
+
+The deployed contract is
+[`0xdfafd892dca6a2f9dadc43a38b81c7d53473ff10`](https://basescan.org/address/0xdfafd892dca6a2f9dadc43a38b81c7d53473ff10).
+It has Morpho, four Aerodrome factories, and five reviewed pool pins enabled.
+Deployment does not authorize a live trade: every candidate still needs a fresh
+snapshot, cost evidence, whole-loan simulation, and the existing owner/policy
+admission checks.
+
+Capture first, then assemble a request matching
+[`aero-split-request.schema.json`](schemas/aero-split-request.schema.json):
+
+```sh
+npm run aero -- capture \
+  --registry config/aero-base-pools.json \
+  --output .nim/aero-snapshot.json
+
+npm run aero -- plan \
+  --request .nim/aero-request.json \
+  --output .nim/aero-plan.json
+
+npm run aero -- simulate \
+  --request .nim/aero-request.json \
+  --artifact config/aero-base-executor.json \
+  --output .nim/aero-simulation.json
+```
+
+For a dynamic fee module, run simulation through an explicitly selected
+localhost fork with `--evm-rpc http://127.0.0.1:8545`. Non-WETH settlement
+requires fresh pinned price-feed evidence through `--valuation`. The CLI only
+captures, plans, and simulates; it does not expose an automated broadcast path.
+
+Run the focused checks with `npm run aero:test` and `npm run aero:local-e2e`.
+The [Aero implementation brief](docs/features/aero-split-routing.md),
+[formula notes](docs/ratio.md), and
+[deployment evidence](docs/deployments/base-aero-20261022.json) describe the
+accepted profiles, limits, receipts, and fork proof. The fork’s counter-venue
+is constructed, so it proves execution behavior rather than a live profit.
+
 ## Configuration
 
 Copy `.env.example` to `.env`. Keep `OPERATOR_PRIVATE_KEY` only in your local environment; never put credentials in prompts, JSON input, or Git. Validate safely with:
@@ -158,6 +203,7 @@ authorize sending or establish liquidity-pattern production admission.
 | Base 8453 / PortableMultiSplitFlashExecutor | `0x0cd3a077aec94f51d32e8d55120cf90d5db7841c` | Finalized portable split executor; Morpho, V4 manager, and Aave provider configured |
 | Base 8453 / V4StateQuoter | `0x84f9615db5a1c6ac87acb686a3cb3fcb44ec1825` | Finalized read-only V4 state quoter |
 | Base 8453 / ImmutableArbitrageExecutor | `0x00cba652a1b4cf21063d443c5c1b0d495f477999` | Finalized immutable executor; V4 manager and Aave provider configured |
+| Base 8453 / AeroSplitFlashExecutor | [`0xdfafd892dca6a2f9dadc43a38b81c7d53473ff10`](https://basescan.org/address/0xdfafd892dca6a2f9dadc43a38b81c7d53473ff10) | Aerodrome classic/Slipstream executor; Morpho, four factories, and five pools pinned; fresh admission required |
 | Robinhood 4663 / MultiVenueArbitrageExecutor | `0xa27873424e74037d93dcf05d3a40556d07c2cfa8` | Finalized; Morpho and V4 manager configured |
 | Robinhood 4663 / PortableMultiSplitFlashExecutor | `0xba1bb00447cd75b941b14aecd09e37f9ab461e38` | Finalized portable split executor; Morpho and V4 manager configured |
 | Robinhood 4663 / V4StateQuoter | `0x0caefeaa418d65ef03a19646d128ced8f3e4977f` | Finalized read-only V4 state quoter |
@@ -167,6 +213,8 @@ The Base and Robinhood addresses, deployment transactions, runtime hashes,
 owner checks, and finality evidence are in the [Base record](docs/deployments/base-executors.json)
 and [Robinhood record](docs/deployments/robinhood-executors.json). Robinhood has
 no admitted Aave provider, so its immutable Aave executor is deliberately excluded.
+The Aero artifact, root pins, receipts, and current finality observation are in
+the [Base Aero record](docs/deployments/base-aero-20261022.json).
 
 The multi-split record references deployment transaction
 [`0x0996…0f5ef`](https://arbiscan.io/tx/0x0996d0328a43ae3f23cb5d0297c76292d910f59a88a1276c928578a52010f5ef).

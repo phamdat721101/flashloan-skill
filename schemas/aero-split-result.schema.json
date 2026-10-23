@@ -1,0 +1,261 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "status",
+        "executable",
+        "requestDigest",
+        "snapshotDigest",
+        "lenderId",
+        "borrowAsset",
+        "principal",
+        "flashFee",
+        "repayment",
+        "terminalReturn",
+        "minProfit",
+        "costInBorrowAsset",
+        "netProfit",
+        "allocations",
+        "optimality",
+        "evaluations",
+        "budgetExhausted",
+        "admissionRequired"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "aero-split/1.0"
+        },
+        "status": {
+          "const": "selected"
+        },
+        "executable": {
+          "const": false
+        },
+        "requestDigest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "snapshotDigest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "lenderId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "borrowAsset": {
+          "type": "string",
+          "pattern": "^0x[0-9a-f]{40}$"
+        },
+        "principal": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*$"
+        },
+        "flashFee": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$"
+        },
+        "repayment": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*$"
+        },
+        "terminalReturn": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*$"
+        },
+        "minProfit": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*$"
+        },
+        "costInBorrowAsset": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$"
+        },
+        "netProfit": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*$"
+        },
+        "allocations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "branchId",
+              "amountIn",
+              "ratioBps",
+              "amountOut",
+              "legs"
+            ],
+            "properties": {
+              "branchId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "amountIn": {
+                "type": "string",
+                "pattern": "^[1-9][0-9]*$"
+              },
+              "ratioBps": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 10000
+              },
+              "amountOut": {
+                "type": "string",
+                "pattern": "^(0|[1-9][0-9]*)$"
+              },
+              "legs": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "poolId",
+                    "tokenIn",
+                    "tokenOut",
+                    "amountIn",
+                    "consumedInput",
+                    "amountOut",
+                    "feeAmount",
+                    "minAmountOut",
+                    "sqrtPriceLimitX96",
+                    "stateBeforeDigest",
+                    "stateAfterDigest"
+                  ],
+                  "properties": {
+                    "poolId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    },
+                    "tokenIn": {
+                      "type": "string",
+                      "pattern": "^0x[0-9a-f]{40}$"
+                    },
+                    "tokenOut": {
+                      "type": "string",
+                      "pattern": "^0x[0-9a-f]{40}$"
+                    },
+                    "amountIn": {
+                      "type": "string",
+                      "pattern": "^[1-9][0-9]*$"
+                    },
+                    "consumedInput": {
+                      "type": "string",
+                      "pattern": "^[1-9][0-9]*$"
+                    },
+                    "amountOut": {
+                      "type": "string",
+                      "pattern": "^(0|[1-9][0-9]*)$"
+                    },
+                    "feeAmount": {
+                      "type": "string",
+                      "pattern": "^(0|[1-9][0-9]*)$"
+                    },
+                    "minAmountOut": {
+                      "type": "string",
+                      "pattern": "^(0|[1-9][0-9]*)$"
+                    },
+                    "sqrtPriceLimitX96": {
+                      "type": "string",
+                      "pattern": "^(0|[1-9][0-9]*)$"
+                    },
+                    "stateBeforeDigest": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "stateAfterDigest": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    }
+                  }
+                },
+                "minItems": 2,
+                "maxItems": 6
+              }
+            }
+          },
+          "minItems": 1,
+          "maxItems": 8
+        },
+        "optimality": {
+          "enum": [
+            "best-found",
+            "certified"
+          ]
+        },
+        "evaluations": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000
+        },
+        "budgetExhausted": {
+          "type": "boolean"
+        },
+        "admissionRequired": {
+          "const": true
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "status",
+        "executable",
+        "reason",
+        "evaluations",
+        "budgetExhausted"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "aero-split/1.0"
+        },
+        "status": {
+          "enum": [
+            "rejected",
+            "no-profitable-plan"
+          ]
+        },
+        "executable": {
+          "const": false
+        },
+        "reason": {
+          "enum": [
+            "INVALID_INPUT",
+            "INCOHERENT_SNAPSHOT",
+            "UNTRUSTED_ROOT",
+            "UNSUPPORTED_GENERATION",
+            "UNSUPPORTED_FEE_PROFILE",
+            "UNSUPPORTED_LENDER_CAPABILITY",
+            "INCOMPLETE_TICK_COVERAGE",
+            "QUOTE_FAILED",
+            "NO_FEASIBLE_DOMAIN",
+            "NO_PROFITABLE_PLAN",
+            "BUDGET_EXHAUSTED",
+            "STATE_CHANGED",
+            "CAPABILITY_MISMATCH",
+            "SIMULATION_FAILED",
+            "COST_EVIDENCE_INVALID"
+          ]
+        },
+        "evaluations": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000
+        },
+        "budgetExhausted": {
+          "type": "boolean"
+        }
+      }
+    }
+  ]
+}

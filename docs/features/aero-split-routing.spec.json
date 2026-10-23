@@ -1,0 +1,1326 @@
+{
+  "spec_id": "SPEC-2026-102201",
+  "feature_name": "Base Aerodrome integer split routing and flashloan implementation contract",
+  "source_evidence": [
+    {
+      "source_uri": "src/liquidity/projection.ts",
+      "entity_id": "projectPool",
+      "hash": "sha256:3f19459c2e3ea62633fbdb015fcfe20ce9e0299d5f3b9f36f21743aa85e471cb"
+    },
+    {
+      "source_uri": "src/liquidity/sizing.ts",
+      "entity_id": "sizeRoute",
+      "hash": "sha256:10195f5a45230564eb728be7cb03a39659ca4bf01825185181ce6869cb01c019"
+    },
+    {
+      "source_uri": "src/liquidity/clmm.ts",
+      "entity_id": "quoteV3ExactInput",
+      "hash": "sha256:39a885e137539406dcc6b9722785a92f6d89bce224974cdbe5a10e3b72c3d3ce"
+    },
+    {
+      "source_uri": "src/liquidity/state.ts",
+      "entity_id": "digest",
+      "hash": "sha256:48591e0d8d2ebdbd9ab6e89762f75e43e5e1ddc67e9175187fe754e29cc50136"
+    },
+    {
+      "source_uri": "src/evm-fees.ts",
+      "entity_id": "estimateEvmFees",
+      "hash": "sha256:6b0fa0e14a4444b9f8ff932a527e6e1f9183b237c369ceeae3c3785f733419f9"
+    },
+    {
+      "source_uri": "src/liquidity/arbitrum-execution.ts",
+      "entity_id": "EvmLiquidityExecutionAdapter",
+      "hash": "sha256:0798c1e8ca31c46558c8625a1044f9c76be015b75549f15ff8184f9b3f88b00f"
+    },
+    {
+      "source_uri": "src/aero/capture.ts",
+      "entity_id": "captureAeroSnapshot",
+      "hash": "sha256:7b7a67e267d079b25e6b0e9b2f425e529a8f03df2c148414c1f98e7dfaff7666"
+    },
+    {
+      "source_uri": "src/aero/math.ts",
+      "entity_id": "quoteAeroExactInput",
+      "hash": "sha256:c31d4c9947b1d22b0d47f48cffc952bb5989012980fe54036c58ed3b191ccbb0"
+    },
+    {
+      "source_uri": "src/aero/solver.ts",
+      "entity_id": "optimizeAeroSplit",
+      "hash": "sha256:0652de7d0660cfae3f32634ab838e50bed4a6d509f3610a3f5b6e246a4e3050c"
+    },
+    {
+      "source_uri": "src/aero/execution.ts",
+      "entity_id": "buildAeroSplitCalldata",
+      "hash": "sha256:9da4c41b4cc98c64e9cbd79aa1da88734d112bc2a36c3f92ab08888accda4e5c"
+    },
+    {
+      "source_uri": "src/aero/execution.ts",
+      "entity_id": "simulateAeroExecution",
+      "hash": "sha256:9da4c41b4cc98c64e9cbd79aa1da88734d112bc2a36c3f92ab08888accda4e5c"
+    },
+    {
+      "source_uri": "src/aero/evm-host.ts",
+      "entity_id": "createAeroEvmHost",
+      "hash": "sha256:40008be101dbed39b31dc182a8d11ba40ee2ea2003135fc7f72389b6bacbef75"
+    }
+  ],
+  "dependencies": [
+    {
+      "package_or_module": "src/liquidity/projection.ts",
+      "symbol": "projectPool",
+      "file_location": "src/liquidity/projection.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/sizing.ts",
+      "symbol": "sizeRoute",
+      "file_location": "src/liquidity/sizing.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/clmm.ts",
+      "symbol": "quoteV3ExactInput",
+      "file_location": "src/liquidity/clmm.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/state.ts",
+      "symbol": "digest",
+      "file_location": "src/liquidity/state.ts"
+    },
+    {
+      "package_or_module": "src/evm-fees.ts",
+      "symbol": "estimateEvmFees",
+      "file_location": "src/evm-fees.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/arbitrum-execution.ts",
+      "symbol": "EvmLiquidityExecutionAdapter",
+      "file_location": "src/liquidity/arbitrum-execution.ts"
+    },
+    {
+      "package_or_module": "src/aero/capture.ts",
+      "symbol": "captureAeroSnapshot",
+      "file_location": "src/aero/capture.ts"
+    },
+    {
+      "package_or_module": "src/aero/math.ts",
+      "symbol": "quoteAeroExactInput",
+      "file_location": "src/aero/math.ts"
+    },
+    {
+      "package_or_module": "src/aero/solver.ts",
+      "symbol": "optimizeAeroSplit",
+      "file_location": "src/aero/solver.ts"
+    },
+    {
+      "package_or_module": "src/aero/execution.ts",
+      "symbol": "buildAeroSplitCalldata",
+      "file_location": "src/aero/execution.ts"
+    },
+    {
+      "package_or_module": "src/aero/execution.ts",
+      "symbol": "simulateAeroExecution",
+      "file_location": "src/aero/execution.ts"
+    },
+    {
+      "package_or_module": "src/aero/evm-host.ts",
+      "symbol": "createAeroEvmHost",
+      "file_location": "src/aero/evm-host.ts"
+    }
+  ],
+  "architecture": {
+    "pattern": "Versioned Aero adapters around shared integer projection, bounded cyclic allocation and authenticated portable execution",
+    "isolation_boundaries": "Base only; proposal schemas distinct from analytics 4.0; new executor revision required; docs verified separately from unimplemented Aero E2E",
+    "execution_flow": [
+      "pin generation, block, factory, implementation and fee dependencies",
+      "project complete cycles sequentially with exact native-unit math",
+      "allocate and size within deterministic bounded domain",
+      "bind typed new artifact capability and simulate complete flashloan",
+      "refresh head and fees before future signing; reconcile receipt and custody"
+    ]
+  },
+  "data_contracts": {
+    "inputs": {
+      "requestSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "schemaVersion",
+          "identity",
+          "sender",
+          "borrowAsset",
+          "pools",
+          "pins",
+          "branches",
+          "lenders",
+          "bounds",
+          "cost",
+          "limits"
+        ],
+        "properties": {
+          "schemaVersion": {
+            "const": "aero-split/1.0"
+          },
+          "identity": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "chainId",
+              "blockNumber",
+              "blockHash",
+              "timestamp"
+            ],
+            "properties": {
+              "chainId": {
+                "const": 8453
+              },
+              "blockNumber": {
+                "type": "string",
+                "pattern": "^(0|[1-9][0-9]*)$"
+              },
+              "blockHash": {
+                "type": "string",
+                "pattern": "^0x[0-9a-f]{64}$"
+              },
+              "timestamp": {
+                "type": "string",
+                "pattern": "^(0|[1-9][0-9]*)$"
+              }
+            }
+          },
+          "sender": {
+            "type": "string",
+            "pattern": "^0x[0-9a-f]{40}$"
+          },
+          "borrowAsset": {
+            "type": "string",
+            "pattern": "^0x[0-9a-f]{40}$"
+          },
+          "pools": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "poolId",
+                "address",
+                "factory",
+                "generation",
+                "token0",
+                "token1",
+                "decimals0",
+                "decimals1",
+                "implementation",
+                "implementationCodeHash",
+                "state"
+              ],
+              "properties": {
+                "poolId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128
+                },
+                "address": {
+                  "type": "string",
+                  "pattern": "^0x[0-9a-f]{40}$"
+                },
+                "factory": {
+                  "type": "string",
+                  "pattern": "^0x[0-9a-f]{40}$"
+                },
+                "generation": {
+                  "enum": [
+                    "classic",
+                    "cl-initial",
+                    "cl-gauge-caps",
+                    "cl-gauges-v3",
+                    "external-v2",
+                    "external-v3"
+                  ]
+                },
+                "token0": {
+                  "type": "string",
+                  "pattern": "^0x[0-9a-f]{40}$"
+                },
+                "token1": {
+                  "type": "string",
+                  "pattern": "^0x[0-9a-f]{40}$"
+                },
+                "decimals0": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 255
+                },
+                "decimals1": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 255
+                },
+                "implementation": {
+                  "type": "string",
+                  "pattern": "^0x[0-9a-f]{40}$"
+                },
+                "implementationCodeHash": {
+                  "type": "string",
+                  "pattern": "^0x[0-9a-f]{64}$"
+                },
+                "state": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "protocol",
+                        "reserve0",
+                        "reserve1",
+                        "balance0",
+                        "balance1",
+                        "feeBps",
+                        "stable"
+                      ],
+                      "properties": {
+                        "protocol": {
+                          "enum": [
+                            "aero-volatile",
+                            "aero-stable"
+                          ]
+                        },
+                        "reserve0": {
+                          "type": "string",
+                          "pattern": "^[1-9][0-9]*$"
+                        },
+                        "reserve1": {
+                          "type": "string",
+                          "pattern": "^[1-9][0-9]*$"
+                        },
+                        "balance0": {
+                          "type": "string",
+                          "pattern": "^[1-9][0-9]*$"
+                        },
+                        "balance1": {
+                          "type": "string",
+                          "pattern": "^[1-9][0-9]*$"
+                        },
+                        "feeBps": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9999
+                        },
+                        "stable": {
+                          "type": "boolean"
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "protocol",
+                        "sqrtPriceX96",
+                        "tick",
+                        "liquidity",
+                        "tickSpacing",
+                        "feePips",
+                        "unlocked",
+                        "lowerTick",
+                        "upperTick",
+                        "bitmapWords",
+                        "initializedTicks",
+                        "feeProfile",
+                        "feeEvidenceDigest"
+                      ],
+                      "properties": {
+                        "protocol": {
+                          "enum": [
+                            "aero-slipstream",
+                            "uniswap-v3"
+                          ]
+                        },
+                        "sqrtPriceX96": {
+                          "type": "string",
+                          "pattern": "^[1-9][0-9]*$"
+                        },
+                        "tick": {
+                          "type": "integer",
+                          "minimum": -887272,
+                          "maximum": 887271
+                        },
+                        "liquidity": {
+                          "type": "string",
+                          "pattern": "^(0|[1-9][0-9]*)$"
+                        },
+                        "tickSpacing": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 887272
+                        },
+                        "feePips": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 999999
+                        },
+                        "unlocked": {
+                          "const": true
+                        },
+                        "lowerTick": {
+                          "type": "integer",
+                          "minimum": -887272,
+                          "maximum": 887272
+                        },
+                        "upperTick": {
+                          "type": "integer",
+                          "minimum": -887272,
+                          "maximum": 887272
+                        },
+                        "bitmapWords": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "wordPosition",
+                              "bitmap"
+                            ],
+                            "properties": {
+                              "wordPosition": {
+                                "type": "integer",
+                                "minimum": -32768,
+                                "maximum": 32767
+                              },
+                              "bitmap": {
+                                "type": "string",
+                                "pattern": "^(0|[1-9][0-9]*)$"
+                              }
+                            }
+                          },
+                          "minItems": 1,
+                          "maxItems": 256
+                        },
+                        "initializedTicks": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "tick",
+                              "liquidityGross",
+                              "liquidityNet"
+                            ],
+                            "properties": {
+                              "tick": {
+                                "type": "integer",
+                                "minimum": -887272,
+                                "maximum": 887272
+                              },
+                              "liquidityGross": {
+                                "type": "string",
+                                "pattern": "^[1-9][0-9]*$"
+                              },
+                              "liquidityNet": {
+                                "type": "string",
+                                "pattern": "^(0|-?[1-9][0-9]*)$"
+                              }
+                            }
+                          },
+                          "minItems": 0,
+                          "maxItems": 10000
+                        },
+                        "feeProfile": {
+                          "enum": [
+                            "fixed-proven",
+                            "dynamic-evm",
+                            "unknown"
+                          ]
+                        },
+                        "feeEvidenceDigest": {
+                          "type": "string",
+                          "pattern": "^[a-f0-9]{64}$"
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "protocol",
+                        "reserve0",
+                        "reserve1",
+                        "feeNumerator",
+                        "feeDenominator"
+                      ],
+                      "properties": {
+                        "protocol": {
+                          "const": "uniswap-v2"
+                        },
+                        "reserve0": {
+                          "type": "string",
+                          "pattern": "^[1-9][0-9]*$"
+                        },
+                        "reserve1": {
+                          "type": "string",
+                          "pattern": "^[1-9][0-9]*$"
+                        },
+                        "feeNumerator": {
+                          "type": "string",
+                          "pattern": "^[1-9][0-9]*$"
+                        },
+                        "feeDenominator": {
+                          "type": "string",
+                          "pattern": "^[1-9][0-9]*$"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            },
+            "minItems": 2,
+            "maxItems": 48
+          },
+          "pins": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "address",
+                "codeHash",
+                "role",
+                "sourceRevision"
+              ],
+              "properties": {
+                "address": {
+                  "type": "string",
+                  "pattern": "^0x[0-9a-f]{40}$"
+                },
+                "codeHash": {
+                  "type": "string",
+                  "pattern": "^0x[0-9a-f]{64}$"
+                },
+                "role": {
+                  "enum": [
+                    "factory",
+                    "pool",
+                    "implementation",
+                    "fee-module",
+                    "quoter",
+                    "lender",
+                    "executor",
+                    "price-feed"
+                  ]
+                },
+                "sourceRevision": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{40}$"
+                }
+              }
+            },
+            "minItems": 1,
+            "maxItems": 200
+          },
+          "branches": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "branchId",
+                "legs"
+              ],
+              "properties": {
+                "branchId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128
+                },
+                "legs": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "poolId",
+                      "tokenIn",
+                      "minOutBps",
+                      "sqrtPriceLimitX96"
+                    ],
+                    "properties": {
+                      "poolId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 128
+                      },
+                      "tokenIn": {
+                        "type": "string",
+                        "pattern": "^0x[0-9a-f]{40}$"
+                      },
+                      "minOutBps": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 10000
+                      },
+                      "sqrtPriceLimitX96": {
+                        "type": "string",
+                        "pattern": "^(0|[1-9][0-9]*)$"
+                      }
+                    }
+                  },
+                  "minItems": 2,
+                  "maxItems": 6
+                }
+              }
+            },
+            "minItems": 1,
+            "maxItems": 8
+          },
+          "lenders": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "lenderId",
+                "kind",
+                "address",
+                "codeHash",
+                "asset",
+                "available",
+                "feeNumerator",
+                "feeDenominator",
+                "feeRounding",
+                "termsEvidenceDigest"
+              ],
+              "properties": {
+                "lenderId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128
+                },
+                "kind": {
+                  "enum": [
+                    "morpho",
+                    "balancer-v2"
+                  ]
+                },
+                "address": {
+                  "type": "string",
+                  "pattern": "^0x[0-9a-f]{40}$"
+                },
+                "codeHash": {
+                  "type": "string",
+                  "pattern": "^0x[0-9a-f]{64}$"
+                },
+                "asset": {
+                  "type": "string",
+                  "pattern": "^0x[0-9a-f]{40}$"
+                },
+                "available": {
+                  "type": "string",
+                  "pattern": "^(0|[1-9][0-9]*)$"
+                },
+                "feeNumerator": {
+                  "type": "string",
+                  "pattern": "^(0|[1-9][0-9]*)$"
+                },
+                "feeDenominator": {
+                  "type": "string",
+                  "pattern": "^[1-9][0-9]*$"
+                },
+                "feeRounding": {
+                  "enum": [
+                    "floor",
+                    "ceil",
+                    "zero"
+                  ]
+                },
+                "termsEvidenceDigest": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              }
+            },
+            "minItems": 1,
+            "maxItems": 8
+          },
+          "bounds": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "minimum",
+              "maximum",
+              "quantum",
+              "minNetProfit",
+              "deadline"
+            ],
+            "properties": {
+              "minimum": {
+                "type": "string",
+                "pattern": "^[1-9][0-9]*$"
+              },
+              "maximum": {
+                "type": "string",
+                "pattern": "^[1-9][0-9]*$"
+              },
+              "quantum": {
+                "type": "string",
+                "pattern": "^[1-9][0-9]*$"
+              },
+              "minNetProfit": {
+                "type": "string",
+                "pattern": "^[1-9][0-9]*$"
+              },
+              "deadline": {
+                "type": "string",
+                "pattern": "^(0|[1-9][0-9]*)$"
+              }
+            }
+          },
+          "cost": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "evidenceDigest",
+              "nativeAsset",
+              "borrowAsset",
+              "nativeCostWei",
+              "costInBorrowAsset",
+              "conversionNumerator",
+              "conversionDenominator",
+              "valuationEvidenceDigest",
+              "maxAgeSeconds"
+            ],
+            "properties": {
+              "evidenceDigest": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "nativeAsset": {
+                "type": "string",
+                "pattern": "^0x[0-9a-f]{40}$"
+              },
+              "borrowAsset": {
+                "type": "string",
+                "pattern": "^0x[0-9a-f]{40}$"
+              },
+              "nativeCostWei": {
+                "type": "string",
+                "pattern": "^(0|[1-9][0-9]*)$"
+              },
+              "costInBorrowAsset": {
+                "type": "string",
+                "pattern": "^(0|[1-9][0-9]*)$"
+              },
+              "conversionNumerator": {
+                "type": "string",
+                "pattern": "^[1-9][0-9]*$"
+              },
+              "conversionDenominator": {
+                "type": "string",
+                "pattern": "^[1-9][0-9]*$"
+              },
+              "valuationEvidenceDigest": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "maxAgeSeconds": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 86400
+              }
+            }
+          },
+          "limits": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "maxEvaluations",
+              "borrowSamples",
+              "allocationChunks",
+              "maxQuoteSteps"
+            ],
+            "properties": {
+              "maxEvaluations": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 1000000
+              },
+              "borrowSamples": {
+                "type": "integer",
+                "minimum": 2,
+                "maximum": 32
+              },
+              "allocationChunks": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 64
+              },
+              "maxQuoteSteps": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 4096
+              }
+            }
+          }
+        }
+      },
+      "example": {
+        "schemaVersion": "aero-split/1.0",
+        "identity": {
+          "chainId": 8453,
+          "blockNumber": "1",
+          "blockHash": "0x1111111111111111111111111111111111111111111111111111111111111111",
+          "timestamp": "1"
+        },
+        "sender": "0x0000000000000000000000000000000000000001",
+        "borrowAsset": "0x0000000000000000000000000000000000000002",
+        "pools": [
+          {
+            "poolId": "out",
+            "address": "0x000000000000000000000000000000000000000a",
+            "factory": "0x000000000000000000000000000000000000000a",
+            "generation": "classic",
+            "token0": "0x0000000000000000000000000000000000000002",
+            "token1": "0x0000000000000000000000000000000000000003",
+            "decimals0": 18,
+            "decimals1": 18,
+            "implementation": "0x0000000000000000000000000000000000000014",
+            "implementationCodeHash": "0x1111111111111111111111111111111111111111111111111111111111111111",
+            "state": {
+              "protocol": "aero-volatile",
+              "reserve0": "1000",
+              "reserve1": "2000",
+              "balance0": "1000",
+              "balance1": "2000",
+              "feeBps": 30,
+              "stable": false
+            }
+          },
+          {
+            "poolId": "back",
+            "address": "0x000000000000000000000000000000000000000b",
+            "factory": "0x000000000000000000000000000000000000000a",
+            "generation": "external-v2",
+            "token0": "0x0000000000000000000000000000000000000002",
+            "token1": "0x0000000000000000000000000000000000000003",
+            "decimals0": 18,
+            "decimals1": 18,
+            "implementation": "0x0000000000000000000000000000000000000014",
+            "implementationCodeHash": "0x1111111111111111111111111111111111111111111111111111111111111111",
+            "state": {
+              "protocol": "uniswap-v2",
+              "reserve0": "1000",
+              "reserve1": "1000",
+              "feeNumerator": "997",
+              "feeDenominator": "1000"
+            }
+          }
+        ],
+        "pins": [
+          {
+            "address": "0x000000000000000000000000000000000000000a",
+            "codeHash": "0x1111111111111111111111111111111111111111111111111111111111111111",
+            "role": "factory",
+            "sourceRevision": "1111111111111111111111111111111111111111"
+          }
+        ],
+        "branches": [
+          {
+            "branchId": "cycle-a",
+            "legs": [
+              {
+                "poolId": "out",
+                "tokenIn": "0x0000000000000000000000000000000000000002",
+                "minOutBps": 9900,
+                "sqrtPriceLimitX96": "0"
+              },
+              {
+                "poolId": "back",
+                "tokenIn": "0x0000000000000000000000000000000000000003",
+                "minOutBps": 9900,
+                "sqrtPriceLimitX96": "0"
+              }
+            ]
+          }
+        ],
+        "lenders": [
+          {
+            "lenderId": "morpho-fixture",
+            "kind": "morpho",
+            "address": "0x0000000000000000000000000000000000000004",
+            "codeHash": "0x1111111111111111111111111111111111111111111111111111111111111111",
+            "asset": "0x0000000000000000000000000000000000000002",
+            "available": "100000",
+            "feeNumerator": "0",
+            "feeDenominator": "1",
+            "feeRounding": "zero",
+            "termsEvidenceDigest": "2222222222222222222222222222222222222222222222222222222222222222"
+          }
+        ],
+        "bounds": {
+          "minimum": "1",
+          "maximum": "100",
+          "quantum": "1",
+          "minNetProfit": "1",
+          "deadline": "100"
+        },
+        "cost": {
+          "evidenceDigest": "2222222222222222222222222222222222222222222222222222222222222222",
+          "nativeAsset": "0x0000000000000000000000000000000000000005",
+          "borrowAsset": "0x0000000000000000000000000000000000000002",
+          "nativeCostWei": "1",
+          "costInBorrowAsset": "1",
+          "conversionNumerator": "1",
+          "conversionDenominator": "1",
+          "valuationEvidenceDigest": "2222222222222222222222222222222222222222222222222222222222222222",
+          "maxAgeSeconds": 60
+        },
+        "limits": {
+          "maxEvaluations": 4096,
+          "borrowSamples": 32,
+          "allocationChunks": 64,
+          "maxQuoteSteps": 4096
+        }
+      },
+      "defaults": {
+        "maxEvaluations": 4096,
+        "borrowSamples": 32,
+        "allocationChunks": 64,
+        "maxQuoteSteps": 4096
+      },
+      "proposedInterfaces": [
+        "captureAeroSnapshot",
+        "quoteAeroExactInput",
+        "optimizeAeroSplit",
+        "buildAeroSplitCalldata"
+      ],
+      "semanticRules": [
+        "classic stable flag and protocol must agree",
+        "pool generation, protocol and factory profile must agree",
+        "pool ids and branch ids unique; all references resolved",
+        "each ordered branch starts and ends in borrowAsset with token continuity",
+        "minimum and maximum are positive multiples of quantum; maximum >= minimum",
+        "all lender assets equal borrowAsset; denominator positive; zero rounding requires numerator zero",
+        "snapshot reserves equal balances for classic initial admitted state",
+        "CL integer width, bitmap completeness, sorted unique ticks, spacing and signed liquidity checked",
+        "unknown fee profiles analysis-only; dynamic profiles require ordered EVM evidence",
+        "costInBorrowAsset = ceil(nativeCostWei*conversionNumerator/conversionDenominator); conversion and fee evidence pinned to identity",
+        "minOut = floor(exactAmountOut*minOutBps/10000); CL limit direction and full consumption checked",
+        "reject encoded minAmountOut zero after flooring; new ABI unused fields must be canonical as specified in the feature brief"
+      ],
+      "exampleEvidence": "Synthetic offline fixture. Block, address and evidence pins are illustrative and not RPC-backed; executable admission is forbidden."
+    },
+    "outputs": {
+      "resultSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "schemaVersion",
+              "status",
+              "executable",
+              "requestDigest",
+              "snapshotDigest",
+              "lenderId",
+              "borrowAsset",
+              "principal",
+              "flashFee",
+              "repayment",
+              "terminalReturn",
+              "minProfit",
+              "costInBorrowAsset",
+              "netProfit",
+              "allocations",
+              "optimality",
+              "evaluations",
+              "budgetExhausted",
+              "admissionRequired"
+            ],
+            "properties": {
+              "schemaVersion": {
+                "const": "aero-split/1.0"
+              },
+              "status": {
+                "const": "selected"
+              },
+              "executable": {
+                "const": false
+              },
+              "requestDigest": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "snapshotDigest": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "lenderId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "borrowAsset": {
+                "type": "string",
+                "pattern": "^0x[0-9a-f]{40}$"
+              },
+              "principal": {
+                "type": "string",
+                "pattern": "^[1-9][0-9]*$"
+              },
+              "flashFee": {
+                "type": "string",
+                "pattern": "^(0|[1-9][0-9]*)$"
+              },
+              "repayment": {
+                "type": "string",
+                "pattern": "^[1-9][0-9]*$"
+              },
+              "terminalReturn": {
+                "type": "string",
+                "pattern": "^[1-9][0-9]*$"
+              },
+              "minProfit": {
+                "type": "string",
+                "pattern": "^[1-9][0-9]*$"
+              },
+              "costInBorrowAsset": {
+                "type": "string",
+                "pattern": "^(0|[1-9][0-9]*)$"
+              },
+              "netProfit": {
+                "type": "string",
+                "pattern": "^[1-9][0-9]*$"
+              },
+              "allocations": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "branchId",
+                    "amountIn",
+                    "ratioBps",
+                    "amountOut",
+                    "legs"
+                  ],
+                  "properties": {
+                    "branchId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    },
+                    "amountIn": {
+                      "type": "string",
+                      "pattern": "^[1-9][0-9]*$"
+                    },
+                    "ratioBps": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 10000
+                    },
+                    "amountOut": {
+                      "type": "string",
+                      "pattern": "^(0|[1-9][0-9]*)$"
+                    },
+                    "legs": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "poolId",
+                          "tokenIn",
+                          "tokenOut",
+                          "amountIn",
+                          "consumedInput",
+                          "amountOut",
+                          "feeAmount",
+                          "minAmountOut",
+                          "sqrtPriceLimitX96",
+                          "stateBeforeDigest",
+                          "stateAfterDigest"
+                        ],
+                        "properties": {
+                          "poolId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 128
+                          },
+                          "tokenIn": {
+                            "type": "string",
+                            "pattern": "^0x[0-9a-f]{40}$"
+                          },
+                          "tokenOut": {
+                            "type": "string",
+                            "pattern": "^0x[0-9a-f]{40}$"
+                          },
+                          "amountIn": {
+                            "type": "string",
+                            "pattern": "^[1-9][0-9]*$"
+                          },
+                          "consumedInput": {
+                            "type": "string",
+                            "pattern": "^[1-9][0-9]*$"
+                          },
+                          "amountOut": {
+                            "type": "string",
+                            "pattern": "^(0|[1-9][0-9]*)$"
+                          },
+                          "feeAmount": {
+                            "type": "string",
+                            "pattern": "^(0|[1-9][0-9]*)$"
+                          },
+                          "minAmountOut": {
+                            "type": "string",
+                            "pattern": "^(0|[1-9][0-9]*)$"
+                          },
+                          "sqrtPriceLimitX96": {
+                            "type": "string",
+                            "pattern": "^(0|[1-9][0-9]*)$"
+                          },
+                          "stateBeforeDigest": {
+                            "type": "string",
+                            "pattern": "^[a-f0-9]{64}$"
+                          },
+                          "stateAfterDigest": {
+                            "type": "string",
+                            "pattern": "^[a-f0-9]{64}$"
+                          }
+                        }
+                      },
+                      "minItems": 2,
+                      "maxItems": 6
+                    }
+                  }
+                },
+                "minItems": 1,
+                "maxItems": 8
+              },
+              "optimality": {
+                "enum": [
+                  "best-found",
+                  "certified"
+                ]
+              },
+              "evaluations": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 1000000
+              },
+              "budgetExhausted": {
+                "type": "boolean"
+              },
+              "admissionRequired": {
+                "const": true
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "schemaVersion",
+              "status",
+              "executable",
+              "reason",
+              "evaluations",
+              "budgetExhausted"
+            ],
+            "properties": {
+              "schemaVersion": {
+                "const": "aero-split/1.0"
+              },
+              "status": {
+                "enum": [
+                  "rejected",
+                  "no-profitable-plan"
+                ]
+              },
+              "executable": {
+                "const": false
+              },
+              "reason": {
+                "enum": [
+                  "INVALID_INPUT",
+                  "INCOHERENT_SNAPSHOT",
+                  "UNTRUSTED_ROOT",
+                  "UNSUPPORTED_GENERATION",
+                  "UNSUPPORTED_FEE_PROFILE",
+                  "UNSUPPORTED_LENDER_CAPABILITY",
+                  "INCOMPLETE_TICK_COVERAGE",
+                  "QUOTE_FAILED",
+                  "NO_FEASIBLE_DOMAIN",
+                  "NO_PROFITABLE_PLAN",
+                  "BUDGET_EXHAUSTED",
+                  "STATE_CHANGED",
+                  "CAPABILITY_MISMATCH",
+                  "SIMULATION_FAILED",
+                  "COST_EVIDENCE_INVALID"
+                ]
+              },
+              "evaluations": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000000
+              },
+              "budgetExhausted": {
+                "type": "boolean"
+              }
+            }
+          }
+        ]
+      },
+      "rejectedExample": {
+        "schemaVersion": "aero-split/1.0",
+        "status": "rejected",
+        "executable": false,
+        "reason": "INCOMPLETE_TICK_COVERAGE",
+        "evaluations": 0,
+        "budgetExhausted": false
+      },
+      "noProfitExample": {
+        "schemaVersion": "aero-split/1.0",
+        "status": "no-profitable-plan",
+        "executable": false,
+        "reason": "NO_PROFITABLE_PLAN",
+        "evaluations": 32,
+        "budgetExhausted": false
+      },
+      "semanticRules": [
+        "sum allocation amounts equals principal; ratios use largest remainder and sum 10000",
+        "repayment = principal + flashFee",
+        "netProfit = terminalReturn - repayment - costInBorrowAsset",
+        "minProfit >= costInBorrowAsset + request minNetProfit",
+        "terminalReturn >= repayment + minProfit",
+        "all selected leg inputs are fully consumed and outputs satisfy minOut",
+        "certified requires complete feasible-domain enumeration, including exact costs; never infer it from a seed or budget exhaustion",
+        "calldata and executable admission belong to a subsequent artifact-bound stage",
+        "snapshotDigest = digest({identity,pins,pools}); per-leg state digests hash the protocol-specific state before/after that leg; requestDigest = digest(entire request)"
+      ],
+      "selectedExample": {
+        "schemaVersion": "aero-split/1.0",
+        "status": "selected",
+        "executable": false,
+        "requestDigest": "0a01348b22c057fcf1103e582dc59de3c42d4dc8aec64bc0557fed75c202303f",
+        "snapshotDigest": "9fa4c9f2c3acfdcdfa7a782409ef20ca426dcd5f4374a14c87805d3c42ab2762",
+        "lenderId": "morpho-fixture",
+        "borrowAsset": "0x0000000000000000000000000000000000000002",
+        "principal": "100",
+        "flashFee": "0",
+        "repayment": "100",
+        "terminalReturn": "152",
+        "minProfit": "2",
+        "costInBorrowAsset": "1",
+        "netProfit": "51",
+        "allocations": [
+          {
+            "branchId": "cycle-a",
+            "amountIn": "100",
+            "ratioBps": 10000,
+            "amountOut": "152",
+            "legs": [
+              {
+                "poolId": "out",
+                "tokenIn": "0x0000000000000000000000000000000000000002",
+                "tokenOut": "0x0000000000000000000000000000000000000003",
+                "amountIn": "100",
+                "consumedInput": "100",
+                "amountOut": "181",
+                "feeAmount": "0",
+                "minAmountOut": "179",
+                "sqrtPriceLimitX96": "0",
+                "stateBeforeDigest": "96dba4bcbe23a6e421cc841cf54f4e1a1527c86eb1ea001ccec88bd2646909d6",
+                "stateAfterDigest": "415347a8716d3f4138b9c2e434d47a5fe22375732e90d4c306512e8c9002c5f1"
+              },
+              {
+                "poolId": "back",
+                "tokenIn": "0x0000000000000000000000000000000000000003",
+                "tokenOut": "0x0000000000000000000000000000000000000002",
+                "amountIn": "181",
+                "consumedInput": "181",
+                "amountOut": "152",
+                "feeAmount": "1",
+                "minAmountOut": "150",
+                "sqrtPriceLimitX96": "0",
+                "stateBeforeDigest": "937de51b9747b3f8b4311faa7d8cdebf5d695ab693eb7c3bb393bf53c5d9bf35",
+                "stateAfterDigest": "d78712f2cc4fc076110928f4c37018c26ab6d5c3d34ec6c24c64fd7da9a4a37d"
+              }
+            ]
+          }
+        ],
+        "optimality": "best-found",
+        "evaluations": 32,
+        "budgetExhausted": false,
+        "admissionRequired": true
+      },
+      "calldataContract": {
+        "entrypoint": "executeAeroSplitArbitrage(AeroSplitRoute)",
+        "legFieldOrder": [
+          "uint8 venueVersion",
+          "address root",
+          "address pool",
+          "address tokenIn",
+          "address tokenOut",
+          "uint256 minAmountOut",
+          "uint256 quotedAmountOut",
+          "uint24 fee",
+          "uint160 sqrtPriceLimitX96",
+          "int24 tickSpacing",
+          "bool stable",
+          "uint8 generation"
+        ],
+        "venueIds": {
+          "uniswap-v2": 2,
+          "uniswap-v3": 3,
+          "aero-classic": 6,
+          "aero-slipstream": 7
+        },
+        "generationIds": {
+          "external": 0,
+          "classic": 1,
+          "cl-initial": 2,
+          "cl-gauge-caps": 3,
+          "cl-gauges-v3": 4
+        },
+        "branchFieldOrder": [
+          "uint256 amountIn",
+          "AeroLeg[] legs"
+        ],
+        "routeFieldOrder": [
+          "uint8 kind",
+          "address lender",
+          "address flashAsset",
+          "uint256 flashAmount",
+          "AeroBranch[] branches",
+          "uint256 minProfit",
+          "uint256 deadline"
+        ],
+        "selectorRule": "derive from compiled tuple ABI and bind new artifact capability",
+        "v2OutputRule": "request exact quotedAmountOut, keep positive minAmountOut as a separate guard; do not reuse existing minimum-output dispatch unchanged"
+      }
+    },
+    "error_states": [
+      "INVALID_INPUT",
+      "INCOHERENT_SNAPSHOT",
+      "UNTRUSTED_ROOT",
+      "UNSUPPORTED_GENERATION",
+      "UNSUPPORTED_FEE_PROFILE",
+      "UNSUPPORTED_LENDER_CAPABILITY",
+      "INCOMPLETE_TICK_COVERAGE",
+      "QUOTE_FAILED",
+      "NO_FEASIBLE_DOMAIN",
+      "NO_PROFITABLE_PLAN",
+      "BUDGET_EXHAUSTED",
+      "STATE_CHANGED",
+      "CAPABILITY_MISMATCH",
+      "SIMULATION_FAILED",
+      "COST_EVIDENCE_INVALID"
+    ]
+  },
+  "test_criteria": [
+    "EDGE-01 rejects malformed chain/state/generation/fee units and binds current code/source evidence",
+    "EDGE-02 independently verifies fee-floor volatile vector, stable decimal parity and both CL directions",
+    "EDGE-03 compares bounded allocation to exhaustive small-domain oracle and proves sequential shared-pool state",
+    "EDGE-04 proves lender authentication, callbacks, exact repayment, opening-balance preservation and ABI parity",
+    "EDGE-05 proves local full pipeline and opt-in pinned Base fork parity; constructed profits explicitly labeled"
+  ]
+}

@@ -1,0 +1,312 @@
+{
+  "schemaVersion": "1.0",
+  "verified": true,
+  "scope": "Base Aero deployment and configuration",
+  "chainId": 8453,
+  "checkedAt": "2026-10-22T14:23:20.757Z",
+  "checkedBlock": {
+    "number": "52944819",
+    "hash": "0xdd0ce07c6e81472a68908db2007a8b6c5f04fff605215c2a43b2c3f0a95672ac"
+  },
+  "finalizedBlock": "52944374",
+  "allFinalized": false,
+  "owner": "0xc75aAeBD1F395cFc9e7c7f291Ea32d5C9d4c270a",
+  "address": "0xdfafd892dca6a2f9dadc43a38b81c7d53473ff10",
+  "runtimeCodeHash": "0xf683033b99876a78b54f20c628251ad6bff4772bf43dda95d6bca0e819f8a05a",
+  "artifactHash": "1e7ee0bbed79899eb3d5f12d031967dba8ce4cbc6ae01d5f9e781c1e7b4631c2",
+  "selector": "0x3b2be3e6",
+  "manifestHash": "577d584a3e9009409d548ec84b6b4346ee38c358ef522c88657bed7274ad1600",
+  "totalDeploymentCostWei": "25960710350786",
+  "enabled": {
+    "lender": "Morpho",
+    "factories": 4,
+    "pools": 5
+  },
+  "roots": [
+    {
+      "role": "morpho",
+      "address": "0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb",
+      "codeHash": "0xaa76348c0b91e5dfcece228ef6847b0c5081656d2def05c5617bcab659f0b819",
+      "source": "https://api.morpho.org/graphql"
+    },
+    {
+      "role": "aero-factory",
+      "address": "0x420dd381b31aef6683db6b902084cb0ffece40da",
+      "codeHash": "0xe2a176e5d2bcfb214b784ec6d6733708a6376a464f203cc265c284c9f349fea3",
+      "source": "https://github.com/aerodrome-finance/contracts/blob/1ba30815bba620f7e9faa34769ffd00c214c9b82/README.md",
+      "generation": 1
+    },
+    {
+      "role": "aero-pool",
+      "address": "0xcdac0d6c6c59727a65f871236188350531885c43",
+      "codeHash": "0x7dd6ffe6daf4e82054c91becd71b8c9ba0a135f0f403da1ef7b0f81bb8ba4408",
+      "source": "https://basescan.org/address/0xcdac0d6c6c59727a65f871236188350531885c43#code",
+      "implementation": "0xa4e46b4f701c62e14df11b48dce76a7d793cd6d7",
+      "implementationCodeHash": "0xd22754a0a3b39db7298dbbc2be1e34b34320988ea67065c85fa28ae66c02d31e"
+    },
+    {
+      "role": "aero-pool",
+      "address": "0x3548029694fbb241d45fb24ba0cd9c9d4e745f16",
+      "codeHash": "0x7dd6ffe6daf4e82054c91becd71b8c9ba0a135f0f403da1ef7b0f81bb8ba4408",
+      "source": "https://basescan.org/address/0x3548029694fbb241d45fb24ba0cd9c9d4e745f16#code",
+      "implementation": "0xa4e46b4f701c62e14df11b48dce76a7d793cd6d7",
+      "implementationCodeHash": "0xd22754a0a3b39db7298dbbc2be1e34b34320988ea67065c85fa28ae66c02d31e"
+    },
+    {
+      "role": "aero-factory",
+      "address": "0x5e7bb104d84c7cb9b682aac2f3d509f5f406809a",
+      "codeHash": "0x7340cf80843bd721bcaefbfc050e38304cb4174c239e6e914e3056f27f39b11c",
+      "source": "https://github.com/aerodrome-finance/slipstream/blob/f8717faaae6e6717db3c8e3850149c01a79c0603/README.md",
+      "generation": 2
+    },
+    {
+      "role": "aero-pool",
+      "address": "0xb2cc224c1c9fee385f8ad6a55b4d94e92359dc59",
+      "codeHash": "0xacd6710f7037ad095b1e4d5f8ee5b2681069cb4dd316e77e4e0cb8f85716a2a1",
+      "source": "https://basescan.org/address/0xb2cc224c1c9fee385f8ad6a55b4d94e92359dc59#code",
+      "implementation": "0xec8e5342b19977b4ef8892e02d8daecfa1315831",
+      "implementationCodeHash": "0x772fb5c610b40a122036f544e5b9b5bce6becb19db9524331289d1aaed2d5888"
+    },
+    {
+      "role": "aero-factory",
+      "address": "0xade65c38cd4849adba595a4323a8c7ddfe89716a",
+      "codeHash": "0x0e72100f63ce8e32c95370fa9636d38c8cf434a820f2a7a69985e50930d2cb85",
+      "source": "https://github.com/aerodrome-finance/slipstream/blob/f8717faaae6e6717db3c8e3850149c01a79c0603/README.md",
+      "generation": 3
+    },
+    {
+      "role": "aero-pool",
+      "address": "0xc758d81b9b81a6fcdad075bd471874a2c46b54e0",
+      "codeHash": "0x18308290b554b22918ea53c7e4e49eb871181d182749bf9e3a65ef949d3be808",
+      "source": "https://basescan.org/address/0xc758d81b9b81a6fcdad075bd471874a2c46b54e0#code",
+      "implementation": "0x942e97a4c6fdc38b4cd1c0298d37d81fdd8e5a16",
+      "implementationCodeHash": "0x916bc5496cc07ea86289bc3a08a90f93dcae34686be6634f6e89ef260c3df4fa"
+    },
+    {
+      "role": "aero-factory",
+      "address": "0xf8f2eb4940cfe7d13603dddd87f123820fc061ef",
+      "codeHash": "0x4961963494e47f363617ab9a0f3999a28b33c519e51392952db06350cce700bd",
+      "source": "https://github.com/aerodrome-finance/slipstream/blob/f8717faaae6e6717db3c8e3850149c01a79c0603/README.md",
+      "generation": 4
+    },
+    {
+      "role": "aero-pool",
+      "address": "0x3fe04a59ebd38cf06080a6f60a98d124eb59392a",
+      "codeHash": "0xad8972486d67a48db1f32f254a4c2f4be28df0b5f399559d1e7cd8fbcfbedc96",
+      "source": "https://basescan.org/address/0x3fe04a59ebd38cf06080a6f60a98d124eb59392a#code",
+      "implementation": "0xc770898522d2a9c8da7a10d63989b6b58305b665",
+      "implementationCodeHash": "0xe63484f408c701770737a3c40e435c8183c66b1663f3a8777ce44dd73aff339b"
+    }
+  ],
+  "receipts": [
+    {
+      "label": "deploy:AeroSplitFlashExecutor",
+      "transactionHash": "0x0c55a16bfa89b0e72d7fd8bb07a546a11a30f1ff120a9beaa657bd25a149316b",
+      "blockNumber": "52944644",
+      "blockHash": "0x3766fe1bc84a20f00443bfb47d4209704313053a1961f7cb6573d9d2b6ed8755",
+      "costWei": "20804799751974",
+      "confirmed": true,
+      "finalized": false
+    },
+    {
+      "label": "configure:AeroSplitFlashExecutor:morpho",
+      "transactionHash": "0x7719853fc313808acb257094501c156ee2a2356b2783559510158576ce06ead0",
+      "blockNumber": "52944652",
+      "blockHash": "0x7402f8dd056dd23b20e02d1dfdd8d9012ca85117ab2449f2650d5eed2a62e45d",
+      "costWei": "361847865377",
+      "confirmed": true,
+      "finalized": false
+    },
+    {
+      "label": "configure:AeroSplitFlashExecutor:aero-factory:1:0x420dd381b31aef6683db6b902084cb0ffece40da",
+      "transactionHash": "0xc8354eb7c43a10205f221af6be68df22d86e1ec336ff2402821f2b2f90e66ed4",
+      "blockNumber": "52944659",
+      "blockHash": "0x78ab308f02c3b8cbb09084096cc2ff1d9e762efd4989f51cf6b6cd543dafad67",
+      "costWei": "355449053626",
+      "confirmed": true,
+      "finalized": false
+    },
+    {
+      "label": "configure:AeroSplitFlashExecutor:aero-pool::0xcdac0d6c6c59727a65f871236188350531885c43",
+      "transactionHash": "0xcfaf3e154160937c623716f1ef88c5ad3b40a4f792f1b454d867d018462ff605",
+      "blockNumber": "52944667",
+      "blockHash": "0x5e57c032afc53879727c6144d6207eda564d07b641d2e57585c6402a570367ff",
+      "costWei": "665058907500",
+      "confirmed": true,
+      "finalized": false
+    },
+    {
+      "label": "configure:AeroSplitFlashExecutor:aero-pool::0x3548029694fbb241d45fb24ba0cd9c9d4e745f16",
+      "transactionHash": "0xef3ce8ac77c79fdb846509f8ab15669495a5dfeb7ca2d799fa73745cdd237fb1",
+      "blockNumber": "52944684",
+      "blockHash": "0x8035704d6197e92e99c6ffe4c512e190dc2e799b0eaf514666aace1c00abfff2",
+      "costWei": "672220532573",
+      "confirmed": true,
+      "finalized": false
+    },
+    {
+      "label": "configure:AeroSplitFlashExecutor:aero-factory:2:0x5e7bb104d84c7cb9b682aac2f3d509f5f406809a",
+      "transactionHash": "0x66061df00e761889738f2640595bd8d8259dbc397eb0551af1297809876c351d",
+      "blockNumber": "52944691",
+      "blockHash": "0xdb633c864cde3aa687988dd8745c23f5b4c20e309ecd7198e3175db1e8b42210",
+      "costWei": "360073215806",
+      "confirmed": true,
+      "finalized": false
+    },
+    {
+      "label": "configure:AeroSplitFlashExecutor:aero-pool::0xb2cc224c1c9fee385f8ad6a55b4d94e92359dc59",
+      "transactionHash": "0x303e2f23752ddd317aba5ea4a6562f46ece5f21ceb9718bf41e3201eeac7cad8",
+      "blockNumber": "52944699",
+      "blockHash": "0xe7b5a243c6856ee331b15f3885db9a3ee15e8c58fde4c5b7775a69a0da819419",
+      "costWei": "672121663787",
+      "confirmed": true,
+      "finalized": false
+    },
+    {
+      "label": "configure:AeroSplitFlashExecutor:aero-factory:3:0xade65c38cd4849adba595a4323a8c7ddfe89716a",
+      "transactionHash": "0xd083a10f97b58c6762e8b6fe010c2a2315304f6f18f6b44b2472e9efe0fe79e3",
+      "blockNumber": "52944717",
+      "blockHash": "0xa2cdcc86508fe50b90d0f296878fcd96b53d25554e8342f48d91437623dc8769",
+      "costWei": "362092714475",
+      "confirmed": true,
+      "finalized": false
+    },
+    {
+      "label": "configure:AeroSplitFlashExecutor:aero-pool::0xc758d81b9b81a6fcdad075bd471874a2c46b54e0",
+      "transactionHash": "0x8d69ddb3595532a5ddf2e4899bea8c350ed3c23cb259eb571c127bf04e75e3c5",
+      "blockNumber": "52944725",
+      "blockHash": "0x6c93698b23401d630c5fef73c54aebaeb5e5980b9ae5e94f2834ff7c0301b7f8",
+      "costWei": "675667813577",
+      "confirmed": true,
+      "finalized": false
+    },
+    {
+      "label": "configure:AeroSplitFlashExecutor:aero-factory:4:0xf8f2eb4940cfe7d13603dddd87f123820fc061ef",
+      "transactionHash": "0xb9026d43d97c1e23cbceced6c5df1daef8179775069c4987853747f6440a7bda",
+      "blockNumber": "52944732",
+      "blockHash": "0xb4dc95ae2360380568820cf2873a202a43cb09eefed0dee8de92de302c0db114",
+      "costWei": "359510916472",
+      "confirmed": true,
+      "finalized": false
+    },
+    {
+      "label": "configure:AeroSplitFlashExecutor:aero-pool::0x3fe04a59ebd38cf06080a6f60a98d124eb59392a",
+      "transactionHash": "0x22539867345b8aefc1e3390cc359222a9bad834a0773b31dc944065a864e88ef",
+      "blockNumber": "52944740",
+      "blockHash": "0x1636d2e782403370fcd8a4c76bda404afaec77053c14ea81780c31f09f93dab7",
+      "costWei": "671867915619",
+      "confirmed": true,
+      "finalized": false
+    }
+  ],
+  "verification": {
+    "runtimeArtifact": true,
+    "owner": true,
+    "rootReadbacks": true,
+    "canonicalReceipts": true,
+    "localE2E": true,
+    "pinnedBaseFork": {
+      "origin": {
+        "blockNumber": "52943887",
+        "blockHash": "0x64465bb17ed3e12eb245843fd6a79f925f08cfa01540bd0679a9df18a879a3e3"
+      },
+      "cases": [
+        {
+          "generation": "classic",
+          "pool": "0xcdac0d6c6c59727a65f871236188350531885c43",
+          "repayment": true,
+          "custody": true,
+          "constructed": true,
+          "reverseParity": [
+            {
+              "asset": "0x4200000000000000000000000000000000000006",
+              "amount": "100000000000000",
+              "amountOut": "239526",
+              "source": "deployed-getAmountOut"
+            },
+            {
+              "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+              "amount": "1000000",
+              "amountOut": "414988275470263",
+              "source": "deployed-getAmountOut"
+            }
+          ]
+        },
+        {
+          "generation": "classic",
+          "pool": "0x3548029694fbb241d45fb24ba0cd9c9d4e745f16",
+          "repayment": true,
+          "custody": true,
+          "constructed": true,
+          "reverseParity": [
+            {
+              "asset": "0x4200000000000000000000000000000000000006",
+              "amount": "100000000000000",
+              "amountOut": "239663",
+              "source": "deployed-getAmountOut"
+            },
+            {
+              "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+              "amount": "1000000",
+              "amountOut": "416768384631408",
+              "source": "deployed-getAmountOut"
+            }
+          ]
+        },
+        {
+          "generation": "cl-initial",
+          "pool": "0xb2cc224c1c9fee385f8ad6a55b4d94e92359dc59",
+          "repayment": true,
+          "custody": true,
+          "constructed": true,
+          "reverseParity": [
+            {
+              "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+              "amount": "10000",
+              "amountOut": "4169596036803",
+              "source": "deployed-swap-eth-call",
+              "direction": "one-for-zero",
+              "stateParity": true
+            }
+          ]
+        },
+        {
+          "generation": "cl-gauge-caps",
+          "pool": "0xc758d81b9b81a6fcdad075bd471874a2c46b54e0",
+          "repayment": true,
+          "custody": true,
+          "constructed": true,
+          "reverseParity": [
+            {
+              "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+              "amount": "10000",
+              "amountOut": "4170091858120",
+              "source": "deployed-swap-eth-call",
+              "direction": "one-for-zero",
+              "stateParity": true
+            }
+          ]
+        },
+        {
+          "generation": "cl-gauges-v3",
+          "pool": "0x3fe04a59ebd38cf06080a6f60a98d124eb59392a",
+          "repayment": true,
+          "custody": true,
+          "constructed": true,
+          "reverseParity": [
+            {
+              "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+              "amount": "10000",
+              "amountOut": "4167845207487",
+              "source": "deployed-swap-eth-call",
+              "direction": "one-for-zero",
+              "stateParity": true
+            }
+          ]
+        }
+      ],
+      "constructed": true
+    }
+  },
+  "liveTradingAdmitted": false
+}

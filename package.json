@@ -47,7 +47,11 @@
     "evm:test": "forge build && npm run build && node --test dist/test/evm-*.test.js",
     "evm:abi-check": "tsx src/evm/abi-check.ts",
     "pretest": "forge build",
-    "evm:local-e2e": "npm run build && node scripts/evm-local-e2e.mjs"
+    "evm:local-e2e": "npm run build && node scripts/evm-local-e2e.mjs",
+    "aero": "tsx src/aero/cli.ts",
+    "aero:test": "forge build --quiet && npm run build && node --test dist/test/aero-*.test.js && forge test --match-contract AeroSplitExecutorTest",
+    "aero:local-e2e": "npm run build && node scripts/aero-local-e2e.mjs",
+    "aero:fork-e2e": "npm run build && node scripts/aero-fork-e2e.mjs"
   },
   "dependencies": {
     "@mysten/sui": "^2.0.0",

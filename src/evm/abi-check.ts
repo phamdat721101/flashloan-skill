@@ -1,4 +1,5 @@
 import { readFile } from 'node:fs/promises';
+import { AERO_EXECUTOR_ABI } from '../aero/execution.js';
 import { toFunctionSelector, toEventSelector, type Abi, type AbiFunction, type AbiEvent } from 'viem';
 import { FLASH_EXECUTOR_ABI, IMMUTABLE_V4_EXECUTOR_ABI, PORTABLE_SPLIT_ABI } from '../contracts/flash-executor.js';
 import { MULTI_LENDER_ROUTE_ABI } from '../liquidity/arbitrum.js';
@@ -21,6 +22,7 @@ export async function checkExecutorAbis(): Promise<void> {
     compare(await artifact(name),name === 'ImmutableArbitrageExecutor' ? IMMUTABLE_V4_EXECUTOR_ABI : FLASH_EXECUTOR_ABI.filter(i=>i.type==='function' && i.name===fn));
   }
   compare(portable,PORTABLE_SPLIT_ABI);
+  compare(await artifact('AeroSplitFlashExecutor'),AERO_EXECUTOR_ABI);
   const split=portable.find((a):a is AbiFunction=>a.type==='function' && a.name==='executeSplitArbitrage');
   if(!split || split.inputs[0]?.type!=='tuple')throw new Error('SPLIT_ABI_MISSING');
   const rust=await readFile('crates/flashloan-core/src/lib.rs','utf8');

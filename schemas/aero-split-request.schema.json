@@ -1,0 +1,623 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "identity",
+    "sender",
+    "borrowAsset",
+    "pools",
+    "pins",
+    "branches",
+    "lenders",
+    "bounds",
+    "cost",
+    "limits"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "aero-split/1.0"
+    },
+    "identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "chainId",
+        "blockNumber",
+        "blockHash",
+        "timestamp"
+      ],
+      "properties": {
+        "chainId": {
+          "const": 8453
+        },
+        "blockNumber": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$"
+        },
+        "blockHash": {
+          "type": "string",
+          "pattern": "^0x[0-9a-f]{64}$"
+        },
+        "timestamp": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$"
+        }
+      }
+    },
+    "sender": {
+      "type": "string",
+      "pattern": "^0x[0-9a-f]{40}$"
+    },
+    "borrowAsset": {
+      "type": "string",
+      "pattern": "^0x[0-9a-f]{40}$"
+    },
+    "pools": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "poolId",
+          "address",
+          "factory",
+          "generation",
+          "token0",
+          "token1",
+          "decimals0",
+          "decimals1",
+          "implementation",
+          "implementationCodeHash",
+          "state"
+        ],
+        "properties": {
+          "poolId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "address": {
+            "type": "string",
+            "pattern": "^0x[0-9a-f]{40}$"
+          },
+          "factory": {
+            "type": "string",
+            "pattern": "^0x[0-9a-f]{40}$"
+          },
+          "generation": {
+            "enum": [
+              "classic",
+              "cl-initial",
+              "cl-gauge-caps",
+              "cl-gauges-v3",
+              "external-v2",
+              "external-v3"
+            ]
+          },
+          "token0": {
+            "type": "string",
+            "pattern": "^0x[0-9a-f]{40}$"
+          },
+          "token1": {
+            "type": "string",
+            "pattern": "^0x[0-9a-f]{40}$"
+          },
+          "decimals0": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 255
+          },
+          "decimals1": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 255
+          },
+          "implementation": {
+            "type": "string",
+            "pattern": "^0x[0-9a-f]{40}$"
+          },
+          "implementationCodeHash": {
+            "type": "string",
+            "pattern": "^0x[0-9a-f]{64}$"
+          },
+          "state": {
+            "oneOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "protocol",
+                  "reserve0",
+                  "reserve1",
+                  "balance0",
+                  "balance1",
+                  "feeBps",
+                  "stable"
+                ],
+                "properties": {
+                  "protocol": {
+                    "enum": [
+                      "aero-volatile",
+                      "aero-stable"
+                    ]
+                  },
+                  "reserve0": {
+                    "type": "string",
+                    "pattern": "^[1-9][0-9]*$"
+                  },
+                  "reserve1": {
+                    "type": "string",
+                    "pattern": "^[1-9][0-9]*$"
+                  },
+                  "balance0": {
+                    "type": "string",
+                    "pattern": "^[1-9][0-9]*$"
+                  },
+                  "balance1": {
+                    "type": "string",
+                    "pattern": "^[1-9][0-9]*$"
+                  },
+                  "feeBps": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9999
+                  },
+                  "stable": {
+                    "type": "boolean"
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "protocol",
+                  "sqrtPriceX96",
+                  "tick",
+                  "liquidity",
+                  "tickSpacing",
+                  "feePips",
+                  "unlocked",
+                  "lowerTick",
+                  "upperTick",
+                  "bitmapWords",
+                  "initializedTicks",
+                  "feeProfile",
+                  "feeEvidenceDigest"
+                ],
+                "properties": {
+                  "protocol": {
+                    "enum": [
+                      "aero-slipstream",
+                      "uniswap-v3"
+                    ]
+                  },
+                  "sqrtPriceX96": {
+                    "type": "string",
+                    "pattern": "^[1-9][0-9]*$"
+                  },
+                  "tick": {
+                    "type": "integer",
+                    "minimum": -887272,
+                    "maximum": 887271
+                  },
+                  "liquidity": {
+                    "type": "string",
+                    "pattern": "^(0|[1-9][0-9]*)$"
+                  },
+                  "tickSpacing": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 887272
+                  },
+                  "feePips": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 999999
+                  },
+                  "unlocked": {
+                    "const": true
+                  },
+                  "lowerTick": {
+                    "type": "integer",
+                    "minimum": -887272,
+                    "maximum": 887272
+                  },
+                  "upperTick": {
+                    "type": "integer",
+                    "minimum": -887272,
+                    "maximum": 887272
+                  },
+                  "bitmapWords": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "wordPosition",
+                        "bitmap"
+                      ],
+                      "properties": {
+                        "wordPosition": {
+                          "type": "integer",
+                          "minimum": -32768,
+                          "maximum": 32767
+                        },
+                        "bitmap": {
+                          "type": "string",
+                          "pattern": "^(0|[1-9][0-9]*)$"
+                        }
+                      }
+                    },
+                    "minItems": 1,
+                    "maxItems": 256
+                  },
+                  "initializedTicks": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "tick",
+                        "liquidityGross",
+                        "liquidityNet"
+                      ],
+                      "properties": {
+                        "tick": {
+                          "type": "integer",
+                          "minimum": -887272,
+                          "maximum": 887272
+                        },
+                        "liquidityGross": {
+                          "type": "string",
+                          "pattern": "^[1-9][0-9]*$"
+                        },
+                        "liquidityNet": {
+                          "type": "string",
+                          "pattern": "^(0|-?[1-9][0-9]*)$"
+                        }
+                      }
+                    },
+                    "minItems": 0,
+                    "maxItems": 10000
+                  },
+                  "feeProfile": {
+                    "enum": [
+                      "fixed-proven",
+                      "dynamic-evm",
+                      "unknown"
+                    ]
+                  },
+                  "feeEvidenceDigest": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "protocol",
+                  "reserve0",
+                  "reserve1",
+                  "feeNumerator",
+                  "feeDenominator"
+                ],
+                "properties": {
+                  "protocol": {
+                    "const": "uniswap-v2"
+                  },
+                  "reserve0": {
+                    "type": "string",
+                    "pattern": "^[1-9][0-9]*$"
+                  },
+                  "reserve1": {
+                    "type": "string",
+                    "pattern": "^[1-9][0-9]*$"
+                  },
+                  "feeNumerator": {
+                    "type": "string",
+                    "pattern": "^[1-9][0-9]*$"
+                  },
+                  "feeDenominator": {
+                    "type": "string",
+                    "pattern": "^[1-9][0-9]*$"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "minItems": 2,
+      "maxItems": 48
+    },
+    "pins": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "address",
+          "codeHash",
+          "role",
+          "sourceRevision"
+        ],
+        "properties": {
+          "address": {
+            "type": "string",
+            "pattern": "^0x[0-9a-f]{40}$"
+          },
+          "codeHash": {
+            "type": "string",
+            "pattern": "^0x[0-9a-f]{64}$"
+          },
+          "role": {
+            "enum": [
+              "factory",
+              "pool",
+              "implementation",
+              "fee-module",
+              "quoter",
+              "lender",
+              "executor",
+              "price-feed"
+            ]
+          },
+          "sourceRevision": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{40}$"
+          }
+        }
+      },
+      "minItems": 1,
+      "maxItems": 200
+    },
+    "branches": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "branchId",
+          "legs"
+        ],
+        "properties": {
+          "branchId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "legs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "poolId",
+                "tokenIn",
+                "minOutBps",
+                "sqrtPriceLimitX96"
+              ],
+              "properties": {
+                "poolId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128
+                },
+                "tokenIn": {
+                  "type": "string",
+                  "pattern": "^0x[0-9a-f]{40}$"
+                },
+                "minOutBps": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 10000
+                },
+                "sqrtPriceLimitX96": {
+                  "type": "string",
+                  "pattern": "^(0|[1-9][0-9]*)$"
+                }
+              }
+            },
+            "minItems": 2,
+            "maxItems": 6
+          }
+        }
+      },
+      "minItems": 1,
+      "maxItems": 8
+    },
+    "lenders": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "lenderId",
+          "kind",
+          "address",
+          "codeHash",
+          "asset",
+          "available",
+          "feeNumerator",
+          "feeDenominator",
+          "feeRounding",
+          "termsEvidenceDigest"
+        ],
+        "properties": {
+          "lenderId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "kind": {
+            "enum": [
+              "morpho",
+              "balancer-v2"
+            ]
+          },
+          "address": {
+            "type": "string",
+            "pattern": "^0x[0-9a-f]{40}$"
+          },
+          "codeHash": {
+            "type": "string",
+            "pattern": "^0x[0-9a-f]{64}$"
+          },
+          "asset": {
+            "type": "string",
+            "pattern": "^0x[0-9a-f]{40}$"
+          },
+          "available": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]*)$"
+          },
+          "feeNumerator": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]*)$"
+          },
+          "feeDenominator": {
+            "type": "string",
+            "pattern": "^[1-9][0-9]*$"
+          },
+          "feeRounding": {
+            "enum": [
+              "floor",
+              "ceil",
+              "zero"
+            ]
+          },
+          "termsEvidenceDigest": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        }
+      },
+      "minItems": 1,
+      "maxItems": 8
+    },
+    "bounds": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "minimum",
+        "maximum",
+        "quantum",
+        "minNetProfit",
+        "deadline"
+      ],
+      "properties": {
+        "minimum": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*$"
+        },
+        "maximum": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*$"
+        },
+        "quantum": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*$"
+        },
+        "minNetProfit": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*$"
+        },
+        "deadline": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$"
+        }
+      }
+    },
+    "cost": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evidenceDigest",
+        "nativeAsset",
+        "borrowAsset",
+        "nativeCostWei",
+        "costInBorrowAsset",
+        "conversionNumerator",
+        "conversionDenominator",
+        "valuationEvidenceDigest",
+        "maxAgeSeconds"
+      ],
+      "properties": {
+        "evidenceDigest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "nativeAsset": {
+          "type": "string",
+          "pattern": "^0x[0-9a-f]{40}$"
+        },
+        "borrowAsset": {
+          "type": "string",
+          "pattern": "^0x[0-9a-f]{40}$"
+        },
+        "nativeCostWei": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$"
+        },
+        "costInBorrowAsset": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$"
+        },
+        "conversionNumerator": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*$"
+        },
+        "conversionDenominator": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*$"
+        },
+        "valuationEvidenceDigest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "maxAgeSeconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 86400
+        }
+      }
+    },
+    "limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "maxEvaluations",
+        "borrowSamples",
+        "allocationChunks",
+        "maxQuoteSteps"
+      ],
+      "properties": {
+        "maxEvaluations": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000
+        },
+        "borrowSamples": {
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 32
+        },
+        "allocationChunks": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 64
+        },
+        "maxQuoteSteps": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4096
+        }
+      }
+    }
+  }
+}

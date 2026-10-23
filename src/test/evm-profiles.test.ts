@@ -130,3 +130,12 @@ test('bounded connected discovery finds intermediary cycles without widening the
   assert.equal(cycles[0][0].tokenIn.toLowerCase(),asset);
   assert.throws(()=>enumerateSimpleProfitCycles([{poolId:'bad',token0:asset,token1:asset},{poolId:'ab',token0:asset,token1:intermediary}],asset as `0x${string}`),/INVALID_CYCLE_GRAPH/);
 });
+test('Aero deployment is isolated and validates every generation and implementation pin',async()=>{
+ const {readFile}=await import('node:fs/promises');
+ const m=JSON.parse(await readFile('config/aero-base-mainnet.json','utf8'));
+ assert.equal(parseManifest(m).roots.filter(r=>r.role==='aero-pool').length,5);
+ assert.throws(()=>parseManifest({...m,chainId:42161}),/AERO_MANIFEST_ISOLATION/);
+ assert.throws(()=>parseManifest({...m,contracts:[...m.contracts,'PortableMultiSplitFlashExecutor']}),/AERO_MANIFEST_ISOLATION/);
+ const bad=structuredClone(m);delete bad.roots.find((r:any)=>r.role==='aero-pool').implementationCodeHash;assert.throws(()=>parseManifest(bad),/INVALID_ROOT_PIN/);
+ assert.throws(()=>parseManifest({...m,roots:[...m.roots,m.roots[0]]}),/DUPLICATE_ROOT_ROLE/);
+});

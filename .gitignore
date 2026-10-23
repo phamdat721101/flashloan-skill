@@ -34,3 +34,7 @@ docs/features/*
 docs/deployments/*
 !docs/deployments/base-*
 !docs/deployments/robinhood-*
+!docs/ratio.md
+!docs/features/aero-split-routing.md
+!docs/features/aero-split-routing.spec.json
+!docs/features/aero-split-routing-map.md

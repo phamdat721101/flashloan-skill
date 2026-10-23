@@ -22,7 +22,7 @@
     },
     "roots": {
       "type": "array",
-      "maxItems": 6,
+      "maxItems": 64,
       "items": {
         "type": "object",
         "additionalProperties": false,
@@ -40,7 +40,9 @@
               "aave-provider",
               "v2-factory",
               "v3-factory",
-              "v4-manager"
+              "v4-manager",
+              "aero-factory",
+              "aero-pool"
             ]
           },
           "address": {
@@ -54,8 +56,99 @@
           "source": {
             "type": "string",
             "pattern": "^https://"
+          },
+          "generation": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 6
+          },
+          "implementation": {
+            "type": "string",
+            "pattern": "^0x[0-9a-fA-F]{40}$"
+          },
+          "implementationCodeHash": {
+            "type": "string",
+            "pattern": "^0x[0-9a-f]{64}$"
+          },
+          "maxFee": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]*)$"
           }
-        }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "role": {
+                  "const": "aero-factory"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "generation"
+              ]
+            },
+            "else": {
+              "not": {
+                "anyOf": [
+                  {
+                    "required": [
+                      "generation"
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "role": {
+                  "const": "aero-pool"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "implementation",
+                "implementationCodeHash"
+              ]
+            },
+            "else": {
+              "not": {
+                "anyOf": [
+                  {
+                    "required": [
+                      "implementation"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "implementationCodeHash"
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "role": {
+                  "const": "balancer-v2"
+                }
+              }
+            },
+            "else": {
+              "not": {
+                "required": [
+                  "maxFee"
+                ]
+              }
+            }
+          }
+        ]
       }
     },
     "contracts": {
@@ -68,7 +161,8 @@
           "MultiVenueArbitrageExecutor",
           "PortableMultiSplitFlashExecutor",
           "V4StateQuoter",
-          "ImmutableArbitrageExecutor"
+          "ImmutableArbitrageExecutor",
+          "AeroSplitFlashExecutor"
         ]
       }
     },
@@ -93,5 +187,83 @@
         }
       }
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "contracts": {
+            "contains": {
+              "const": "AeroSplitFlashExecutor"
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "chainId": {
+            "const": 8453
+          },
+          "contracts": {
+            "maxItems": 1
+          },
+          "roots": {
+            "items": {
+              "properties": {
+                "role": {
+                  "enum": [
+                    "morpho",
+                    "balancer-v2",
+                    "aero-factory",
+                    "aero-pool"
+                  ]
+                }
+              },
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "role": {
+                        "const": "balancer-v2"
+                      }
+                    }
+                  },
+                  "then": {
+                    "required": [
+                      "maxFee"
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "roots": {
+            "items": {
+              "properties": {
+                "role": {
+                  "enum": [
+                    "morpho",
+                    "balancer-v2",
+                    "aave-provider",
+                    "v2-factory",
+                    "v3-factory",
+                    "v4-manager"
+                  ]
+                }
+              },
+              "not": {
+                "required": [
+                  "maxFee"
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
 }
