@@ -49,9 +49,10 @@
     "pretest": "forge build",
     "evm:local-e2e": "npm run build && node scripts/evm-local-e2e.mjs",
     "aero": "tsx src/aero/cli.ts",
-    "aero:test": "forge build --quiet && npm run build && node --test dist/test/aero-*.test.js && forge test --match-contract AeroSplitExecutorTest",
+    "aero:test": "forge build --quiet && npm run build && node --test dist/test/aero-*.test.js && forge test --match-contract 'AeroSplitExecutor(V2)?Test'",
     "aero:local-e2e": "npm run build && node scripts/aero-local-e2e.mjs",
-    "aero:fork-e2e": "npm run build && node scripts/aero-fork-e2e.mjs"
+    "aero:fork-e2e": "npm run build && node scripts/aero-fork-e2e.mjs",
+    "aero:v2-local-e2e": "npm run build && node scripts/aero-v2-local-e2e.mjs"
   },
   "dependencies": {
     "@mysten/sui": "^2.0.0",

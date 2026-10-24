@@ -1,5 +1,5 @@
 import { atomicJson } from './storage.js';
-import { AERO_EXECUTOR_ABI } from '../aero/execution.js';
+import { AERO_EXECUTOR_ABI, AERO_V2_EXECUTOR_ABI } from '../aero/execution.js';
 export { atomicJson } from './storage.js';
 import { EvmBudget } from './budget.js';
 import { readFile } from 'node:fs/promises';
@@ -11,9 +11,11 @@ import { evmProfile } from '../evm-chains.js';
 import { estimateEvmFees, receiptNativeCost } from '../evm-fees.js';
 import { ExecutionLock } from '../execution-lock.js';
 
-export const CONTRACTS = ['MultiVenueArbitrageExecutor', 'PortableMultiSplitFlashExecutor', 'V4StateQuoter', 'ImmutableArbitrageExecutor', 'AeroSplitFlashExecutor'] as const;
+export const CONTRACTS = ['MultiVenueArbitrageExecutor', 'PortableMultiSplitFlashExecutor', 'V4StateQuoter', 'ImmutableArbitrageExecutor', 'AeroSplitFlashExecutor', 'AeroSplitFlashExecutorV2'] as const;
 export type ContractName = typeof CONTRACTS[number];
-export interface RootPin { role: 'morpho' | 'balancer-v2' | 'aave-provider' | 'v2-factory' | 'v3-factory' | 'v4-manager' | 'aero-factory' | 'aero-pool'; address: Address; codeHash: Hex; source: string; generation?: number; implementation?: Address; implementationCodeHash?: Hex; maxFee?: string }
+/** AeroSplitFlashExecutorV2 roots: aero-factory generation 5/6/7 = Uniswap V2/V3/V4 manager; v4-manager = V4 lender;
+ * v2-fee = a V2 factory's fixed fee (feePips); v4-pool = a trusted hookless PoolKey id on that manager. */
+export interface RootPin { role: 'morpho' | 'balancer-v2' | 'aave-provider' | 'v2-factory' | 'v3-factory' | 'v4-manager' | 'aero-factory' | 'aero-pool' | 'v2-fee' | 'v4-pool'; address: Address; codeHash: Hex; source: string; generation?: number; implementation?: Address; implementationCodeHash?: Hex; maxFee?: string; feePips?: number; poolId?: Hex }
 export interface DeploymentManifest { schemaVersion: '1.0'; chainId: number; roots: RootPin[]; contracts: ContractName[]; exclusions: Array<{ contract: string; reason: string }> }
 export interface ForgeArtifact { abi: readonly unknown[]; bytecode: { object: Hex }; deployedBytecode: { object: Hex; immutableReferences?: Record<string, Array<{ start: number; length: number }>> }; metadata?: string }
 export interface DeploymentEntry { contract: ContractName; address: Address; txHash: Hex; blockNumber: string; runtimeCodeHash: Hex; artifactHash: string; owner: Address | null; status: 'deployed' | 'configured' | 'verified'; configurations: Array<{ role: string; txHash: Hex }> }
@@ -33,21 +35,27 @@ export function secureEndpoint(input: string): string {
   if (u.username || u.password || (u.protocol !== 'https:' && !(u.protocol === 'http:' && ['localhost', '127.0.0.1'].includes(u.hostname)))) throw new Error('INSECURE_EVM_ENDPOINT');
   return input;
 }
+/** Unique per configuration: Aero pools/factories/fees by address, V4 pools by PoolKey id. */
+export function rootKey(r: RootPin): string {
+  return r.role==='v4-pool'?`${r.role}:${r.poolId}`:r.role==='aero-pool'||r.role==='v2-fee'?`${r.role}:${r.address.toLowerCase()}`:r.role==='aero-factory'?`${r.role}:${r.generation}:${r.address.toLowerCase()}`:r.role;
+}
 export function parseManifest(input: unknown): DeploymentManifest {
   const m = input as DeploymentManifest;
   if (!m || Object.keys(m).sort().join(',') !== 'chainId,contracts,exclusions,roots,schemaVersion' || m.schemaVersion !== '1.0' || !Number.isInteger(m.chainId) || ![42161, 8453, 4663].includes(m.chainId) || !Array.isArray(m.roots) || !Array.isArray(m.contracts) || !m.contracts.length || new Set(m.contracts).size !== m.contracts.length || m.contracts.some(c => !CONTRACTS.includes(c)) || !Array.isArray(m.exclusions)) throw new Error('INVALID_DEPLOYMENT_MANIFEST');
-  const aero=m.contracts.includes('AeroSplitFlashExecutor');
+  const aero2=m.contracts.includes('AeroSplitFlashExecutorV2'),aero=aero2||m.contracts.includes('AeroSplitFlashExecutor');
   if(aero&&(m.chainId!==8453||m.contracts.length!==1))throw new Error('AERO_MANIFEST_ISOLATION_REQUIRED');
   for (const r of m.roots) {
     if(!r||typeof r!=='object')throw new Error('INVALID_ROOT_PIN');
-    const extra=r.role==='aero-factory'?['generation']:r.role==='aero-pool'?['implementation','implementationCodeHash']:aero&&r.role==='balancer-v2'?['maxFee']:[];
-    if(!r||Object.keys(r).sort().join(',')!==['address','codeHash','role','source',...extra].sort().join(',')||!['morpho','balancer-v2','aave-provider','v2-factory','v3-factory','v4-manager','aero-factory','aero-pool'].includes(r.role)||!/^0x[0-9a-fA-F]{40}$/.test(r.address)||!/^0x[0-9a-f]{64}$/.test(r.codeHash)||!/^https:\/\//.test(r.source))throw new Error('INVALID_ROOT_PIN');
-    if((r.role.startsWith('aero-')&&!aero)||(aero&&!['morpho','balancer-v2','aero-factory','aero-pool'].includes(r.role)))throw new Error('INVALID_ROOT_PIN');
-    if(r.role==='aero-factory'&&(!Number.isInteger(r.generation)||r.generation!<1||r.generation!>6))throw new Error('INVALID_ROOT_PIN');
+    const extra=r.role==='aero-factory'?['generation']:r.role==='aero-pool'?['implementation','implementationCodeHash']:aero&&r.role==='balancer-v2'?['maxFee']:r.role==='v2-fee'?['feePips']:r.role==='v4-pool'?['poolId']:[];
+    if(!r||Object.keys(r).sort().join(',')!==['address','codeHash','role','source',...extra].sort().join(',')||!['morpho','balancer-v2','aave-provider','v2-factory','v3-factory','v4-manager','aero-factory','aero-pool','v2-fee','v4-pool'].includes(r.role)||!/^0x[0-9a-fA-F]{40}$/.test(r.address)||!/^0x[0-9a-f]{64}$/.test(r.codeHash)||!/^https:\/\//.test(r.source))throw new Error('INVALID_ROOT_PIN');
+    if(((r.role.startsWith('aero-')||r.role==='v2-fee'||r.role==='v4-pool')&&!aero)||(aero&&!['morpho','balancer-v2','aero-factory','aero-pool',...(aero2?['v4-manager','v2-fee','v4-pool']:[])].includes(r.role)))throw new Error('INVALID_ROOT_PIN');
+    if(r.role==='aero-factory'&&(!Number.isInteger(r.generation)||r.generation!<1||r.generation!>(aero2?7:6)))throw new Error('INVALID_ROOT_PIN');
+    if(r.role==='v2-fee'&&(!Number.isInteger(r.feePips)||r.feePips!<0||r.feePips!>=1000000))throw new Error('INVALID_ROOT_PIN');
+    if(r.role==='v4-pool'&&!/^0x[0-9a-f]{64}$/.test(r.poolId??''))throw new Error('INVALID_ROOT_PIN');
     if(r.role==='aero-pool'&&(!/^0x[0-9a-fA-F]{40}$/.test(r.implementation??'')||!/^0x[0-9a-f]{64}$/.test(r.implementationCodeHash??'')))throw new Error('INVALID_ROOT_PIN');
     if(aero&&r.role==='balancer-v2'&&!/^(0|[1-9][0-9]*)$/.test(r.maxFee??''))throw new Error('INVALID_ROOT_PIN');
   }
-  const rootKeys=m.roots.map(r=>r.role==='aero-pool'?`${r.role}:${r.address.toLowerCase()}`:r.role==='aero-factory'?`${r.role}:${r.generation}:${r.address.toLowerCase()}`:r.role);
+  const rootKeys=m.roots.map(rootKey);
   if(new Set(rootKeys).size!==rootKeys.length)throw new Error('DUPLICATE_ROOT_ROLE');
   for (const e of m.exclusions) if (!e || Object.keys(e).sort().join(',') !== 'contract,reason' || typeof e.contract !== 'string' || typeof e.reason !== 'string' || !e.reason) throw new Error('INVALID_EXCLUSION');
   if (m.contracts.includes('ImmutableArbitrageExecutor') && !m.roots.some(r => r.role === 'aave-provider')) throw new Error('AAVE_REQUIRED_FOR_V4_EXECUTOR');
@@ -80,7 +88,7 @@ export class EvmDeployment {
   private readonly authorityPath: string;
   constructor(readonly manifest: DeploymentManifest, rpc: string, submission: string, private readonly account: LocalAccount, private readonly statePath: string, private readonly artifactRoot = 'out') {
     evmProfile(manifest.chainId);
-    this.authorityPath = `.nim/deployment-ledger/${manifest.chainId}-${account.address.toLowerCase()}${manifest.contracts.includes('AeroSplitFlashExecutor')?'-aero':''}.json`;
+    this.authorityPath = `.nim/deployment-ledger/${manifest.chainId}-${account.address.toLowerCase()}${manifest.contracts.includes('AeroSplitFlashExecutorV2')?'-aero-v2':manifest.contracts.includes('AeroSplitFlashExecutor')?'-aero':''}.json`;
     this.client = createPublicClient({ transport: http(secureEndpoint(rpc), { timeout: 20000, retryCount: 0 }) });
     this.submission = createPublicClient({ transport: http(secureEndpoint(submission), { timeout: 20000, retryCount: 0 }) });
   }
@@ -158,6 +166,15 @@ export class EvmDeployment {
     return this.reconcile(record);
   }
   private rootConfiguration(contract: ContractName, root: RootPin): Hex | null {
+    if(contract==='AeroSplitFlashExecutorV2') {
+      const abi=AERO_V2_EXECUTOR_ABI;
+      if(root.role==='morpho'||root.role==='balancer-v2'||root.role==='v4-manager')return encodeFunctionData({abi,functionName:'configureLender',args:[root.role==='morpho'?1:root.role==='balancer-v2'?2:3,root.address,root.codeHash,BigInt(root.maxFee??'0')]});
+      if(root.role==='aero-factory')return encodeFunctionData({abi,functionName:'configureFactory',args:[root.generation!,root.address,root.codeHash]});
+      if(root.role==='aero-pool')return encodeFunctionData({abi,functionName:'configurePool',args:[root.address,root.codeHash,root.implementation!,root.implementationCodeHash!]});
+      if(root.role==='v2-fee')return encodeFunctionData({abi,functionName:'configureV2Fee',args:[root.address,root.feePips!,true]});
+      if(root.role==='v4-pool')return encodeFunctionData({abi,functionName:'configureV4Pool',args:[root.poolId!,true]});
+      throw new Error('INVALID_ROOT_PIN');
+    }
     if(contract==='AeroSplitFlashExecutor') {
       if(root.role==='morpho'||root.role==='balancer-v2')return encodeFunctionData({abi:AERO_EXECUTOR_ABI,functionName:'configureLender',args:[root.role==='morpho'?1:2,root.address,root.codeHash,BigInt(root.maxFee??'0')]});
       if(root.role==='aero-factory')return encodeFunctionData({abi:AERO_EXECUTOR_ABI,functionName:'configureFactory',args:[root.generation!,root.address,root.codeHash]});
@@ -172,6 +189,17 @@ export class EvmDeployment {
   }
   private async verifyRoot(entry: DeploymentEntry, root: RootPin) {
     if (!this.rootConfiguration(entry.contract, root)) return;
+    if(entry.contract==='AeroSplitFlashExecutorV2') {
+      const read=(functionName:string,args:readonly unknown[])=>this.client.readContract({address:entry.address,abi:AERO_V2_EXECUTOR_ABI,functionName,args} as never) as Promise<unknown>;
+      let ok:boolean;
+      if(root.role==='aero-pool'){const pin=await read('trustedPool',[root.address]) as readonly [Hex,Address,Hex];ok=pin[0]===root.codeHash&&pin[1].toLowerCase()===root.implementation!.toLowerCase()&&pin[2]===root.implementationCodeHash;}
+      else if(root.role==='aero-factory')ok=await read('trustedFactory',[root.generation!,root.address])===root.codeHash;
+      else if(root.role==='v2-fee'){const fee=await read('v2Fee',[root.address]) as readonly [boolean,number];ok=fee[0]&&fee[1]===root.feePips;}
+      else if(root.role==='v4-pool')ok=await read('trustedV4Pool',[root.poolId!])===true;
+      else {const kind=root.role==='morpho'?1:root.role==='balancer-v2'?2:3;ok=await read('trustedLender',[kind,root.address])===root.codeHash&&await read('maxLenderFee',[root.address])===BigInt(root.maxFee??'0');}
+      if(!ok)throw new Error('ROOT_CONFIGURATION_READBACK_MISMATCH');
+      return;
+    }
     if(entry.contract==='AeroSplitFlashExecutor') {
       if(root.role==='aero-pool') {
         const pin=await this.client.readContract({address:entry.address,abi:AERO_EXECUTOR_ABI,functionName:'trustedPool',args:[root.address]});
@@ -214,9 +242,10 @@ export class EvmDeployment {
         if (entry.owner && (await this.client.readContract({ address: entry.address, abi: rootAbi, functionName: 'owner' })).toLowerCase() !== entry.owner.toLowerCase()) throw new Error('DEPLOYED_OWNER_MISMATCH');
         for (const root of this.manifest.roots) {
           const data = this.rootConfiguration(contract, root); if (!data) continue;
-          const rootKey=root.role.startsWith('aero-')?`${root.role}:${root.generation??''}:${root.address.toLowerCase()}`:root.role;
-          const tx = await this.send(`configure:${contract}:${rootKey}`, data, entry.address);
-          if (!entry.configurations.some(c => c.role === rootKey)) entry.configurations.push({ role: rootKey, txHash: tx.hash });
+          // V1 labels are unchanged so existing ledgers keep reconciling.
+          const key=contract==='AeroSplitFlashExecutorV2'?rootKey(root):root.role.startsWith('aero-')?`${root.role}:${root.generation??''}:${root.address.toLowerCase()}`:root.role;
+          const tx = await this.send(`configure:${contract}:${key}`, data, entry.address);
+          if (!entry.configurations.some(c => c.role === key)) entry.configurations.push({ role: key, txHash: tx.hash });
           await this.verifyRoot(entry, root); await this.save();
         }
         entry.status = 'verified'; await this.save();

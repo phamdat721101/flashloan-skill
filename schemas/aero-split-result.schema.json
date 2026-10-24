@@ -201,6 +201,12 @@
         },
         "admissionRequired": {
           "const": true
+        },
+        "quoteSource": {
+          "enum": [
+            "static",
+            "evm-quoter"
+          ]
         }
       }
     },

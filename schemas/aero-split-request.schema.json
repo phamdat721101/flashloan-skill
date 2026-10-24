@@ -17,7 +17,10 @@
   ],
   "properties": {
     "schemaVersion": {
-      "const": "aero-split/1.0"
+      "enum": [
+        "aero-split/1.0",
+        "aero-split/1.1"
+      ]
     },
     "identity": {
       "type": "object",
@@ -93,7 +96,8 @@
               "cl-gauge-caps",
               "cl-gauges-v3",
               "external-v2",
-              "external-v3"
+              "external-v3",
+              "external-v4"
             ]
           },
           "token0": {
@@ -191,7 +195,8 @@
                   "protocol": {
                     "enum": [
                       "aero-slipstream",
-                      "uniswap-v3"
+                      "uniswap-v3",
+                      "uniswap-v4"
                     ]
                   },
                   "sqrtPriceX96": {
@@ -287,12 +292,21 @@
                     "enum": [
                       "fixed-proven",
                       "dynamic-evm",
-                      "unknown"
+                      "unknown",
+                      "dynamic-snapshot"
                     ]
                   },
                   "feeEvidenceDigest": {
                     "type": "string",
                     "pattern": "^[a-f0-9]{64}$"
+                  },
+                  "hooks": {
+                    "type": "string",
+                    "pattern": "^0x[0-9a-f]{40}$"
+                  },
+                  "poolKeyId": {
+                    "type": "string",
+                    "pattern": "^0x[0-9a-f]{64}$"
                   }
                 }
               },
@@ -457,7 +471,8 @@
           "kind": {
             "enum": [
               "morpho",
-              "balancer-v2"
+              "balancer-v2",
+              "uniswap-v4"
             ]
           },
           "address": {
@@ -530,6 +545,11 @@
         "deadline": {
           "type": "string",
           "pattern": "^(0|[1-9][0-9]*)$"
+        },
+        "maxBlockLag": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 5
         }
       }
     },
@@ -616,6 +636,14 @@
           "type": "integer",
           "minimum": 1,
           "maximum": 4096
+        },
+        "quoteTopK": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8
+        },
+        "refine": {
+          "type": "boolean"
         }
       }
     }

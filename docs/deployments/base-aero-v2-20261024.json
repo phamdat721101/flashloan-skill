@@ -1,0 +1,449 @@
+{
+  "schemaVersion": "1.0",
+  "verified": true,
+  "scope": "Base AeroSplitFlashExecutorV2 deployment and configuration",
+  "chainId": 8453,
+  "checkedAt": "2026-10-24",
+  "owner": "0xc75aAeBD1F395cFc9e7c7f291Ea32d5C9d4c270a",
+  "address": "0x63bdcea3ce513317b5b8694978908a1e3d3a4e87",
+  "runtimeCodeHash": "0x35c84dac168a1fa190940fac287d2d544bda45afdc3132d8daad2ce0eff721d1",
+  "artifactHash": "bcedf00625936ec1c298e6ce1bacaaa82a858ba127e0caf3a40d0f56a5722d59",
+  "selector": "0xc7c01977",
+  "manifestHash": "74e04917a058b0534d3321a7da851fcba5d9212fd4a1615d3988676ef6a4abe7",
+  "totalDeploymentCostWei": "39687989621421",
+  "enabled": {
+    "lenders": [
+      "Morpho",
+      "Balancer V2 (maxFee 0)",
+      "Uniswap V4 PoolManager"
+    ],
+    "factories": 7,
+    "pools": 17,
+    "v2Fees": 1,
+    "v4Pools": 0
+  },
+  "roots": [
+    {
+      "role": "morpho",
+      "address": "0xbbbbbbbbbb9cc5e90e3b3af64bdaf62c37eeffcb",
+      "codeHash": "0xaa76348c0b91e5dfcece228ef6847b0c5081656d2def05c5617bcab659f0b819",
+      "source": "https://docs.morpho.org/get-started/resources/addresses"
+    },
+    {
+      "role": "balancer-v2",
+      "address": "0xba12222222228d8ba445958a75a0704d566bf2c8",
+      "codeHash": "0xf73f7f7f4d4fd56067273eade4d46efa681f36bfb51e1ac0ca25d24ed15c16dc",
+      "source": "https://docs.balancer.fi/reference/contracts/deployment-addresses/base.html",
+      "maxFee": "0"
+    },
+    {
+      "role": "v4-manager",
+      "address": "0x498581ff718922c3f8e6a244956af099b2652b2b",
+      "codeHash": "0x83b2af6e9f3158defc2811cbcb0db71ecf8b2ba2abea39c39e370ac5c6f43eb6",
+      "source": "https://docs.uniswap.org/contracts/v4/deployments"
+    },
+    {
+      "role": "aero-factory",
+      "address": "0x420dd381b31aef6683db6b902084cb0ffece40da",
+      "codeHash": "0xe2a176e5d2bcfb214b784ec6d6733708a6376a464f203cc265c284c9f349fea3",
+      "source": "https://github.com/aerodrome-finance/slipstream",
+      "generation": 1
+    },
+    {
+      "role": "aero-factory",
+      "address": "0x5e7bb104d84c7cb9b682aac2f3d509f5f406809a",
+      "codeHash": "0x7340cf80843bd721bcaefbfc050e38304cb4174c239e6e914e3056f27f39b11c",
+      "source": "https://github.com/aerodrome-finance/slipstream",
+      "generation": 2
+    },
+    {
+      "role": "aero-factory",
+      "address": "0xade65c38cd4849adba595a4323a8c7ddfe89716a",
+      "codeHash": "0x0e72100f63ce8e32c95370fa9636d38c8cf434a820f2a7a69985e50930d2cb85",
+      "source": "https://github.com/aerodrome-finance/slipstream",
+      "generation": 3
+    },
+    {
+      "role": "aero-factory",
+      "address": "0xf8f2eb4940cfe7d13603dddd87f123820fc061ef",
+      "codeHash": "0x4961963494e47f363617ab9a0f3999a28b33c519e51392952db06350cce700bd",
+      "source": "https://github.com/aerodrome-finance/slipstream",
+      "generation": 4
+    },
+    {
+      "role": "aero-factory",
+      "address": "0x8909dc15e40173ff4699343b6eb8132c65e18ec6",
+      "codeHash": "0xbab145d02e7005f0d84c6c1639d39b799b0ea16df99ebbdaf5a14d9da820b4e0",
+      "source": "https://docs.uniswap.org/contracts/v2/reference/smart-contracts/v2-deployments",
+      "generation": 5
+    },
+    {
+      "role": "aero-factory",
+      "address": "0x33128a8fc17869897dce68ed026d694621f6fdfd",
+      "codeHash": "0x95707a4ac71f20181a63ef7d180e3c625be5d20fc8f6f980befa966bad568132",
+      "source": "https://docs.uniswap.org/contracts/v3/reference/deployments/base-deployments",
+      "generation": 6
+    },
+    {
+      "role": "aero-factory",
+      "address": "0x498581ff718922c3f8e6a244956af099b2652b2b",
+      "codeHash": "0x83b2af6e9f3158defc2811cbcb0db71ecf8b2ba2abea39c39e370ac5c6f43eb6",
+      "source": "https://docs.uniswap.org/contracts/v4/deployments",
+      "generation": 7
+    },
+    {
+      "role": "v2-fee",
+      "address": "0x8909dc15e40173ff4699343b6eb8132c65e18ec6",
+      "codeHash": "0xbab145d02e7005f0d84c6c1639d39b799b0ea16df99ebbdaf5a14d9da820b4e0",
+      "source": "https://docs.uniswap.org/contracts/v2/concepts/advanced-topics/fees",
+      "feePips": 3000
+    },
+    {
+      "role": "aero-pool",
+      "address": "0xcdac0d6c6c59727a65f871236188350531885c43",
+      "codeHash": "0x7dd6ffe6daf4e82054c91becd71b8c9ba0a135f0f403da1ef7b0f81bb8ba4408",
+      "source": "https://basescan.org/address/0xcdac0d6c6c59727a65f871236188350531885c43",
+      "implementation": "0xa4e46b4f701c62e14df11b48dce76a7d793cd6d7",
+      "implementationCodeHash": "0xd22754a0a3b39db7298dbbc2be1e34b34320988ea67065c85fa28ae66c02d31e"
+    },
+    {
+      "role": "aero-pool",
+      "address": "0x3548029694fbb241d45fb24ba0cd9c9d4e745f16",
+      "codeHash": "0x7dd6ffe6daf4e82054c91becd71b8c9ba0a135f0f403da1ef7b0f81bb8ba4408",
+      "source": "https://basescan.org/address/0x3548029694fbb241d45fb24ba0cd9c9d4e745f16",
+      "implementation": "0xa4e46b4f701c62e14df11b48dce76a7d793cd6d7",
+      "implementationCodeHash": "0xd22754a0a3b39db7298dbbc2be1e34b34320988ea67065c85fa28ae66c02d31e"
+    },
+    {
+      "role": "aero-pool",
+      "address": "0xdbc6998296caa1652a810dc8d3baf4a8294330f1",
+      "codeHash": "0xacd6710f7037ad095b1e4d5f8ee5b2681069cb4dd316e77e4e0cb8f85716a2a1",
+      "source": "https://basescan.org/address/0xdbc6998296caa1652a810dc8d3baf4a8294330f1",
+      "implementation": "0xec8e5342b19977b4ef8892e02d8daecfa1315831",
+      "implementationCodeHash": "0x772fb5c610b40a122036f544e5b9b5bce6becb19db9524331289d1aaed2d5888"
+    },
+    {
+      "role": "aero-pool",
+      "address": "0xb150768cf55d1625e2337a08fbd1b0f02ff94bdb",
+      "codeHash": "0xacd6710f7037ad095b1e4d5f8ee5b2681069cb4dd316e77e4e0cb8f85716a2a1",
+      "source": "https://basescan.org/address/0xb150768cf55d1625e2337a08fbd1b0f02ff94bdb",
+      "implementation": "0xec8e5342b19977b4ef8892e02d8daecfa1315831",
+      "implementationCodeHash": "0x772fb5c610b40a122036f544e5b9b5bce6becb19db9524331289d1aaed2d5888"
+    },
+    {
+      "role": "aero-pool",
+      "address": "0xaad23a67f2ac693abbe543489aeb3f24f561d517",
+      "codeHash": "0xacd6710f7037ad095b1e4d5f8ee5b2681069cb4dd316e77e4e0cb8f85716a2a1",
+      "source": "https://basescan.org/address/0xaad23a67f2ac693abbe543489aeb3f24f561d517",
+      "implementation": "0xec8e5342b19977b4ef8892e02d8daecfa1315831",
+      "implementationCodeHash": "0x772fb5c610b40a122036f544e5b9b5bce6becb19db9524331289d1aaed2d5888"
+    },
+    {
+      "role": "aero-pool",
+      "address": "0xb2cc224c1c9fee385f8ad6a55b4d94e92359dc59",
+      "codeHash": "0xacd6710f7037ad095b1e4d5f8ee5b2681069cb4dd316e77e4e0cb8f85716a2a1",
+      "source": "https://basescan.org/address/0xb2cc224c1c9fee385f8ad6a55b4d94e92359dc59",
+      "implementation": "0xec8e5342b19977b4ef8892e02d8daecfa1315831",
+      "implementationCodeHash": "0x772fb5c610b40a122036f544e5b9b5bce6becb19db9524331289d1aaed2d5888"
+    },
+    {
+      "role": "aero-pool",
+      "address": "0x148bc43946a902258916e580b0e6d92aaa74746f",
+      "codeHash": "0xacd6710f7037ad095b1e4d5f8ee5b2681069cb4dd316e77e4e0cb8f85716a2a1",
+      "source": "https://basescan.org/address/0x148bc43946a902258916e580b0e6d92aaa74746f",
+      "implementation": "0xec8e5342b19977b4ef8892e02d8daecfa1315831",
+      "implementationCodeHash": "0x772fb5c610b40a122036f544e5b9b5bce6becb19db9524331289d1aaed2d5888"
+    },
+    {
+      "role": "aero-pool",
+      "address": "0x0652202c4b2d09cb93aedefadc14b36869483a98",
+      "codeHash": "0xacd6710f7037ad095b1e4d5f8ee5b2681069cb4dd316e77e4e0cb8f85716a2a1",
+      "source": "https://basescan.org/address/0x0652202c4b2d09cb93aedefadc14b36869483a98",
+      "implementation": "0xec8e5342b19977b4ef8892e02d8daecfa1315831",
+      "implementationCodeHash": "0x772fb5c610b40a122036f544e5b9b5bce6becb19db9524331289d1aaed2d5888"
+    },
+    {
+      "role": "aero-pool",
+      "address": "0xc758d81b9b81a6fcdad075bd471874a2c46b54e0",
+      "codeHash": "0x18308290b554b22918ea53c7e4e49eb871181d182749bf9e3a65ef949d3be808",
+      "source": "https://basescan.org/address/0xc758d81b9b81a6fcdad075bd471874a2c46b54e0",
+      "implementation": "0x942e97a4c6fdc38b4cd1c0298d37d81fdd8e5a16",
+      "implementationCodeHash": "0x916bc5496cc07ea86289bc3a08a90f93dcae34686be6634f6e89ef260c3df4fa"
+    },
+    {
+      "role": "aero-pool",
+      "address": "0x4e392fbfe4d0557c82d2f97f02ec39daa31516dd",
+      "codeHash": "0xad8972486d67a48db1f32f254a4c2f4be28df0b5f399559d1e7cd8fbcfbedc96",
+      "source": "https://basescan.org/address/0x4e392fbfe4d0557c82d2f97f02ec39daa31516dd",
+      "implementation": "0xc770898522d2a9c8da7a10d63989b6b58305b665",
+      "implementationCodeHash": "0xe63484f408c701770737a3c40e435c8183c66b1663f3a8777ce44dd73aff339b"
+    },
+    {
+      "role": "aero-pool",
+      "address": "0x493e74eda2720e127baccc1a19b2d567bc14ab43",
+      "codeHash": "0xad8972486d67a48db1f32f254a4c2f4be28df0b5f399559d1e7cd8fbcfbedc96",
+      "source": "https://basescan.org/address/0x493e74eda2720e127baccc1a19b2d567bc14ab43",
+      "implementation": "0xc770898522d2a9c8da7a10d63989b6b58305b665",
+      "implementationCodeHash": "0xe63484f408c701770737a3c40e435c8183c66b1663f3a8777ce44dd73aff339b"
+    },
+    {
+      "role": "aero-pool",
+      "address": "0x3fe04a59ebd38cf06080a6f60a98d124eb59392a",
+      "codeHash": "0xad8972486d67a48db1f32f254a4c2f4be28df0b5f399559d1e7cd8fbcfbedc96",
+      "source": "https://basescan.org/address/0x3fe04a59ebd38cf06080a6f60a98d124eb59392a",
+      "implementation": "0xc770898522d2a9c8da7a10d63989b6b58305b665",
+      "implementationCodeHash": "0xe63484f408c701770737a3c40e435c8183c66b1663f3a8777ce44dd73aff339b"
+    },
+    {
+      "role": "aero-pool",
+      "address": "0x88a43bbdf9d098eec7bceda4e2494615dfd9bb9c",
+      "codeHash": "0x5b83bdbcc56b2e630f2807bbadd2b0c21619108066b92a58de081261089e9ce5",
+      "source": "https://basescan.org/address/0x88a43bbdf9d098eec7bceda4e2494615dfd9bb9c",
+      "implementation": "0x88a43bbdf9d098eec7bceda4e2494615dfd9bb9c",
+      "implementationCodeHash": "0x5b83bdbcc56b2e630f2807bbadd2b0c21619108066b92a58de081261089e9ce5"
+    },
+    {
+      "role": "aero-pool",
+      "address": "0xb4cb800910b228ed3d0834cf79d697127bbb00e5",
+      "codeHash": "0xc4cf5547246c44150ee6b531697f4b80171a18ce116dcffd894d91ad81d7ad1d",
+      "source": "https://basescan.org/address/0xb4cb800910b228ed3d0834cf79d697127bbb00e5",
+      "implementation": "0xb4cb800910b228ed3d0834cf79d697127bbb00e5",
+      "implementationCodeHash": "0xc4cf5547246c44150ee6b531697f4b80171a18ce116dcffd894d91ad81d7ad1d"
+    },
+    {
+      "role": "aero-pool",
+      "address": "0xd0b53d9277642d899df5c87a3966a349a798f224",
+      "codeHash": "0xcd06f61c6db6a1d8317548aaaa0aa83254624aec741534c51815810e977587ae",
+      "source": "https://basescan.org/address/0xd0b53d9277642d899df5c87a3966a349a798f224",
+      "implementation": "0xd0b53d9277642d899df5c87a3966a349a798f224",
+      "implementationCodeHash": "0xcd06f61c6db6a1d8317548aaaa0aa83254624aec741534c51815810e977587ae"
+    },
+    {
+      "role": "aero-pool",
+      "address": "0x6c561b446416e1a00e8e93e221854d6ea4171372",
+      "codeHash": "0x71ff5f428af7891e7cbce51d4dadacef1e8eb0c1e454342413066bbd8a0d344c",
+      "source": "https://basescan.org/address/0x6c561b446416e1a00e8e93e221854d6ea4171372",
+      "implementation": "0x6c561b446416e1a00e8e93e221854d6ea4171372",
+      "implementationCodeHash": "0x71ff5f428af7891e7cbce51d4dadacef1e8eb0c1e454342413066bbd8a0d344c"
+    },
+    {
+      "role": "aero-pool",
+      "address": "0x0b1c2dcbbfa744ebd3fc17ff1a96a1e1eb4b2d69",
+      "codeHash": "0xa7047b1cf6c0aa086908ce9bb24ac84f2ec5ac6b69cc033c845abe86165cb532",
+      "source": "https://basescan.org/address/0x0b1c2dcbbfa744ebd3fc17ff1a96a1e1eb4b2d69",
+      "implementation": "0x0b1c2dcbbfa744ebd3fc17ff1a96a1e1eb4b2d69",
+      "implementationCodeHash": "0xa7047b1cf6c0aa086908ce9bb24ac84f2ec5ac6b69cc033c845abe86165cb532"
+    }
+  ],
+  "receipts": [
+    {
+      "label": "deploy:AeroSplitFlashExecutorV2",
+      "transactionHash": "0x35e798309c80e5c26f5870d829bece86b74b6f9aaf1c6c5e611abe6cdbe22951",
+      "blockNumber": "53029413",
+      "costWei": "26099960806804",
+      "status": "confirmed"
+    },
+    {
+      "label": "configure:AeroSplitFlashExecutorV2:morpho",
+      "transactionHash": "0x3e92b952bb72e9407b03c24f4a4cbf75a81a1f677a2b2c719e10056ac2b57103",
+      "blockNumber": "53029425",
+      "costWei": "315111037857",
+      "status": "confirmed"
+    },
+    {
+      "label": "configure:AeroSplitFlashExecutorV2:balancer-v2",
+      "transactionHash": "0xc7d5ebe62a2687f537dae9884f00f5569a402f54ba5c8dbccbfaeaf4567ca29f",
+      "blockNumber": "53029437",
+      "costWei": "315113391222",
+      "status": "confirmed"
+    },
+    {
+      "label": "configure:AeroSplitFlashExecutorV2:v4-manager",
+      "transactionHash": "0x44edc4157acaec428cff51ffc9ed87e75348d17a588c02a610ced6a59c061187",
+      "blockNumber": "53029449",
+      "costWei": "315183310779",
+      "status": "confirmed"
+    },
+    {
+      "label": "configure:AeroSplitFlashExecutorV2:aero-factory:1:0x420dd381b31aef6683db6b902084cb0ffece40da",
+      "transactionHash": "0x8cc8a6399eec9537e026b1b16a6a61c87e5965081009b03c5248538549d2fa56",
+      "blockNumber": "53029461",
+      "costWei": "311417848759",
+      "status": "confirmed"
+    },
+    {
+      "label": "configure:AeroSplitFlashExecutorV2:aero-factory:2:0x5e7bb104d84c7cb9b682aac2f3d509f5f406809a",
+      "transactionHash": "0xa654e3b74ef9c37b1326619fd390f95b608feb7293d8eb886ebf24ee4d933c29",
+      "blockNumber": "53029473",
+      "costWei": "311417717697",
+      "status": "confirmed"
+    },
+    {
+      "label": "configure:AeroSplitFlashExecutorV2:aero-factory:3:0xade65c38cd4849adba595a4323a8c7ddfe89716a",
+      "transactionHash": "0x95fcb113c495b8bc5c7e709a174bae109692ca457ced34e978ea2e0b7bc086ae",
+      "blockNumber": "53029486",
+      "costWei": "311447239271",
+      "status": "confirmed"
+    },
+    {
+      "label": "configure:AeroSplitFlashExecutorV2:aero-factory:4:0xf8f2eb4940cfe7d13603dddd87f123820fc061ef",
+      "transactionHash": "0x23de3a3505bd35a162d542c216efeaea3606aeb4a1e690234ac1806bbf60283d",
+      "blockNumber": "53029498",
+      "costWei": "311352993705",
+      "status": "confirmed"
+    },
+    {
+      "label": "configure:AeroSplitFlashExecutorV2:aero-factory:5:0x8909dc15e40173ff4699343b6eb8132c65e18ec6",
+      "transactionHash": "0x0f778097e5b77483a060816d6fbe3ff4c5bbfcc5119a3542892ef9b4acee30ba",
+      "blockNumber": "53029509",
+      "costWei": "311476101608",
+      "status": "confirmed"
+    },
+    {
+      "label": "configure:AeroSplitFlashExecutorV2:aero-factory:6:0x33128a8fc17869897dce68ed026d694621f6fdfd",
+      "transactionHash": "0x1735ade38c7528c39fba68b87f6faeb83dde44f14d0df3237fb7e2e914f67ed3",
+      "blockNumber": "53029521",
+      "costWei": "311484427639",
+      "status": "confirmed"
+    },
+    {
+      "label": "configure:AeroSplitFlashExecutorV2:aero-factory:7:0x498581ff718922c3f8e6a244956af099b2652b2b",
+      "transactionHash": "0x783ced887ed8ce8cba52b847da2896227a5594af21c8483ee863854376f44ab5",
+      "blockNumber": "53029533",
+      "costWei": "311518245481",
+      "status": "confirmed"
+    },
+    {
+      "label": "configure:AeroSplitFlashExecutorV2:v2-fee:0x8909dc15e40173ff4699343b6eb8132c65e18ec6",
+      "transactionHash": "0x135c3b469c8c1370f76bdb55d009f17b172a2eeef4bf4ce16b698298a409fb96",
+      "blockNumber": "53029546",
+      "costWei": "290512053516",
+      "status": "confirmed"
+    },
+    {
+      "label": "configure:AeroSplitFlashExecutorV2:aero-pool:0xcdac0d6c6c59727a65f871236188350531885c43",
+      "transactionHash": "0x00360b1627beb9427c7c520d437d0db49efb131ab619f750d101f35a3394b934",
+      "blockNumber": "53029558",
+      "costWei": "604215142759",
+      "status": "confirmed"
+    },
+    {
+      "label": "configure:AeroSplitFlashExecutorV2:aero-pool:0x3548029694fbb241d45fb24ba0cd9c9d4e745f16",
+      "transactionHash": "0xcbcb2bebbc6ace639f521f46fe130248e2d14b66e34fc0ce8aa5b63af583da3c",
+      "blockNumber": "53029570",
+      "costWei": "604213212099",
+      "status": "confirmed"
+    },
+    {
+      "label": "configure:AeroSplitFlashExecutorV2:aero-pool:0xdbc6998296caa1652a810dc8d3baf4a8294330f1",
+      "transactionHash": "0x8038bebcf3df808ac79890eb7d2c01602122f402cc6550f8183fde2113a0a8dd",
+      "blockNumber": "53029582",
+      "costWei": "604233497113",
+      "status": "confirmed"
+    },
+    {
+      "label": "configure:AeroSplitFlashExecutorV2:aero-pool:0xb150768cf55d1625e2337a08fbd1b0f02ff94bdb",
+      "transactionHash": "0xe2f493442421d1aa82458b3668479cd4cccab0323bf788f26215785abf37a825",
+      "blockNumber": "53029594",
+      "costWei": "604227134387",
+      "status": "confirmed"
+    },
+    {
+      "label": "configure:AeroSplitFlashExecutorV2:aero-pool:0xaad23a67f2ac693abbe543489aeb3f24f561d517",
+      "transactionHash": "0x9f0410f1428b3fe5f470502ca1fcc7daa8e5b6afc90048a0c832ed382d1e559a",
+      "blockNumber": "53029605",
+      "costWei": "604235445581",
+      "status": "confirmed"
+    },
+    {
+      "label": "configure:AeroSplitFlashExecutorV2:aero-pool:0xb2cc224c1c9fee385f8ad6a55b4d94e92359dc59",
+      "transactionHash": "0xc57fea6dced200b5ee3cd8c056099fb86045dc34ea02e13e04e977f2eb843a76",
+      "blockNumber": "53029675",
+      "costWei": "603993082268",
+      "status": "confirmed"
+    },
+    {
+      "label": "configure:AeroSplitFlashExecutorV2:aero-pool:0x148bc43946a902258916e580b0e6d92aaa74746f",
+      "transactionHash": "0x46528d9efa3d7a809d788d8ba9c986f2dfce16e50a34265552b7793d9236b70c",
+      "blockNumber": "53029686",
+      "costWei": "603987532981",
+      "status": "confirmed"
+    },
+    {
+      "label": "configure:AeroSplitFlashExecutorV2:aero-pool:0x0652202c4b2d09cb93aedefadc14b36869483a98",
+      "transactionHash": "0x7cd5ab68f34217dad82cf9412e9bf0d29bd886267eddeeb354f0d1ec65ffeefd",
+      "blockNumber": "53029698",
+      "costWei": "603949200366",
+      "status": "confirmed"
+    },
+    {
+      "label": "configure:AeroSplitFlashExecutorV2:aero-pool:0xc758d81b9b81a6fcdad075bd471874a2c46b54e0",
+      "transactionHash": "0x0d22cabca670284ad4aea554925a9c568ba66690fea64f20bfee12d82ece5ef3",
+      "blockNumber": "53029709",
+      "costWei": "603941190863",
+      "status": "confirmed"
+    },
+    {
+      "label": "configure:AeroSplitFlashExecutorV2:aero-pool:0x4e392fbfe4d0557c82d2f97f02ec39daa31516dd",
+      "transactionHash": "0x65bfa36fcf81cb06380da5ce5a3c13c160fd87caa82cfe79499565debf934bee",
+      "blockNumber": "53029721",
+      "costWei": "603982280294",
+      "status": "confirmed"
+    },
+    {
+      "label": "configure:AeroSplitFlashExecutorV2:aero-pool:0x493e74eda2720e127baccc1a19b2d567bc14ab43",
+      "transactionHash": "0x3a42707f7bb29c3bc653c8d63950731112c48771285e3c645c5ce2b0d709103e",
+      "blockNumber": "53029733",
+      "costWei": "603964824224",
+      "status": "confirmed"
+    },
+    {
+      "label": "configure:AeroSplitFlashExecutorV2:aero-pool:0x3fe04a59ebd38cf06080a6f60a98d124eb59392a",
+      "transactionHash": "0xbda16fb9a3eb45d0e9d5edbf6784ecbb054d9127bd7ba4553814c5a2cbbd7794",
+      "blockNumber": "53029744",
+      "costWei": "604003800798",
+      "status": "confirmed"
+    },
+    {
+      "label": "configure:AeroSplitFlashExecutorV2:aero-pool:0x88a43bbdf9d098eec7bceda4e2494615dfd9bb9c",
+      "transactionHash": "0xb42a3ec0a7b52c9e1b0bb8ec46110c84ef7bb2a1f88402757df63995c71d82bc",
+      "blockNumber": "53029756",
+      "costWei": "584570365321",
+      "status": "confirmed"
+    },
+    {
+      "label": "configure:AeroSplitFlashExecutorV2:aero-pool:0xb4cb800910b228ed3d0834cf79d697127bbb00e5",
+      "transactionHash": "0x81201dc7e6a9fd9a4d1b45551c0027cf38137f81ccf6a565ac744e4c7477f7ab",
+      "blockNumber": "53029768",
+      "costWei": "584463430637",
+      "status": "confirmed"
+    },
+    {
+      "label": "configure:AeroSplitFlashExecutorV2:aero-pool:0xd0b53d9277642d899df5c87a3966a349a798f224",
+      "transactionHash": "0x1dbaefc318e545c1109eeb2f09d1edb3cb74eb92d1a41087471fe02d55c7f8be",
+      "blockNumber": "53029780",
+      "costWei": "584657358743",
+      "status": "confirmed"
+    },
+    {
+      "label": "configure:AeroSplitFlashExecutorV2:aero-pool:0x6c561b446416e1a00e8e93e221854d6ea4171372",
+      "transactionHash": "0xc8288462c0ec9ab4fad29705efded89994a68510e4f824f0b618b0e6325defe6",
+      "blockNumber": "53029791",
+      "costWei": "584632114483",
+      "status": "confirmed"
+    },
+    {
+      "label": "configure:AeroSplitFlashExecutorV2:aero-pool:0x0b1c2dcbbfa744ebd3fc17ff1a96a1e1eb4b2d69",
+      "transactionHash": "0x4b6e9719cf746bc47740fdb7e47d73bc65faa4df421bbcf3b7da6f7e33941735",
+      "blockNumber": "53029803",
+      "costWei": "584724834166",
+      "status": "confirmed"
+    }
+  ],
+  "verification": {
+    "deploymentStatus": "verified",
+    "configurationsReadBack": 28,
+    "forkRehearsal": ".nim/e2e/aero-v2-fork.json (not committed)"
+  },
+  "liveTradingAdmitted": false
+}

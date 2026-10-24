@@ -11,7 +11,7 @@ test('AERO_IMPL_EDGE_03 exhaustive sizing agrees with an independent integer cyc
  const result=await optimizeAeroSplit(r);assert.equal(result.status,'selected');if(result.status!=='selected')return;
  let best=-1n,size=0n;for(let a=1n;a<=20n;a++){const u=a-a*30n/10000n,y=2000n*u/(1000n+u),x=y*997n*1000n/(1000000n+y*997n),net=x-a-1n;if(net>best){best=net;size=a;}}
  assert.equal(result.netProfit,best.toString());assert.equal(result.principal,size.toString());assert.equal(result.optimality,'best-found');
- const payload=buildAeroSplitCalldata(r,result,artifact);assert.equal(payload.data.slice(0,10),AERO_SELECTOR);assert.equal(payload.route.branches[0].legs[1].quotedAmountOut,BigInt(result.terminalReturn));
+ const payload=buildAeroSplitCalldata(r,result,artifact);assert.equal(payload.data.slice(0,10),AERO_SELECTOR);assert.equal((payload.route.branches[0].legs[1] as {quotedAmountOut:bigint}).quotedAmountOut,BigInt(result.terminalReturn));
  const forged=structuredClone(result);forged.allocations[0].legs[0].amountOut='999';assert.throws(()=>buildAeroSplitCalldata(r,forged,artifact),/INVALID_INPUT/);
  assert.equal(result.requestDigest,digest(r));console.log('AERO_IMPL_EDGE_03');
 });

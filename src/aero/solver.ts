@@ -7,7 +7,9 @@ export interface ScheduleResult {allocations: AeroAllocation[]; terminalReturn: 
 /** An explicit host may evaluate dynamic module dependencies in an ordered EVM.
  * exactCosts must be true only if every returned cost is exact for that schedule.
  */
-export interface AeroSolverHost {evaluateSchedule?(request: AeroRequest,lender: AeroLender,amounts: ReadonlyArray<{branchId:string;amountIn:string}>): Promise<ScheduleResult>; exactCosts?: boolean; signal?: AbortSignal}
+export interface AeroSolverHost {evaluateSchedule?(request: AeroRequest,lender: AeroLender,amounts: ReadonlyArray<{branchId:string;amountIn:string}>): Promise<ScheduleResult>; exactCosts?: boolean; signal?: AbortSignal;
+  /** verifyOnly hosts are not used during search; they re-quote the model's top-K (limits.quoteTopK, default 3). */
+  verifyOnly?: boolean}
 export function evaluateAeroSchedule(r:AeroRequest,amounts:ReadonlyArray<{branchId:string;amountIn:string}>):ScheduleResult {
   const pools=new Map(r.pools.map(p=>[p.poolId,structuredClone(p)]));
   const allocations:AeroAllocation[]=[];let terminal=0n;
@@ -46,6 +48,7 @@ export async function optimizeAeroSplit(input:unknown,host:AeroSolverHost={}):Pr
   const branches=[...r.branches].sort((a,b)=>a.branchId.localeCompare(b.branchId)),lenders=[...r.lenders].sort((a,b)=>a.lenderId.localeCompare(b.lenderId));
   const quantum=uint(r.bounds.quantum),minimum=uint(r.bounds.minimum),maximum=uint(r.bounds.maximum),limit=r.limits.maxEvaluations;
   let evaluations=0,budgetExhausted=false,incompleteEvaluation=false,best:AeroSelected|undefined,lastReason='NO_PROFITABLE_PLAN';
+  const top:AeroSelected[]=[],topK=r.limits.quoteTopK??3;
   const better=(a:AeroSelected,b:AeroSelected)=>{
     if(uint(a.netProfit)!==uint(b.netProfit))return uint(a.netProfit)>uint(b.netProfit);
     if(uint(a.principal)!==uint(b.principal))return uint(a.principal)<uint(b.principal);
@@ -59,7 +62,7 @@ export async function optimizeAeroSplit(input:unknown,host:AeroSolverHost={}):Pr
     if(!principal||principal>uint(l.available))return;
     try {
       const selected=amounts.map((a,i)=>({branchId:branches[i].branchId,amountIn:a.toString()}));
-      const schedule=host.evaluateSchedule?await host.evaluateSchedule(r,l,selected):evaluateAeroSchedule(r,selected);
+      const schedule=host.evaluateSchedule&&!host.verifyOnly?await host.evaluateSchedule(r,l,selected):evaluateAeroSchedule(r,selected);
       host.signal?.throwIfAborted();
       const returned=uint(schedule.terminalReturn),cost=uint(schedule.costInBorrowAsset),fee=flashFee(l,principal),repayment=principal+fee;
       if(complete&&returned>=repayment+cost+uint(r.bounds.minNetProfit)) {
@@ -67,9 +70,37 @@ export async function optimizeAeroSplit(input:unknown,host:AeroSolverHost={}):Pr
         allocationRatios(schedule.allocations,principal);
         const candidate:AeroSelected={schemaVersion:'aero-split/1.0',status:'selected',executable:false,requestDigest:digest(r),snapshotDigest:aeroSnapshotDigest(r),lenderId:l.lenderId,borrowAsset:r.borrowAsset,principal:principal.toString(),flashFee:fee.toString(),repayment:repayment.toString(),terminalReturn:returned.toString(),minProfit:(cost+uint(r.bounds.minNetProfit)).toString(),costInBorrowAsset:cost.toString(),netProfit:(returned-repayment-cost).toString(),allocations:schedule.allocations,optimality:'best-found',evaluations,budgetExhausted:false,admissionRequired:true};
         if(!best||better(candidate,best))best=candidate;
+        if(host.verifyOnly){top.push(candidate);top.sort((x,y)=>better(x,y)?-1:better(y,x)?1:0);top.length=Math.min(top.length,topK);}
       }
       return returned;
     }catch(e){if(host.signal?.aborted)throw e;incompleteEvaluation=true;const code=e instanceof Error?e.message:'QUOTE_FAILED';lastReason=boundedCodes.has(code)?code:code.startsWith('CLMM_')?'INCOMPLETE_TICK_COVERAGE':'QUOTE_FAILED';return;}
+  };
+  // Golden-section search on principal, keeping the best plan's branch proportions (G8).
+  // Profit of a fixed cycle set is unimodal in size for constant-product and CL legs.
+  const refinePrincipal=async(seed:AeroSelected)=>{
+    const l=lenders.find(x=>x.lenderId===seed.lenderId)!,cap=uint(l.available)<maximum?uint(l.available):maximum;
+    const weights=branches.map(b=>uint(seed.allocations.find(a=>a.branchId===b.branchId)?.amountIn??'0')),total=weights.reduce((a,b)=>a+b,0n);
+    const split=(p:bigint)=>{const v=weights.map(w=>w*p/total/quantum*quantum);const i=weights.indexOf(weights.reduce((a,b)=>b>a?b:a));v[i]+=p-v.reduce((a,b)=>a+b,0n);return v;};
+    // Score = terminal return minus repayment; a failed quote scores below any feasible plan.
+    const score=async(p:bigint)=>{const returned=await evaluate(l,split(p),true);return returned===undefined?-(1n<<256n):returned-p-flashFee(l,p);};
+    let lo=minimum/quantum,hi=cap/quantum;
+    while(hi-lo>2n&&!budgetExhausted){const m1=lo+(hi-lo)/3n,m2=hi-(hi-lo)/3n;const [s1,s2]=[await score(m1*quantum),await score(m2*quantum)];if(s1<s2)lo=m1;else hi=m2;}
+    for(let q=lo;q<=hi&&!budgetExhausted;q++)await evaluate(l,split(q*quantum),true);
+  };
+  const verifyTop=async():Promise<AeroSelected|undefined>=>{
+    let verified:AeroSelected|undefined;
+    for(const c of top) {
+      host.signal?.throwIfAborted();const l=lenders.find(x=>x.lenderId===c.lenderId)!;
+      try {
+        const s=await host.evaluateSchedule!(r,l,c.allocations.map(a=>({branchId:a.branchId,amountIn:a.amountIn})));
+        const returned=uint(s.terminalReturn),cost=uint(s.costInBorrowAsset),repayment=uint(c.repayment);
+        if(returned<repayment+cost+uint(r.bounds.minNetProfit))continue;
+        allocationRatios(s.allocations,uint(c.principal));
+        const v:AeroSelected={...c,terminalReturn:returned.toString(),netProfit:(returned-repayment-cost).toString(),allocations:s.allocations,quoteSource:'evm-quoter'};
+        if(!verified||better(v,verified))verified=v;
+      }catch(e){if(host.signal?.aborted)throw e;incompleteEvaluation=true;lastReason='QUOTE_FAILED';}
+    }
+    return verified;
   };
   // Count the entire feasible integer domain before selecting exhaustive mode.
   let domain=0n;const cap=BigInt(limit),sizes=(maximum-minimum)/quantum+1n;
@@ -92,6 +123,8 @@ export async function optimizeAeroSplit(input:unknown,host:AeroSolverHost={}):Pr
       }
     }
   }
+  if(best&&r.limits.refine&&!exhaustive)await refinePrincipal(best);
+  if(best&&host.verifyOnly)best=await verifyTop();
   if(best){best.evaluations=evaluations;best.budgetExhausted=budgetExhausted;best.optimality=exhaustive&&host.exactCosts&&!budgetExhausted&&!incompleteEvaluation?'certified':'best-found';return best;}
   return {schemaVersion:'aero-split/1.0',status:'no-profitable-plan',executable:false,reason:budgetExhausted?'BUDGET_EXHAUSTED':lastReason,evaluations,budgetExhausted};
 }

@@ -1,4 +1,4 @@
-import { createPublicClient, decodeEventLog, decodeFunctionData, encodeAbiParameters, hexToBytes, http, keccak256, parseAbi, parseTransaction, recoverTransactionAddress, toHex, type Address, type Hex, type LocalAccount } from 'viem';
+import { createPublicClient, decodeEventLog, decodeFunctionData, encodeAbiParameters, hexToBytes, http, keccak256, parseAbi, parseTransaction, recoverTransactionAddress, toHex, type Abi, type Address, type Hex, type LocalAccount } from 'viem';
 import { evmProfile, PROFIT_ASSETS } from '../evm-chains.js';
 import { estimateEvmFees, nativeCostInAsset, receiptNativeCost, type GasValuation } from '../evm-fees.js';
 import { DYNAMIC_V4_EXECUTOR_DEPLOYMENT, MULTI_VENUE_EXECUTOR_DEPLOYMENT } from '../contracts/flash-executor.js';
@@ -13,6 +13,42 @@ const executorAbi = parseAbi([
 export interface ArbitrumExecutionConfig {
   rpcUrl: string; submissionUrl: string; executor: Address; executorCodeHash: Hex;
   codePins: Record<string, Hex>; admission: Admission; confirmations: number; valuation?: GasValuation;
+  /** Executor calldata/event codec; omitted means the multi-venue executor (unchanged behavior). */
+  codec?: RouteCodec; priorityFeePerGas?: bigint;
+}
+/** The executor-independent view of a flash route that the adapter's guards need. */
+export interface ExecutionRoute {
+  kind: number; supportedKind: boolean; unsupportedLeg: boolean; lender: Address; flashAsset: Address;
+  flashAmount: bigint; minProfit: bigint; deadline: bigint; pinned: Address[]; size: number;
+}
+export interface RouteCodec {
+  decode(calldata: Hex): ExecutionRoute;
+  /** Decodes executor logs and proves repayment plus profit for exactly this calldata. */
+  prove(logs: ReadonlyArray<{ address: Address; data: Hex; topics: readonly Hex[] }>, executor: Address, calldata: Hex, route: ExecutionRoute): { proven: boolean; profit: bigint };
+  /** Blocks a canonical snapshot may trail the head; 0 requires the exact head. */
+  maxBlockLag?: number;
+}
+const zero = '0x0000000000000000000000000000000000000000';
+export const MULTI_VENUE_ROUTE_CODEC: RouteCodec = {
+  decode(calldata) {
+    const route = decodeFunctionData({ abi: MULTI_LENDER_ROUTE_ABI, data: calldata }).args[0];
+    return { kind: route.kind, supportedKind: [1, 2].includes(route.kind) && route.legs.length > 0, unsupportedLeg: route.legs.some(leg => ![2, 3, 4, 5].includes(leg.venueVersion) || leg.hooks !== zero || leg.hookData !== '0x'),
+      lender: route.lender, flashAsset: route.flashAsset, flashAmount: route.flashAmount, minProfit: route.minProfit, deadline: route.deadline,
+      pinned: [route.lender, ...route.legs.flatMap(leg => [leg.root, ...(leg.venueVersion === 4 ? [] : [leg.pool])])], size: route.legs.length };
+  },
+  prove(logs, executor, calldata, view) {
+    const route = decodeFunctionData({ abi: MULTI_LENDER_ROUTE_ABI, data: calldata }).args[0];
+    const routeHash = keccak256(encodeAbiParameters(MULTI_LENDER_ROUTE_ABI[0].inputs, [route]));
+    const events = decodeExecutorEvents(logs, executor, executorAbi, 'MultiVenueArbitrageExecuted');
+    if (events.length !== 1) return { proven: false, profit: 0n };
+    const event = events[0] as { routeHash: Hex; asset: Address; flashAmount: bigint; netProfit: bigint; legs: bigint };
+    return { proven: event.routeHash === routeHash && event.asset.toLowerCase() === view.flashAsset.toLowerCase() && event.flashAmount === view.flashAmount && event.legs === BigInt(view.size) && event.netProfit >= view.minProfit, profit: event.netProfit };
+  }
+};
+export function decodeExecutorEvents(logs: ReadonlyArray<{ address: Address; data: Hex; topics: readonly Hex[] }>, executor: Address, abi: Abi, name: string): Record<string, unknown>[] {
+  return logs.filter(log => log.address.toLowerCase() === executor.toLowerCase()).flatMap(log => {
+    try { return [decodeEventLog({ abi, data: log.data, topics: log.topics as [Hex, ...Hex[]], strict: true })]; } catch { return []; }
+  }).filter(event => event.eventName === name).map(event => event.args as unknown as Record<string, unknown>);
 }
 export interface ExactArbitrumPayload { candidate: RouteCandidate; calldata: Hex }
 function endpoint(value: string): string {
@@ -35,6 +71,7 @@ export class EvmLiquidityExecutionAdapter implements LiquidityExecutionAdapter {
   private readonly client;
   private readonly relay;
   private readonly config: ArbitrumExecutionConfig;
+  private readonly codec: RouteCodec;
   private readonly payloads = new Map<string, Hex>();
   private readonly candidates = new Map<string, RouteCandidate>();
   private readonly signed = new Map<string, { candidate: RouteCandidate; calldata: Hex }>();
@@ -42,7 +79,10 @@ export class EvmLiquidityExecutionAdapter implements LiquidityExecutionAdapter {
     this.chainId = Number(config.admission.network); this.profile = evmProfile(this.chainId);
     if (config.admission.chain !== this.profile.key || !/^0x[0-9a-fA-F]{40}$/.test(config.executor) || !/^0x[0-9a-f]{64}$/.test(config.executorCodeHash) || !Number.isInteger(config.confirmations) || config.confirmations < 1 || config.confirmations > 100 || !account.signTransaction || payloads.length > 1000) throw new Error('INVALID_EXECUTION_CONFIG');
     if (this.chainId === 42161 && [DYNAMIC_V4_EXECUTOR_DEPLOYMENT.address, MULTI_VENUE_EXECUTOR_DEPLOYMENT.address].some(address => address.toLowerCase() === config.executor.toLowerCase())) throw new Error('CORRECTED_EXECUTOR_REQUIRED');
-    this.config = structuredClone(config); this.admission = Object.freeze(structuredClone(config.admission));
+    const lag = config.codec?.maxBlockLag ?? 0;
+    if (!Number.isInteger(lag) || lag < 0 || lag > 5) throw new Error('INVALID_EXECUTION_CONFIG');
+    this.codec = config.codec ?? MULTI_VENUE_ROUTE_CODEC;
+    this.config = { ...structuredClone({ ...config, codec: undefined }), codec: this.codec }; this.admission = Object.freeze(structuredClone(config.admission));
     this.client = createPublicClient({ transport: http(endpoint(config.rpcUrl), { timeout: 15000, retryCount: 0 }) });
     this.relay = createPublicClient({ transport: http(endpoint(config.submissionUrl), { timeout: 15000, retryCount: 0 }) });
     for (const input of payloads) {
@@ -54,9 +94,9 @@ export class EvmLiquidityExecutionAdapter implements LiquidityExecutionAdapter {
   private route(candidate: RouteCandidate) {
     const calldata = this.payloads.get(digest(candidate));
     if (!calldata || digest(calldata) !== candidate.payloadDigest || candidate.identity.chain !== this.profile.key || candidate.identity.network !== String(this.chainId) || !PROFIT_ASSETS[this.chainId]?.some(asset => candidate.profitAsset.toLowerCase() === `${this.profile.key}:${this.chainId}:${asset}`)) throw new Error('PAYLOAD_BINDING_MISMATCH');
-    const route = decodeFunctionData({ abi: MULTI_LENDER_ROUTE_ABI, data: calldata }).args[0];
-    if (![1, 2].includes(route.kind) || candidate.profitAsset.toLowerCase() !== `${this.profile.key}:${this.chainId}:${route.flashAsset.toLowerCase()}` || route.flashAmount !== uint(candidate.borrowAmount) || route.minProfit < uint(candidate.minProfit) + uint(candidate.maxGasCost) || route.deadline * 1000n > BigInt(candidate.expiresAtMs) || !route.legs.length) throw new Error('EXECUTOR_PROFIT_GUARD_MISMATCH');
-    if (route.legs.some(leg => ![2, 3, 4, 5].includes(leg.venueVersion) || leg.hooks !== '0x0000000000000000000000000000000000000000' || leg.hookData !== '0x')) throw new Error('UNSUPPORTED_EXECUTION_HOOK');
+    const route = this.codec.decode(calldata);
+    if (!route.supportedKind || candidate.profitAsset.toLowerCase() !== `${this.profile.key}:${this.chainId}:${route.flashAsset.toLowerCase()}` || route.flashAmount !== uint(candidate.borrowAmount) || route.minProfit < uint(candidate.minProfit) + uint(candidate.maxGasCost) || route.deadline * 1000n > BigInt(candidate.expiresAtMs)) throw new Error('EXECUTOR_PROFIT_GUARD_MISMATCH');
+    if (route.unsupportedLeg) throw new Error('UNSUPPORTED_EXECUTION_HOOK');
     return { calldata, route };
   }
   private async verify(candidate: RouteCandidate, signal?: AbortSignal) {
@@ -65,9 +105,10 @@ export class EvmLiquidityExecutionAdapter implements LiquidityExecutionAdapter {
     const { calldata, route } = this.route(candidate);
     if (await this.client.getChainId() !== this.chainId) throw new Error('SOURCE_CHAIN_MISMATCH');
     const block = await this.client.getBlock({ blockTag: 'latest' });
-    if (candidate.identity.chain !== this.profile.key || block.number?.toString() !== candidate.identity.height || block.hash !== candidate.identity.blockHash) throw new Error('STATE_CHANGED');
+    if (candidate.identity.chain !== this.profile.key) throw new Error('STATE_CHANGED');
+    await this.fresh(candidate, block);
     const pins = new Map<string, Hex>([[this.config.executor.toLowerCase(), this.config.executorCodeHash]]);
-    for (const address of [route.lender, ...route.legs.flatMap(leg => [leg.root, ...(leg.venueVersion === 4 ? [] : [leg.pool])])]) {
+    for (const address of route.pinned) {
       const pin = this.config.codePins[address.toLowerCase()];
       if (!pin || !/^0x[0-9a-f]{64}$/.test(pin)) throw new Error('MISSING_EXECUTION_CODE_PIN');
       pins.set(address.toLowerCase(), pin);
@@ -87,7 +128,17 @@ export class EvmLiquidityExecutionAdapter implements LiquidityExecutionAdapter {
   }
   private async latest(candidate: RouteCandidate) {
     const head = await this.client.getBlock({ blockTag: 'latest' });
-    if (head.number?.toString() !== candidate.identity.height || candidate.identity.chain === 'sui' || head.hash !== candidate.identity.blockHash) throw new Error('STATE_CHANGED');
+    if (candidate.identity.chain === 'sui') throw new Error('STATE_CHANGED');
+    await this.fresh(candidate, head);
+  }
+  /** Exact head when maxBlockLag is 0; otherwise a canonical snapshot at most maxBlockLag behind. */
+  private async fresh(candidate: RouteCandidate, head: { number: bigint | null; hash: Hex | null }) {
+    if (candidate.identity.chain === 'sui') throw new Error('STATE_CHANGED');
+    const lag = BigInt(this.codec.maxBlockLag ?? 0);
+    if (lag === 0n) { if (head.number?.toString() !== candidate.identity.height || head.hash !== candidate.identity.blockHash) throw new Error('STATE_CHANGED'); return; }
+    const height = BigInt(candidate.identity.height);
+    if (head.number === null || head.number < height || head.number - height > lag) throw new Error('STATE_CHANGED');
+    if ((await this.client.getBlock({ blockNumber: height })).hash !== candidate.identity.blockHash) throw new Error('STATE_CHANGED');
   }
   private async assetCost(native: bigint, block: bigint, asset: Address): Promise<bigint> {
     if (asset.toLowerCase() === this.profile.wrappedNative) return native;
@@ -103,7 +154,7 @@ export class EvmLiquidityExecutionAdapter implements LiquidityExecutionAdapter {
   }
   private async estimate(candidate: RouteCandidate, signal?: AbortSignal) {
     const verified = await this.verify(candidate, signal);
-    const { gas, fees, nativeCost } = await estimateEvmFees(this.client, this.chainId, this.account.address, this.config.executor, verified.calldata);
+    const { gas, fees, nativeCost } = await estimateEvmFees(this.client, this.chainId, this.account.address, this.config.executor, verified.calldata, this.config.priorityFeePerGas);
     const cost = await this.assetCost(nativeCost, BigInt(candidate.identity.height), verified.route.flashAsset);
     if (cost > uint(candidate.maxGasCost)) throw new Error('GAS_BUDGET_EXCEEDED');
     return { ...verified, gas, fees, cost };
@@ -174,16 +225,8 @@ export class EvmLiquidityExecutionAdapter implements LiquidityExecutionAdapter {
     const gas = await this.assetCost(nativeCost, receipt.blockNumber, receiptRoute.flashAsset);
     let profit = 0n, proven = receipt.status === 'reverted';
     if (receipt.status === 'success') {
-      const { route } = this.route(signed.candidate);
-      const routeHash = keccak256(encodeAbiParameters(MULTI_LENDER_ROUTE_ABI[0].inputs, [route]));
-      const events = receipt.logs.filter(log => log.address.toLowerCase() === this.config.executor.toLowerCase()).flatMap(log => {
-        try { return [decodeEventLog({ abi: executorAbi, data: log.data, topics: log.topics, strict: true })]; } catch { return []; }
-      }).filter(event => event.eventName === 'MultiVenueArbitrageExecuted');
-      if (events.length === 1) {
-        const event = events[0].args;
-        proven = event.routeHash === routeHash && event.asset.toLowerCase() === route.flashAsset.toLowerCase() && event.flashAmount === route.flashAmount && event.legs === BigInt(route.legs.length) && event.netProfit >= route.minProfit;
-        profit = event.netProfit;
-      }
+      const { calldata, route } = this.route(signed.candidate);
+      ({ proven, profit } = this.codec.prove(receipt.logs, this.config.executor, calldata, route));
     }
     return { transactionId, source: `${this.profile.key}:${this.chainId}:${receipt.blockHash}`, executionStatus: receipt.status === 'success' ? 'success' as const : 'revert' as const, repaymentProven: proven, profitTransferProven: false, profitCustodyProven: proven, gasCostInProfitAsset: gas.toString(), profitAfterDebt: profit.toString() };
   }

@@ -1,8 +1,8 @@
-import { decodeEventLog, encodeFunctionData, parseAbi, toFunctionSelector, toEventSelector, type Address, type Hex, type PublicClient } from 'viem';
+import { BaseError, decodeErrorResult, decodeEventLog, encodeFunctionData, parseAbi, toFunctionSelector, toEventSelector, type Address, type Hex, type PublicClient } from 'viem';
 import { digest, uint } from '../liquidity/state.js';
 import { quoteAeroExactInput } from './math.js';
 import { evaluateAeroSchedule, type AeroSolverHost } from './solver.js';
-import { aeroRoute, AERO_EXECUTOR_ABI } from './execution.js';
+import { aeroRoute, encodeAeroCall, AERO_EXECUTOR_ABI, AERO_V2_EXECUTOR_ABI, type AeroArtifact } from './execution.js';
 import type { AeroAllocation, AeroPool, ConcentratedState } from './types.js';
 
 interface Frame {to?:string;input?:Hex;output?:Hex;error?:string;calls?:Frame[];logs?:Array<{address:Address;topics:[Hex,...Hex[]];data:Hex}>}
@@ -73,4 +73,39 @@ export function createAeroEvmHost(client:PublicClient,rpc:string,executor:Addres
     if(index!==events.length)throw new Error('QUOTE_FAILED');
     return {allocations,terminalReturn:terminal.toString(),costInBorrowAsset:request.cost.costInBorrowAsset};
   }};
+}
+
+/** Exact ordered quote on any RPC through AeroSplitFlashExecutorV2.quoteAeroSplit, which
+ * borrows, runs every leg and always reverts AeroQuote. It is a verify-only host: the solver
+ * searches with the static/snapshot model and re-quotes only its best candidates here.
+ */
+export function createAeroQuoterHost(client:PublicClient,artifact:AeroArtifact,signal?:AbortSignal):AeroSolverHost {
+  if(artifact.version!==2)throw new Error('CAPABILITY_MISMATCH');
+  return {signal,exactCosts:true,verifyOnly:true,async evaluateSchedule(request,lender,amounts){
+    signal?.throwIfAborted();
+    const reference=evaluateAeroSchedule(request,amounts),route=aeroRoute(request,lender.lenderId,reference.allocations,1n,2);
+    for(const b of route.branches)for(const l of b.legs)l.minAmountOut=1n;
+    const lagged=(request.bounds.maxBlockLag??0)>0;
+    let revert:Hex|undefined;
+    try{await client.call({to:artifact.address,data:encodeAeroCall(artifact,'quoteAeroSplit',route),account:request.sender,...(lagged?{}:{blockNumber:uint(request.identity.blockNumber)})});}
+    catch(e){const raw=e instanceof BaseError?e.walk(x=>typeof (x as {data?:unknown}).data==='string'):undefined;revert=(raw as {data?:Hex}|undefined)?.data;}
+    signal?.throwIfAborted();
+    if(!revert)throw new Error('QUOTE_FAILED');
+    let outputs:readonly bigint[];
+    try{const decoded=decodeErrorResult({abi:AERO_V2_EXECUTOR_ABI,data:revert});if(decoded.errorName!=='AeroQuote')throw new Error('QUOTE_FAILED');outputs=decoded.args[0];}
+    catch{throw new Error('QUOTE_FAILED');}
+    return quotedSchedule(request,reference.allocations,outputs);
+  }};
+}
+/** Replace model outputs with quoter outputs, re-chaining each leg's input from the prior output. */
+export function quotedSchedule(request:Parameters<typeof evaluateAeroSchedule>[0],model:AeroAllocation[],outputs:readonly bigint[]) {
+  if(outputs.length!==model.reduce((n,a)=>n+a.legs.length,0)||outputs.some(o=>o<=0n))throw new Error('QUOTE_FAILED');
+  let index=0,terminal=0n;
+  const allocations=[...model].sort((a,b)=>a.branchId.localeCompare(b.branchId)).map(a=>{
+    const branch=request.branches.find(b=>b.branchId===a.branchId)!;let amount=uint(a.amountIn);
+    const legs=a.legs.map((q,j)=>{const out=outputs[index++];const leg={...q,amountIn:amount.toString(),consumedInput:amount.toString(),amountOut:out.toString(),minAmountOut:(out*BigInt(branch.legs[j].minOutBps)/10000n).toString()};amount=out;return leg;});
+    if(legs.some(l=>uint(l.minAmountOut)===0n))throw new Error('QUOTE_FAILED');
+    terminal+=amount;return {...a,amountOut:amount.toString(),legs};
+  });
+  return {allocations,terminalReturn:terminal.toString(),costInBorrowAsset:request.cost.costInBorrowAsset};
 }

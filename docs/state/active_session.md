@@ -996,3 +996,87 @@ README now lists corrected executor 0xba4681b7cae1a67c703f43f1476b25fef2635b0a a
 ### Next steps
 
 Verify published main revision; retain disabled production trading until real source acceptance, historical validation, route admission and explicit operator budgets.
+
+## Session 2026-10-22T13:19:02.901Z
+
+### Current goal
+
+verify aero-split-routing-spec
+
+### Latest output or blocker
+
+Feature: aero-split-routing-spec
+Flow: node scripts/verify-aero-spec.mjs -> Validated specification package only; production Aero implementation remains pending.
+Edges: EDGE-01, EDGE-02, EDGE-03, EDGE-04, EDGE-05
+
+### Attempted solutions
+
+- None recorded.
+
+### Next steps
+
+Feature verified; continue with normal delivery check or release workflow.
+
+## Session 2026-10-22T13:28:56.812Z
+
+### Current goal
+
+Base Aerodrome research and specification delivery
+
+### Latest output or blocker
+
+Added docs/ratio.md, Aero feature brief, embedded request/result schemas and separate specification/implementation maps; added offline verifier and narrow documentation ignore exceptions. Five spec proofs, 21 deliver checks, six dependency symbols, strict harness, typecheck and whitespace checks passed. No production Aero code or fork E2E claim.
+
+### Attempted solutions
+
+- Corrected continuous-vs-integer optimum assumption; bounded source ingestion and receipt-bound memory validation; documented existing V2 minimum-output dispatch mismatch.
+
+### Next steps
+
+Implement the five ordered tasks in docs/features/aero-split-routing.md; preserve new ABI/output semantics and require local plus per-generation pinned Base fork proofs. Reusable integer-oracle procedure remains draft pending explicit owner approval.
+
+
+### Aero implementation and deployment — changed state (2026-10-22)
+
+- Added isolated Aero request/result schemas, capture, exact classic/stable/CL projection, deterministic split optimization, ordered local EVM host, typed calldata/simulation, and CLI in `src/aero`. Existing analytics and executor ABIs retain their versions.
+- Added `AeroSplitFlashExecutor` and isolated Base deployment manifest/artifact capability. Mainnet executor: `0xdfafd892dca6a2f9dadc43a38b81c7d53473ff10`; selector `0x3b2be3e6`; Morpho, four factories and five pools configured. All 11 transactions confirmed; deployment cost 25,960,710,350,786 wei. Public artifact/owner/root/receipt evidence: `docs/deployments/base-aero-20261022.json`. L1 finalization was pending at evidence snapshot.
+- Full regression suite and Solidity suite passed; focused Aero/API/ABI tests passed. Local full pipeline and five pinned Base fork cases passed, including reverse CL parity and real Morpho repayment/custody. Fork origin block 52943887; constructed counter-venue, no natural live profit claim. Proofs: `.nim/e2e/aero-local.json`, `.nim/e2e/aero-fork.json`.
+- Gstack specialists and fresh adversarial review resolved certification, rejection-schema and gas valuation/freshness defects. All 21 implementation delivery checks and strict harness checks passed. Twelve dependency symbols compile without hallucinated dependencies.
+- Operating limits: dynamic-fee plans require explicit localhost EVM tracing, large domains report best-found, nonnative settlement needs pinned fresh valuation, Rust Aero discovery remains analysis-only, automated live trading is not admitted. Balancer support is unit-tested but not activated in this Base manifest.
+- Source facts and success/failure episodes committed to local nim memory. Reusable uncertain-domain procedure is draft only, awaiting explicit owner approval; no rules activated. Changes remain in working tree; no merge or push performed.
+
+## Session 2026-10-23T01:50:39.777Z
+
+### Current goal
+
+Commit and push the verified Base Aerodrome split-routing flash-loan capability
+
+### Latest output or blocker
+
+README usage, deployment evidence, schemas, executor, tests, and deterministic 21-check delivery map are ready; strict harness and implementation verifier passed.
+
+### Attempted solutions
+
+- Foundry proxy discovery panicked in this host; delivery map now runs the self-contained Solidity proof with --offline and passes.
+
+### Next steps
+
+Review Base deployment finalization status before enabling any live trading; preserve non-admission until required operational approvals.
+
+## Session 2026-10-24T14:10:00Z
+
+### Current goal
+
+Aero v2: close the DEX-integration gaps, deploy AeroSplitFlashExecutorV2 to Base, and run capped live sends.
+
+### Latest output or blocker
+
+- **Deployed and verified:** `0x63bdcea3ce513317b5b8694978908a1e3d3a4e87`, 28 roots configured. Evidence is in `docs/deployments/base-aero-v2-20261024.json` and `config/aero-base-executor-v2.json`.
+- **Live run:** 27 rounds of `NO_CANDIDATE_CYCLE`. 0 trades and 0 gas spent. `timeout` killed the run after 25 minutes, and the lock was recovered.
+- **Blocker:** a capture+plan round on public `mainnet.base.org` takes about 55s, against `maxBlockLag=2` (about 4s). Any opportunity would be rejected as STATE_CHANGED before it could be sent.
+
+### Next steps
+
+- Use a low-latency, archive-capable `BASE_RPC_URL`, and keep the pool set warm between rounds instead of recapturing it every round.
+- Add WETH pairs beyond USDC, and 3-leg cycles.
+- Run gstack /review and /cso on the diff before committing. Nothing is committed yet.

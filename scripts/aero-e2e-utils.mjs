@@ -17,10 +17,12 @@ export function aeroTestClients(rpc){
   const write=async(contract,functionName,args=[],extra={})=>{try{return await receipt(await wallet.writeContract({...contract,functionName,args,...extra}));}catch(e){throw new Error(`PROOF_WRITE_FAILED_${functionName.toUpperCase()}`,{cause:e});}};
   return {account,client,wallet,receipt,deploy,write};
 }
-export async function startAeroNode({port=19546,forkUrl,blockNumber}={}){
+// optimism: OP-stack receipts (l1Fee) so the shared send path can account real Base gas.
+// blockTime: interval mining (seconds) for flows that wait on confirmations, as on Base.
+export async function startAeroNode({port=19546,forkUrl,blockNumber,optimism=false,blockTime}={}){
   const rpc=`http://127.0.0.1:${port}`,probe=createPublicClient({transport:http(rpc,{timeout:250,retryCount:0})});
   try{await probe.getChainId();throw new Error('PROOF_PORT_IN_USE');}catch(e){if(e.message==='PROOF_PORT_IN_USE')throw e;}
-  let proxy;const args=['--host','127.0.0.1','--port',String(port),'--chain-id','8453','--silent'];
+  let proxy;const args=['--host','127.0.0.1','--port',String(port),'--chain-id','8453','--silent',...(optimism?['--optimism']:[]),...(blockTime?['--block-time',String(blockTime)]:[])];
   if(forkUrl){
     const url=new URL(forkUrl);assert.equal(url.protocol,'https:');assert.ok(!url.username&&!url.password);assert.ok(blockNumber&&/^\d+$/.test(String(blockNumber)));
     const allowed=new Set(['eth_chainId','net_version','eth_getBlockByNumber','eth_getBlockByHash','eth_getCode','eth_getStorageAt','eth_getBalance','eth_getTransactionCount','eth_getProof','eth_call','eth_getTransactionByHash','eth_getTransactionReceipt','eth_getLogs','eth_getBlockReceipts','eth_getBlockTransactionCountByNumber','eth_getBlockTransactionCountByHash']);
@@ -50,4 +52,15 @@ export async function startAeroNode({port=19546,forkUrl,blockNumber}={}){
     await new Promise(r=>setTimeout(r,100));
   }
   close();throw new Error('ANVIL_PROOF_START_TIMEOUT');
+}
+
+/** Anvil omits OP receipt l1Fee. This localhost-only adapter adds l1Fee=0 (proofs install a zero
+ * fee-oracle stand-in) so unmodified production receipt accounting can run. Evidence must label it synthetic. */
+export async function startL1FeeProxy(rpc){
+  const server=createServer(async(req,res)=>{let body='';for await(const part of req)body+=part;
+    const upstream=await (await fetch(rpc,{method:'POST',body,headers:{'content-type':'application/json'}})).json();
+    const patch=x=>x?.result&&typeof x.result==='object'&&'gasUsed'in x.result&&!('l1Fee'in x.result)?{...x,result:{...x.result,l1Fee:'0x0'}}:x;
+    res.writeHead(200,{'content-type':'application/json'});res.end(JSON.stringify(Array.isArray(upstream)?upstream.map(patch):patch(upstream)));});
+  await new Promise(r=>server.listen(0,'127.0.0.1',r));
+  return {rpc:`http://127.0.0.1:${server.address().port}`,close:()=>{server.closeAllConnections();server.close();}};
 }

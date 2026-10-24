@@ -28,9 +28,11 @@ export async function nativeCostInAsset(client: PublicClient, cost: bigint, bloc
   const numerator = cost * native * 10n ** BigInt(valuation.decimals), denominator = 10n ** 18n * asset;
   return (numerator + denominator - 1n) / denominator;
 }
-export async function estimateEvmFees(client: PublicClient, chainId: number, from: Address, to: Address | undefined, data: Hex) {
+/** priorityFeePerGas, when given, replaces the estimated tip while keeping the estimated base headroom. */
+export async function estimateEvmFees(client: PublicClient, chainId: number, from: Address, to: Address | undefined, data: Hex, priorityFeePerGas?: bigint) {
   const profile = evmProfile(chainId);
-  const [gas, fees] = await Promise.all([client.estimateGas({ account: from, to, data }), client.estimateFeesPerGas()]);
+  const [gas, estimated] = await Promise.all([client.estimateGas({ account: from, to, data }), client.estimateFeesPerGas()]);
+  const fees = priorityFeePerGas === undefined ? estimated : { maxFeePerGas: estimated.maxFeePerGas - estimated.maxPriorityFeePerGas + priorityFeePerGas, maxPriorityFeePerGas: priorityFeePerGas };
   // Nitro includes data availability in estimated gas. OP Stack charges L1 data separately.
   const publicationFee = profile.feeModel === 'op-stack' ? await client.readContract({
     address: '0x420000000000000000000000000000000000000F', abi: gasOracle, functionName: 'getL1FeeUpperBound', args: [BigInt((data.length - 2) / 2 + 256)]

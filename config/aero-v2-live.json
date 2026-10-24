@@ -1,0 +1,39 @@
+{
+  "schemaVersion": "aero-live-config/1.0",
+  "registryPath": "config/aero-v2-base-pools.json",
+  "artifactPath": "config/aero-base-executor-v2.json",
+  "manifestPath": "config/aero-v2-base-mainnet.json",
+  "lenders": [
+    {
+      "kind": "morpho",
+      "address": "0xbbbbbbbbbb9cc5e90e3b3af64bdaf62c37eeffcb"
+    },
+    {
+      "kind": "uniswap-v4",
+      "address": "0x498581ff718922c3f8e6a244956af099b2652b2b"
+    }
+  ],
+  "bounds": {
+    "minimum": "10000000000000000",
+    "maximum": "20000000000000000000",
+    "quantum": "10000000000000000",
+    "minNetProfit": "20000000000000",
+    "deadlineSeconds": 12,
+    "maxBlockLag": 2
+  },
+  "limits": {
+    "maxEvaluations": 400,
+    "borrowSamples": 8,
+    "allocationChunks": 4,
+    "maxQuoteSteps": 2048,
+    "quoteTopK": 3,
+    "refine": true
+  },
+  "bid": {
+    "bidShareBps": 1000,
+    "maxPriorityFeePerGas": "5000000"
+  },
+  "minOutBps": 9950,
+  "maxRounds": 30,
+  "pollIntervalMs": 2000
+}

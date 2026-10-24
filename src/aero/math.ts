@@ -49,7 +49,8 @@ export function quoteAeroExactInput(pool: AeroPool, leg: AeroLeg, amount: string
     if(leg.sqrtPriceLimitX96!=='0')throw new Error('INVALID_INPUT');
   } else {
     const cl=s as ConcentratedState;
-    if(cl.feeProfile!=='fixed-proven')throw new Error('UNSUPPORTED_FEE_PROFILE');
+    // dynamic-snapshot quotes at the capture-block module fee; only an EVM quoter can admit it.
+    if(cl.feeProfile!=='fixed-proven'&&cl.feeProfile!=='dynamic-snapshot')throw new Error('UNSUPPORTED_FEE_PROFILE');
     const limit=uint(leg.sqrtPriceLimitX96,160),lower=sqrtRatioAtTick(cl.lowerTick),upper=sqrtRatioAtTick(cl.upperTick);
     // The shared traversal uses its proven horizon as the limit; accepting a
     // different limit would silently quote different calldata.

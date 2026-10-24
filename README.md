@@ -81,8 +81,9 @@ npm run aero -- simulate \
 
 For a dynamic fee module, run simulation through an explicitly selected
 localhost fork with `--evm-rpc http://127.0.0.1:8545`. Non-WETH settlement
-requires fresh pinned price-feed evidence through `--valuation`. The CLI only
-captures, plans, and simulates; it does not expose an automated broadcast path.
+requires fresh pinned price-feed evidence through `--valuation`. The `capture`,
+`plan` and `simulate` commands never broadcast; the only send path is `aero run`
+for the V2 executor (below).
 
 Run the focused checks with `npm run aero:test` and `npm run aero:local-e2e`.
 The [Aero implementation brief](docs/features/aero-split-routing.md),
@@ -90,6 +91,52 @@ The [Aero implementation brief](docs/features/aero-split-routing.md),
 [deployment evidence](docs/deployments/base-aero-20261022.json) describe the
 accepted profiles, limits, receipts, and fork proof. The fork’s counter-venue
 is constructed, so it proves execution behavior rather than a live profit.
+
+## Aero v2: Aerodrome + Uniswap routing with live sends
+
+`AeroSplitFlashExecutorV2` is a new Base executor deployed at
+[`0x63bdcea3ce513317b5b8694978908a1e3d3a4e87`](https://basescan.org/address/0x63bdcea3ce513317b5b8694978908a1e3d3a4e87).
+The V1 executor above is unchanged. V2 changes how opportunities are scanned and traded:
+
+| Area | V1 | V2 |
+|---|---|---|
+| Venues | Aerodrome classic and Slipstream | Also Uniswap V2 (on-chain output), V3 (100/500/3000/10000) and hookless static-fee V4 |
+| Lenders | Morpho | Morpho, Balancer V2 (fee-capped), Uniswap V4 PoolManager (`unlock`/`take`/`settle`, zero fee) |
+| Scan | Serial reads, exact-head freshness | Multicall3-batched concurrent capture; `bounds.maxBlockLag` admits a canonical snapshot up to 5 blocks old |
+| Dynamic fees | One `debug_traceCall` per candidate on a local fork | Model search at the block fee, then `quoteAeroSplit` re-quotes the top K candidates on any RPC (it borrows, swaps and always reverts with the outputs) |
+| Sizing | Sampled sizes | Optional golden-section refinement (`limits.refine`) |
+| Trade | Simulate only | `aero run` sends through the shared runtime: final simulation at the head, priority-fee bid, receipt proof, halt on first revert |
+| Gas | Each leg validated twice | Validated once before the loan |
+
+Discover venues (read-only), then rehearse on a pinned fork, then trade:
+
+```sh
+npm run build && node scripts/aero-v2-manifest.mjs        # writes config/aero-v2-*.json
+AERO_RUN_FORK=1 AERO_FORK_BLOCK=<n> node scripts/aero-v2-fork-e2e.mjs
+BASE_SUBMISSION_URL=https://mainnet.base.org npm run aero -- run \
+  --config config/aero-v2-live.json --env-file <owner env> --output .nim/aero-live/run.json
+```
+
+`aero run` requires an explicit `--env-file` signer and `BASE_SUBMISSION_URL`;
+it never falls back to the read RPC. It stays inside the shared budget: three
+trades and 0.002 ETH of gas per signer. After a reverted receipt it stops until
+`--resume`. Only plans verified by the on-chain quoter can be sent.
+
+Evidence:
+- Pinned Base fork:
+  - the real deploy flow configured all 28 roots;
+  - 15 of 16 real pools matched the model to the wei;
+  - the remaining pool, a dynamic-fee Slipstream pool, differed by 0.0175%. This is why quoter verification is required.
+- Locally, a quoter-verified plan was signed and sent, with repayment and custody proven. A front-run revert was accounted as a gas loss.
+- No liquid hookless WETH/USDC V4 pool exists on Base yet, so V4 is proven with a strict Foundry mock.
+
+Limits:
+- The first 27 live rounds found no profitable WETH/USDC cycle.
+- On the public RPC each round takes about 55 seconds, longer than the freshness window. A low-latency `BASE_RPC_URL` is needed before natural opportunities can be sent.
+
+Checks: `npm run aero:test`, `npm run aero:v2-local-e2e`,
+`node scripts/verify-aero-implementation.mjs --feature v2 --deployment docs/deployments/base-aero-v2-20261024.json`.
+Design and data contracts are in the [Aero v2 brief](docs/features/aero-v2-routing.md).
 
 ## Configuration
 
@@ -204,6 +251,7 @@ authorize sending or establish liquidity-pattern production admission.
 | Base 8453 / V4StateQuoter | `0x84f9615db5a1c6ac87acb686a3cb3fcb44ec1825` | Finalized read-only V4 state quoter |
 | Base 8453 / ImmutableArbitrageExecutor | `0x00cba652a1b4cf21063d443c5c1b0d495f477999` | Finalized immutable executor; V4 manager and Aave provider configured |
 | Base 8453 / AeroSplitFlashExecutor | [`0xdfafd892dca6a2f9dadc43a38b81c7d53473ff10`](https://basescan.org/address/0xdfafd892dca6a2f9dadc43a38b81c7d53473ff10) | Aerodrome classic/Slipstream executor; Morpho, four factories, and five pools pinned; fresh admission required |
+| Base 8453 / AeroSplitFlashExecutorV2 | [`0x63bdcea3ce513317b5b8694978908a1e3d3a4e87`](https://basescan.org/address/0x63bdcea3ce513317b5b8694978908a1e3d3a4e87) | Aerodrome + Uniswap V2/V3/V4 executor; Morpho, Balancer V2 and V4 lenders; 28 roots pinned; quoter-verified live sends |
 | Robinhood 4663 / MultiVenueArbitrageExecutor | `0xa27873424e74037d93dcf05d3a40556d07c2cfa8` | Finalized; Morpho and V4 manager configured |
 | Robinhood 4663 / PortableMultiSplitFlashExecutor | `0xba1bb00447cd75b941b14aecd09e37f9ab461e38` | Finalized portable split executor; Morpho and V4 manager configured |
 | Robinhood 4663 / V4StateQuoter | `0x0caefeaa418d65ef03a19646d128ced8f3e4977f` | Finalized read-only V4 state quoter |
@@ -214,7 +262,8 @@ owner checks, and finality evidence are in the [Base record](docs/deployments/ba
 and [Robinhood record](docs/deployments/robinhood-executors.json). Robinhood has
 no admitted Aave provider, so its immutable Aave executor is deliberately excluded.
 The Aero artifact, root pins, receipts, and current finality observation are in
-the [Base Aero record](docs/deployments/base-aero-20261022.json).
+the [Base Aero record](docs/deployments/base-aero-20261022.json); V2 is in the
+[Base Aero v2 record](docs/deployments/base-aero-v2-20261024.json).
 
 The multi-split record references deployment transaction
 [`0x0996…0f5ef`](https://arbiscan.io/tx/0x0996d0328a43ae3f23cb5d0297c76292d910f59a88a1276c928578a52010f5ef).

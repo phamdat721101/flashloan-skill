@@ -7,29 +7,31 @@ import { ceilDiv } from '../liquidity/v2.js';
 export interface ClassicState { protocol: 'aero-volatile' | 'aero-stable'; reserve0: string; reserve1: string; balance0: string; balance1: string; feeBps: number; stable: boolean }
 export interface ExternalV2State { protocol: 'uniswap-v2'; reserve0: string; reserve1: string; feeNumerator: string; feeDenominator: string }
 export interface ConcentratedState {
-  protocol: 'aero-slipstream' | 'uniswap-v3'; sqrtPriceX96: string; tick: number; liquidity: string; tickSpacing: number; feePips: number;
+  protocol: 'aero-slipstream' | 'uniswap-v3' | 'uniswap-v4'; sqrtPriceX96: string; tick: number; liquidity: string; tickSpacing: number; feePips: number;
   unlocked: true; lowerTick: number; upperTick: number; bitmapWords: Array<{wordPosition: number; bitmap: string}>; initializedTicks: TickState[];
-  feeProfile: 'fixed-proven' | 'dynamic-evm' | 'unknown'; feeEvidenceDigest: string;
+  feeProfile: 'fixed-proven' | 'dynamic-snapshot' | 'dynamic-evm' | 'unknown'; feeEvidenceDigest: string;
+  /** Uniswap V4 only: hookless PoolKey id; AeroPool.address/factory hold the PoolManager. */
+  hooks?: Address; poolKeyId?: Hex;
 }
 export type AeroState = ClassicState | ExternalV2State | ConcentratedState;
-export type Generation = 'classic' | 'cl-initial' | 'cl-gauge-caps' | 'cl-gauges-v3' | 'external-v2' | 'external-v3';
+export type Generation = 'classic' | 'cl-initial' | 'cl-gauge-caps' | 'cl-gauges-v3' | 'external-v2' | 'external-v3' | 'external-v4';
 export interface AeroPool { poolId: string; address: Address; factory: Address; generation: Generation; token0: Address; token1: Address; decimals0: number; decimals1: number; implementation: Address; implementationCodeHash: Hex; state: AeroState }
 export interface AeroLeg { poolId: string; tokenIn: Address; minOutBps: number; sqrtPriceLimitX96: string }
 export interface AeroBranch { branchId: string; legs: AeroLeg[] }
-export interface AeroLender { lenderId: string; kind: 'morpho' | 'balancer-v2'; address: Address; codeHash: Hex; asset: Address; available: string; feeNumerator: string; feeDenominator: string; feeRounding: 'floor' | 'ceil' | 'zero'; termsEvidenceDigest: string }
+export interface AeroLender { lenderId: string; kind: 'morpho' | 'balancer-v2' | 'uniswap-v4'; address: Address; codeHash: Hex; asset: Address; available: string; feeNumerator: string; feeDenominator: string; feeRounding: 'floor' | 'ceil' | 'zero'; termsEvidenceDigest: string }
 export interface AeroRequest {
-  schemaVersion: 'aero-split/1.0'; identity: {chainId: 8453; blockNumber: string; blockHash: Hex; timestamp: string}; sender: Address; borrowAsset: Address;
+  schemaVersion: 'aero-split/1.0' | 'aero-split/1.1'; identity: {chainId: 8453; blockNumber: string; blockHash: Hex; timestamp: string}; sender: Address; borrowAsset: Address;
   pools: AeroPool[]; pins: Array<{address: Address; codeHash: Hex; role: 'factory' | 'pool' | 'implementation' | 'fee-module' | 'quoter' | 'lender' | 'executor' | 'price-feed'; sourceRevision: string}>;
-  branches: AeroBranch[]; lenders: AeroLender[]; bounds: {minimum: string; maximum: string; quantum: string; minNetProfit: string; deadline: string};
+  branches: AeroBranch[]; lenders: AeroLender[]; bounds: {minimum: string; maximum: string; quantum: string; minNetProfit: string; deadline: string; maxBlockLag?: number};
   cost: {evidenceDigest: string; nativeAsset: Address; borrowAsset: Address; nativeCostWei: string; costInBorrowAsset: string; conversionNumerator: string; conversionDenominator: string; valuationEvidenceDigest: string; maxAgeSeconds: number};
-  limits: {maxEvaluations: number; borrowSamples: number; allocationChunks: number; maxQuoteSteps: number};
+  limits: {maxEvaluations: number; borrowSamples: number; allocationChunks: number; maxQuoteSteps: number; quoteTopK?: number; refine?: boolean};
 }
 export interface AeroQuote { poolId: string; tokenIn: Address; tokenOut: Address; amountIn: string; consumedInput: string; amountOut: string; feeAmount: string; minAmountOut: string; sqrtPriceLimitX96: string; stateBeforeDigest: string; stateAfterDigest: string }
 export interface AeroAllocation {branchId: string; amountIn: string; ratioBps: number; amountOut: string; legs: AeroQuote[]}
 export interface AeroSelected {
   schemaVersion: 'aero-split/1.0'; status: 'selected'; executable: false; requestDigest: string; snapshotDigest: string; lenderId: string; borrowAsset: Address;
   principal: string; flashFee: string; repayment: string; terminalReturn: string; minProfit: string; costInBorrowAsset: string; netProfit: string;
-  allocations: AeroAllocation[]; optimality: 'best-found' | 'certified'; evaluations: number; budgetExhausted: boolean; admissionRequired: true;
+  allocations: AeroAllocation[]; optimality: 'best-found' | 'certified'; evaluations: number; budgetExhausted: boolean; admissionRequired: true; quoteSource?: 'static' | 'evm-quoter';
 }
 export interface AeroRejected {schemaVersion: 'aero-split/1.0'; status: 'rejected' | 'no-profitable-plan'; executable: false; reason: string; evaluations: number; budgetExhausted: boolean}
 export type AeroResult = AeroSelected | AeroRejected;
@@ -65,7 +67,7 @@ export function parseAeroRequest(value: unknown): AeroRequest {
   uint(r.identity.blockNumber,64); uint(r.identity.timestamp,64); uint(r.bounds.deadline,64); uint(r.bounds.minNetProfit);
   if (/^0x0{64}$/.test(r.identity.blockHash) || r.cost.borrowAsset !== r.borrowAsset || uint(r.cost.costInBorrowAsset) !== ceilDiv(uint(r.cost.nativeCostWei)*uint(r.cost.conversionNumerator),uint(r.cost.conversionDenominator))) throw new Error('COST_EVIDENCE_INVALID');
   const unique = (ids: string[]) => new Set(ids).size === ids.length;
-  if (!unique(r.pools.map(p=>p.poolId)) || !unique(r.pools.map(p=>p.address)) || !unique(r.branches.map(b=>b.branchId)) || !unique(r.lenders.map(l=>l.lenderId)) || !unique(r.pins.map(p=>`${p.role}:${p.address}`))) throw new Error('INVALID_INPUT');
+  if (!unique(r.pools.map(p=>p.poolId)) || !unique(r.pools.filter(p=>p.generation!=='external-v4').map(p=>p.address))||!unique(r.pools.flatMap(p=>'poolKeyId'in p.state&&p.state.poolKeyId?[p.state.poolKeyId]:[])) || !unique(r.branches.map(b=>b.branchId)) || !unique(r.lenders.map(l=>l.lenderId)) || !unique(r.pins.map(p=>`${p.role}:${p.address}`))) throw new Error('INVALID_INPUT');
   for (const pool of r.pools) {
     if (pool.token0 >= pool.token1 || /^0x0{40}$/.test(pool.address) || pool.decimals0 > 77 || pool.decimals1 > 77) throw new Error('INVALID_INPUT');
     const s=pool.state;
@@ -76,8 +78,10 @@ export function parseAeroRequest(value: unknown): AeroRequest {
       if(pool.generation!=='external-v2'||uint(s.feeNumerator)>uint(s.feeDenominator))throw new Error('INVALID_INPUT');
       uint(s.reserve0,112);uint(s.reserve1,112);
     } else {
-      if((s.protocol==='uniswap-v3'&&pool.generation!=='external-v3')||(s.protocol==='aero-slipstream'&&!pool.generation.startsWith('cl-')))throw new Error('UNSUPPORTED_GENERATION');
+      if((s.protocol==='uniswap-v3'&&pool.generation!=='external-v3')||(s.protocol==='uniswap-v4')!==(pool.generation==='external-v4')||(s.protocol==='aero-slipstream'&&!pool.generation.startsWith('cl-')))throw new Error('UNSUPPORTED_GENERATION');
       const cl=s as ConcentratedState;uint(cl.sqrtPriceX96,160);uint(cl.liquidity,128);
+      // V4 legs are hookless and static-fee only; the executor rejects anything else.
+      if((cl.protocol==='uniswap-v4')!==(cl.poolKeyId!==undefined)||cl.protocol==='uniswap-v4'&&(cl.hooks!==undefined&&!/^0x0{40}$/.test(cl.hooks)||cl.feePips>=0x800000||pool.address!==pool.factory))throw new Error('UNSUPPORTED_GENERATION');
       if(cl.lowerTick>=cl.upperTick||cl.tick<cl.lowerTick||cl.tick>cl.upperTick)throw new Error('INCOMPLETE_TICK_COVERAGE');
     }
   }
@@ -91,7 +95,7 @@ export function parseAeroRequest(value: unknown): AeroRequest {
     if(asset!==r.borrowAsset)throw new Error('INVALID_INPUT');
   }
   for(const l of r.lenders) {
-    if(l.asset!==r.borrowAsset||l.feeRounding==='zero'&&uint(l.feeNumerator)!==0n||l.kind==='morpho'&&(uint(l.feeNumerator)!==0n||l.feeRounding!=='zero'))throw new Error('UNSUPPORTED_LENDER_CAPABILITY');
+    if(l.asset!==r.borrowAsset||l.feeRounding==='zero'&&uint(l.feeNumerator)!==0n||(l.kind==='morpho'||l.kind==='uniswap-v4')&&(uint(l.feeNumerator)!==0n||l.feeRounding!=='zero'))throw new Error('UNSUPPORTED_LENDER_CAPABILITY');
     uint(l.available);uint(l.feeNumerator);uint(l.feeDenominator);
   }
   return r;
