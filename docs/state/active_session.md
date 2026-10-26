@@ -1080,3 +1080,24 @@ Aero v2: close the DEX-integration gaps, deploy AeroSplitFlashExecutorV2 to Base
 - Use a low-latency, archive-capable `BASE_RPC_URL`, and keep the pool set warm between rounds instead of recapturing it every round.
 - Add WETH pairs beyond USDC, and 3-leg cycles.
 - Run gstack /review and /cso on the diff before committing. Nothing is committed yet.
+
+## Session 2026-10-26T16:20:42.997Z
+
+### Current goal
+
+verify flashloan-evidence-spec
+
+### Latest output or blocker
+
+Feature: flashloan-evidence-spec
+Flow: node scripts/verify-flashloan-evidence-spec.mjs -> Verified implementation specification only
+Edges: EDGE-01, EDGE-02, EDGE-03, EDGE-04, EDGE-05
+
+### Attempted solutions
+
+- Added the companion brief, corrected v5 schema, hashed SpecEnvelope, separate spec/runtime maps and offline verifier; exposed `npm run evidence:spec`.
+- Offline five-edge verification, 14-symbol dependency compilation and specification delivery verification passed. Runtime T01–T42 remain pending.
+
+### Next steps
+
+Runtime remains Draft. Implement R01–R16 in the companion's stages, beginning with the exact-unit optimizer/caller migration. Full local trading, native parity, forks and authorized canaries still require their separate evidence; no trade or procedure was approved.

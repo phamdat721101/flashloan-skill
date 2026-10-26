@@ -1,0 +1,18 @@
+{
+  "schemaVersion": "1.0",
+  "verified": true,
+  "scope": "Read-only executor runtime code, owner and deployment receipt; configuration roots not re-read",
+  "source": "read-only Base public RPC",
+  "checkedAt": "2026-10-26T16:42:05.889Z",
+  "chainId": 8453,
+  "blockNumber": "53121789",
+  "blockHash": "0x0dc432a8e2e8da814259f31116d98b3efd32f7cb7a45ce4b6162a770a232c629",
+  "address": "0x63bdcea3ce513317b5b8694978908a1e3d3a4e87",
+  "runtimeCodeHash": "0x35c84dac168a1fa190940fac287d2d544bda45afdc3132d8daad2ce0eff721d1",
+  "owner": "0xc75aAeBD1F395cFc9e7c7f291Ea32d5C9d4c270a",
+  "deploymentTransactionHash": "0x35e798309c80e5c26f5870d829bece86b74b6f9aaf1c6c5e611abe6cdbe22951",
+  "receiptStatus": "success",
+  "broadcast": false,
+  "configurationReadBack": false,
+  "liveTradingAdmitted": false
+}

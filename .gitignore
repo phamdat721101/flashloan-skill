@@ -38,3 +38,8 @@ docs/deployments/*
 !docs/features/aero-split-routing.md
 !docs/features/aero-split-routing.spec.json
 !docs/features/aero-split-routing-map.md
+!docs/features/flashloan-evidence-driven-execution.md
+!docs/features/flashloan-evidence-driven-execution.spec.json
+!docs/features/flashloan-evidence-driven-execution-map.md
+!docs/PRD-flashloan-evidence-driven-execution-upgrade-2026-10-26.md
+!docs/features/aero-v2-routing.md

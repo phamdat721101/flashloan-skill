@@ -21,6 +21,69 @@ For a configured executor, private relay, and dedicated wallet, ask the agent to
 
 For the liquid-pattern workflow, start with [capture, size and prepare](#use-a-liquid-pattern-to-prepare-a-flashloan), then add [Level 2 agent context](#level-2-market-context-for-agents). Current public contracts are listed in [deployment addresses](#recorded-deployment-addresses).
 
+## Latest upgrade and how to use it
+
+The latest recorded Base executor is **AeroSplitFlashExecutorV2**, deployed on
+2026-10-24. The 2026-10-26 **evidence-driven v5 upgrade is an implementation
+specification**, with executable offline checks. It does not deploy a new
+contract or add the proposed `evidence-run` command.
+
+| Item | Published reference |
+| --- | --- |
+| Network | Base mainnet, chain ID `8453` |
+| V2 executor | [`0x63bdcea3ce513317b5b8694978908a1e3d3a4e87`](https://basescan.org/address/0x63bdcea3ce513317b5b8694978908a1e3d3a4e87) |
+| Deployment transaction | [`0x35e798309c80e5c26f5870d829bece86b74b6f9aaf1c6c5e611abe6cdbe22951`](https://basescan.org/tx/0x35e798309c80e5c26f5870d829bece86b74b6f9aaf1c6c5e611abe6cdbe22951), block `53029413` |
+| Runtime code hash | `0x35c84dac168a1fa190940fac287d2d544bda45afdc3132d8daad2ce0eff721d1` |
+| Selector | `0xc7c01977`; use the [V2 artifact binding](config/aero-base-executor-v2.json) |
+| Deployment/configuration evidence | [Base Aero v2 record](docs/deployments/base-aero-v2-20261024.json), including 28 configured roots and `liveTradingAdmitted: false` |
+
+[Read-only verification on 2026-10-26](docs/deployments/base-aero-v2-readback-20261026.json)
+matched the runtime code hash and owner at Base block `53121789` and confirmed
+the successful deployment receipt. Configuration roots were not re-read in
+that check; their evidence remains the dated deployment record.
+
+Update an existing checkout on `aero-v2-routing`, then build and verify the
+specification without a wallet or RPC:
+
+```sh
+git pull --ff-only origin aero-v2-routing
+npm ci
+forge build
+npm run build
+npm run evidence:spec
+```
+
+`evidence:spec` verifies all five specification edges, corrected v5 record
+examples, source/dependency hashes, exact ledger/hurdle arithmetic and the
+R01–R16/T01–T42 implementation map. It also reproduces the known legacy sizing
+budget defect under a finite host guard. Passing this command verifies the
+specification package; the sizing fix and runtime acceptance tests remain pending.
+
+For the deployed V2 workflow, capture the configured pools without signing:
+
+```sh
+npm run aero -- capture \
+  --registry config/aero-v2-base-pools.json \
+  --output .nim/aero-v2-snapshot.json
+```
+
+Capture uses `BASE_RPC_URL` when configured and otherwise the public Base RPC.
+Use the [V2 operating workflow](#aero-v2-aerodrome--uniswap-routing-with-live-sends)
+for its separate fork rehearsal and explicitly authorized send path. Match V2
+requests (`aero-split/1.1`) to the V2 artifact; the proposed evidence `5.0`
+records are a separate contract. Deployment and local simulation do not establish
+a profitable live trade or authorize one.
+
+For implementing the evidence upgrade, read the [original PRD](docs/PRD-flashloan-evidence-driven-execution-upgrade-2026-10-26.md),
+[implementation companion](docs/features/flashloan-evidence-driven-execution.md),
+[corrected v5 schema](schemas/flashloan-evidence-v5.schema.json), and
+[requirement/test manifest](docs/features/flashloan-evidence-driven-execution.spec.json).
+The [delivery maps](docs/features/flashloan-evidence-driven-execution-map.md)
+separate completed specification verification from Draft runtime work. The
+companion defines policy, canonical state, bounded exact search, native proof,
+receipt accounting and cited knowledge, with full local trading E2E and per-lane
+fork/canary gates required before runtime completion.
+
 ## Base and Robinhood execution
 
 The shared EVM pipeline supports Base (8453) and Robinhood (4663), with separate

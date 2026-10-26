@@ -1,0 +1,1369 @@
+{
+  "spec_id": "SPEC-2026-102601",
+  "feature_name": "Flashloan evidence driven execution companion specification",
+  "source_evidence": [
+    {
+      "source_uri": "src/adaptive-sizing.ts",
+      "entity_id": "optimizeTradeSize",
+      "hash": "sha256:f232d01f5284829b554b2ea4d7fe267c62360b6aa5d171ecebf9bf624cc10762"
+    },
+    {
+      "source_uri": "src/arbitrage.ts",
+      "entity_id": "buildAdaptiveArbitragePlan",
+      "hash": "sha256:1dc0d52078554cc374533c8353a529c7381fa76280e72213e110fbd7a3b8a171"
+    },
+    {
+      "source_uri": "src/liquidity/sizing.ts",
+      "entity_id": "sizeRoute",
+      "hash": "sha256:10195f5a45230564eb728be7cb03a39659ca4bf01825185181ce6869cb01c019"
+    },
+    {
+      "source_uri": "src/liquidity/sizing.ts",
+      "entity_id": "sizeConditionalCycle",
+      "hash": "sha256:10195f5a45230564eb728be7cb03a39659ca4bf01825185181ce6869cb01c019"
+    },
+    {
+      "source_uri": "src/liquidity/sizing.ts",
+      "entity_id": "sizingToCandidate",
+      "hash": "sha256:10195f5a45230564eb728be7cb03a39659ca4bf01825185181ce6869cb01c019"
+    },
+    {
+      "source_uri": "src/liquidity/analytics.ts",
+      "entity_id": "runLiquidityAnalytics",
+      "hash": "sha256:e6df0327e6a33f32ee2c12084596a93793bc80ac744fb4f0a695863be2764076"
+    },
+    {
+      "source_uri": "src/liquidity/projection.ts",
+      "entity_id": "projectPool",
+      "hash": "sha256:3f19459c2e3ea62633fbdb015fcfe20ce9e0299d5f3b9f36f21743aa85e471cb"
+    },
+    {
+      "source_uri": "src/liquidity/runtime.ts",
+      "entity_id": "LiquidityRuntime",
+      "hash": "sha256:f66a3ef6b0027a656b1be2981e979386808746c1fb17a64b48a6399bdc94a28a"
+    },
+    {
+      "source_uri": "src/liquidity/state.ts",
+      "entity_id": "SnapshotStore",
+      "hash": "sha256:48591e0d8d2ebdbd9ab6e89762f75e43e5e1ddc67e9175187fe754e29cc50136"
+    },
+    {
+      "source_uri": "src/liquidity/state.ts",
+      "entity_id": "digest",
+      "hash": "sha256:48591e0d8d2ebdbd9ab6e89762f75e43e5e1ddc67e9175187fe754e29cc50136"
+    },
+    {
+      "source_uri": "src/liquidity/journal.ts",
+      "entity_id": "AttemptJournal",
+      "hash": "sha256:ae11f8193300e4891b16fbb60b58ffbfd88a4b8dbe6688c55a59990b8a825250"
+    },
+    {
+      "source_uri": "src/liquidity/l2-execution.ts",
+      "entity_id": "runL2Candidates",
+      "hash": "sha256:e843862e5c2086a8e3cdf89951a4260aa11d608c95de80d2e5ec935eb1373a99"
+    },
+    {
+      "source_uri": "src/liquidity/l2-ingestion.ts",
+      "entity_id": "EvidenceJournal",
+      "hash": "sha256:012aca5bc83448e1a5bcaa42a49dd903f07d21ee5390a699e2bf0b621b2142b4"
+    },
+    {
+      "source_uri": "src/nim-memory.ts",
+      "entity_id": "NimRuntimeMemory",
+      "hash": "sha256:4324315e7a10b90c6323ba41b185a8ea1f88cbf7b974a477546cd48bff9b4d36"
+    },
+    {
+      "source_uri": "docs/PRD-flashloan-evidence-driven-execution-upgrade-2026-10-26.md",
+      "entity_id": "requirements-baseline",
+      "hash": "sha256:c67b4caab6d66d6441396dd575cf2f1823f9115005891d7dc41ec8e9af7e4d54"
+    }
+  ],
+  "dependencies": [
+    {
+      "package_or_module": "src/adaptive-sizing.ts",
+      "symbol": "optimizeTradeSize",
+      "file_location": "src/adaptive-sizing.ts"
+    },
+    {
+      "package_or_module": "src/arbitrage.ts",
+      "symbol": "buildAdaptiveArbitragePlan",
+      "file_location": "src/arbitrage.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/sizing.ts",
+      "symbol": "sizeRoute",
+      "file_location": "src/liquidity/sizing.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/sizing.ts",
+      "symbol": "sizeConditionalCycle",
+      "file_location": "src/liquidity/sizing.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/sizing.ts",
+      "symbol": "sizingToCandidate",
+      "file_location": "src/liquidity/sizing.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/analytics.ts",
+      "symbol": "runLiquidityAnalytics",
+      "file_location": "src/liquidity/analytics.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/projection.ts",
+      "symbol": "projectPool",
+      "file_location": "src/liquidity/projection.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/runtime.ts",
+      "symbol": "LiquidityRuntime",
+      "file_location": "src/liquidity/runtime.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/state.ts",
+      "symbol": "SnapshotStore",
+      "file_location": "src/liquidity/state.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/state.ts",
+      "symbol": "digest",
+      "file_location": "src/liquidity/state.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/journal.ts",
+      "symbol": "AttemptJournal",
+      "file_location": "src/liquidity/journal.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/l2-execution.ts",
+      "symbol": "runL2Candidates",
+      "file_location": "src/liquidity/l2-execution.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/l2-ingestion.ts",
+      "symbol": "EvidenceJournal",
+      "file_location": "src/liquidity/l2-ingestion.ts"
+    },
+    {
+      "package_or_module": "src/nim-memory.ts",
+      "symbol": "NimRuntimeMemory",
+      "file_location": "src/nim-memory.ts"
+    }
+  ],
+  "architecture": {
+    "pattern": "Extend existing exact engines with versioned evidence-bound contracts and staged admission",
+    "isolation_boundaries": "market sources; protected content-addressed evidence; separately authorized signing; receipt truth; cited knowledge",
+    "execution_flow": [
+      "validate request and freeze approved effective policy",
+      "discover inventory with truthful coverage",
+      "bind canonical state, lender and exact costs",
+      "bounded integer route/size/split search",
+      "compile exact payload and existing-native proof",
+      "research report or separately authorized existing admission",
+      "journal one economic attempt and reconcile every asset",
+      "generate reports and cited knowledge proposals"
+    ]
+  },
+  "data_contracts": {
+    "inputs": {
+      "schema": "schemas/flashloan-evidence-v5.schema.json",
+      "version": "5.0",
+      "fixturesAreResearchOnly": true,
+      "futureInterfaces": [
+        "compileEvidencePolicy",
+        "runEvidenceWorkflow",
+        "validateNativeEvidence",
+        "reconcileEvidenceLedger",
+        "EvidenceKnowledgeHostAdapter"
+      ],
+      "requirements": [
+        {
+          "id": "R01",
+          "priority": "P0",
+          "title": "Stop bounded-search hangs",
+          "existingSeam": "src/adaptive-sizing.ts; src/test/adaptive-sizing.test.ts",
+          "input": "Bounds + quoter + expected state + cancellation",
+          "output": "Attempt ledger + finite result",
+          "contract": "Count every call before await, cache seen amounts including rejects, bound timeout/retries, require finite progress; never rank on Number USD",
+          "stage": "M1",
+          "ownerRole": "adaptive sizing",
+          "acceptanceStatus": "pending"
+        },
+        {
+          "id": "R02",
+          "priority": "P0",
+          "title": "Preserve search uncertainty",
+          "existingSeam": "src/liquidity/sizing.ts; schemas/liquidity-analytics.schema.json",
+          "input": "Exact pools + domain + budget",
+          "output": "Versioned SolverResult with termination/coverage",
+          "contract": "Add result v5; distinguish best-found negative, completed grid, certified domain and coverage failures; preserve all rejection counts",
+          "stage": "M1",
+          "ownerRole": "exact analytics",
+          "acceptanceStatus": "pending"
+        },
+        {
+          "id": "R03",
+          "priority": "P0",
+          "title": "Resolve one effective economic policy",
+          "existingSeam": "src/config.ts; src/risk.ts; src/dynamic.ts; src/liquidity/l2-execution.ts",
+          "input": "Approved profile + tightening user request",
+          "output": "Immutable policyHash and native-unit hurdle",
+          "contract": "Separate economic inputs, operator policy, protocol constants and fixture values; no large-principal/deployment/split mandate; preserve installed $10 floor",
+          "stage": "M1",
+          "ownerRole": "policy and risk",
+          "acceptanceStatus": "pending"
+        },
+        {
+          "id": "R04",
+          "priority": "P0",
+          "title": "Reject fabricated execution evidence",
+          "existingSeam": "src/liquidity/runtime.ts; execution adapters; public MCP bridge ownership external",
+          "input": "Candidate + payload + raw native result",
+          "output": "NativeProof linked to exact state/policy",
+          "contract": "Introduce typed evidence classes and content-addressed raw results; refuse model labels/self-checklists as native evidence; fixture is research-only",
+          "stage": "M1",
+          "ownerRole": "evidence/native admission",
+          "acceptanceStatus": "pending"
+        },
+        {
+          "id": "R05",
+          "priority": "P0",
+          "title": "Reconcile principal and cash flow",
+          "existingSeam": "src/liquidity/runtime.ts; execution adapters; schemas/*execution-receipt.schema.json",
+          "input": "Balance basis + deployed/unused + fees + transfers",
+          "output": "CashflowLedger and reconciliation status",
+          "contract": "Conserve principal; count unused once; separate prefund/opening funds; subtract embedded fees once; unknown P&L halts new sends",
+          "stage": "M1",
+          "ownerRole": "receipt accounting",
+          "acceptanceStatus": "pending"
+        },
+        {
+          "id": "R06",
+          "priority": "P0",
+          "title": "Use the supported entry path",
+          "existingSeam": "skills/flashloan-agent/SKILL.md; src/liquidity/cli.ts; src/liquidity/l2-agent.ts",
+          "input": "Requested operation + discovered capabilities",
+          "output": "Single supported workflow and evidence ledger",
+          "contract": "Remove narrative bypasses and installed-skill large-size claims as universal recipes; forbid bd-team script imports; map public tools separately from local CLI",
+          "stage": "M1",
+          "ownerRole": "CLI and skill",
+          "acceptanceStatus": "pending"
+        },
+        {
+          "id": "R07",
+          "priority": "P1",
+          "title": "Observe real dislocations",
+          "existingSeam": "src/liquidity/l2-sources.ts; l2-ingestion.ts; l2-contracts.ts",
+          "input": "Canonical Swap/Mint/Burn/book updates and source watermarks",
+          "output": "Coherent before/after frames and observed event IDs",
+          "contract": "Extend existing follower/journal; invalidate forks/gaps; emit static-concentration versus observed-flow labels; no fixed 40-tick/$100k trigger rule",
+          "stage": "M2",
+          "ownerRole": "canonical ingestion",
+          "acceptanceStatus": "pending"
+        },
+        {
+          "id": "R08",
+          "priority": "P1",
+          "title": "Quote depth and normalize identity exactly",
+          "existingSeam": "src/liquidity/clmm.ts; projection.ts; l2-metrics.ts; state.ts",
+          "input": "Same-state pool snapshots + typed assets + amount",
+          "output": "Native integer quote and coverage frontier",
+          "contract": "Reuse verified integer math, invert orientation explicitly, stop/expand tick horizon within budgets; no hardcoded fee or indicative USD substitution",
+          "stage": "M2",
+          "ownerRole": "integer depth/identity",
+          "acceptanceStatus": "pending"
+        },
+        {
+          "id": "R09",
+          "priority": "P1",
+          "title": "Optimize connected routes and splits",
+          "existingSeam": "src/route-solver.ts; liquidity/sizing.ts; adaptive-sizing.ts",
+          "input": "Verified graph + effective policy + lender evidence",
+          "output": "Feasible closed RoutePlan with search scope",
+          "contract": "Bound cycles by supported hops/branches; optimize raw allocations, conserve unused principal, replay shared pools sequentially; compare matched controls",
+          "stage": "M2",
+          "ownerRole": "route/split solver",
+          "acceptanceStatus": "pending"
+        },
+        {
+          "id": "R10",
+          "priority": "P1",
+          "title": "Bind funding and costs at the same state",
+          "existingSeam": "src/liquidity/sizing.ts; evm/deployment.ts; execution adapters",
+          "input": "Lender registry pins + live capacity/fee + fee/cost evidence",
+          "output": "Availability/cost DTOs and freshness verdict",
+          "contract": "Preserve deployment pins; read mutable fee/capacity near decision; include L1 data cost and conservative valuation; zero only when evidenced or tagged research",
+          "stage": "M2",
+          "ownerRole": "funding/cost adapters",
+          "acceptanceStatus": "pending"
+        },
+        {
+          "id": "R11",
+          "priority": "P1",
+          "title": "Separate allowances from predictions",
+          "existingSeam": "src/liquidity/l2-metrics.ts; l2-prediction.ts; l2-execution.ts",
+          "input": "Approval/order/swap labels with complete horizons",
+          "output": "Descriptive features or admitted model/report binding",
+          "contract": "Keep existing prediction admission; add event ordering and censorship/attribution; no forecast from permission alone; preserve unknown recall",
+          "stage": "M3",
+          "ownerRole": "prediction admission",
+          "acceptanceStatus": "pending"
+        },
+        {
+          "id": "R12",
+          "priority": "P1",
+          "title": "Publish generated operational reporting",
+          "existingSeam": "src/nim-memory.ts; execution-outcome.ts; local reporting adapter proposed",
+          "input": "Typed round events, outcomes and ledgers",
+          "output": "RoundReport + CSV/MD projections + episodes",
+          "contract": "Generate claims from DTOs, not manually typed metrics; keep chain-local/global IDs and denominators separate; missing fields have reasons",
+          "stage": "M3",
+          "ownerRole": "generated reporting",
+          "acceptanceStatus": "pending"
+        },
+        {
+          "id": "R13",
+          "priority": "P1",
+          "title": "Recover state and submissions safely",
+          "existingSeam": "src/liquidity/journal.ts; runtime.ts; execution adapters; l2-ingestion.ts",
+          "input": "Attempt journal + transaction/object identity + source cursor",
+          "output": "Recovered known state or explicit halted state",
+          "contract": "No blind resubmit; reorg/resync and checkpoint object versions invalidate proofs; preserve locks, full-profit custody and private transport",
+          "stage": "M3",
+          "ownerRole": "attempt recovery",
+          "acceptanceStatus": "pending"
+        },
+        {
+          "id": "R14",
+          "priority": "P1",
+          "title": "Bridge runtime events to cited knowledge",
+          "existingSeam": "src/nim-memory.ts; explicit nim host adapter proposed",
+          "input": "Evidence-linked events + successful verification episode",
+          "output": "Cited observations and provisional learning proposals",
+          "contract": "Legacy confidence=8 records are episodes/claims, not truth; hydrate verified citations; TTL key includes state/policy/adapter; owner approves procedures",
+          "stage": "M3",
+          "ownerRole": "knowledge host adapter",
+          "acceptanceStatus": "pending"
+        },
+        {
+          "id": "R15",
+          "priority": "P2",
+          "title": "Ship explicit capability increments",
+          "existingSeam": "src/evm/*; src/sui/*; adapter registry",
+          "input": "Per-chain schema/math/native/canary evidence",
+          "output": "Versioned admitted capability manifest",
+          "contract": "Keep Robinhood/Sui public research gates until evidence passes; no address/ABI reuse or blanket enablement; Status Network only via future verified adapter",
+          "stage": "P2",
+          "ownerRole": "capability registry",
+          "acceptanceStatus": "pending"
+        },
+        {
+          "id": "R16",
+          "priority": "P0",
+          "title": "Enforce prompt v3 and regression gates",
+          "existingSeam": "prompt/flashloan-prompt.md in bd-team; installed SKILL.md here",
+          "input": "Stable prompt + dynamic packet + adversarial operator phrasing",
+          "output": "One consistent research/unsigned workflow",
+          "contract": "Remove forced economic defaults; preserve force-trade boundary; map real API fields; freeze policy; embed identical prompt in this export",
+          "stage": "M1",
+          "ownerRole": "prompt/CLI boundary",
+          "acceptanceStatus": "pending"
+        }
+      ],
+      "acceptance": [
+        {
+          "id": "T01",
+          "requirement": "R01",
+          "assertion": "Quoter returns undefined on repeated refinement: attempted calls never exceed configured cap; adaptive-sizing.test.ts",
+          "stage": "M1",
+          "ownerRole": "adaptive sizing",
+          "testFile": "src/test/adaptive-sizing.test.ts",
+          "plannedCommand": "node --test --test-name-pattern=FLASHLOAN_T01 dist/test/adaptive-sizing.test.js",
+          "requiredMarker": "FLASHLOAN_T01",
+          "evidence": "Structured pass marker, non-skipped assertion count, source/schema/adapter hashes and raw local artifact references",
+          "status": "pending"
+        },
+        {
+          "id": "T02",
+          "requirement": "R01",
+          "assertion": "Reject/throw/hang/abort each consume a bounded attempt/deadline; no duplicate amount spin; same test",
+          "stage": "M1",
+          "ownerRole": "adaptive sizing",
+          "testFile": "src/test/adaptive-sizing.test.ts",
+          "plannedCommand": "node --test --test-name-pattern=FLASHLOAN_T02 dist/test/adaptive-sizing.test.js",
+          "requiredMarker": "FLASHLOAN_T02",
+          "evidence": "Structured pass marker, non-skipped assertion count, source/schema/adapter hashes and raw local artifact references",
+          "status": "pending"
+        },
+        {
+          "id": "T03",
+          "requirement": "R01",
+          "assertion": "Mixed block/digest quote and float-only economic input rejected; adaptive/analytics tests",
+          "stage": "M1",
+          "ownerRole": "adaptive sizing",
+          "testFile": "src/test/adaptive-sizing.test.ts",
+          "plannedCommand": "node --test --test-name-pattern=FLASHLOAN_T03 dist/test/adaptive-sizing.test.js",
+          "requiredMarker": "FLASHLOAN_T03",
+          "evidence": "Structured pass marker, non-skipped assertion count, source/schema/adapter hashes and raw local artifact references",
+          "status": "pending"
+        },
+        {
+          "id": "T04",
+          "requirement": "R02",
+          "assertion": "Best-found losing sample -> INCONCLUSIVE; never global no-opportunity; liquidity-analytics.test.ts",
+          "stage": "M1",
+          "ownerRole": "exact analytics",
+          "testFile": "src/test/liquidity-analytics.test.ts",
+          "plannedCommand": "node --test --test-name-pattern=FLASHLOAN_T04 dist/test/liquidity-analytics.test.js",
+          "requiredMarker": "FLASHLOAN_T04",
+          "evidence": "Structured pass marker, non-skipped assertion count, source/schema/adapter hashes and raw local artifact references",
+          "status": "pending"
+        },
+        {
+          "id": "T05",
+          "requirement": "R02",
+          "assertion": "Completed declared grid -> scoped negative; exhaustive valid quantum domain -> certified; same test",
+          "stage": "M1",
+          "ownerRole": "exact analytics",
+          "testFile": "src/test/liquidity-analytics.test.ts",
+          "plannedCommand": "node --test --test-name-pattern=FLASHLOAN_T05 dist/test/liquidity-analytics.test.js",
+          "requiredMarker": "FLASHLOAN_T05",
+          "evidence": "Structured pass marker, non-skipped assertion count, source/schema/adapter hashes and raw local artifact references",
+          "status": "pending"
+        },
+        {
+          "id": "T06",
+          "requirement": "R02",
+          "assertion": "All quotes coverage/step-failed cannot get negative economic certificate; same test",
+          "stage": "M1",
+          "ownerRole": "exact analytics",
+          "testFile": "src/test/liquidity-analytics.test.ts",
+          "plannedCommand": "node --test --test-name-pattern=FLASHLOAN_T06 dist/test/liquidity-analytics.test.js",
+          "requiredMarker": "FLASHLOAN_T06",
+          "evidence": "Structured pass marker, non-skipped assertion count, source/schema/adapter hashes and raw local artifact references",
+          "status": "pending"
+        },
+        {
+          "id": "T07",
+          "requirement": "R03",
+          "assertion": "Request cannot lower $10/profile floor, expand cap/loss or widen staleness; config/dynamic tests",
+          "stage": "M1",
+          "ownerRole": "policy and risk",
+          "testFile": "src/test/config.test.ts",
+          "plannedCommand": "node --test --test-name-pattern=FLASHLOAN_T07 dist/test/config.test.js",
+          "requiredMarker": "FLASHLOAN_T07",
+          "evidence": "Structured pass marker, non-skipped assertion count, source/schema/adapter hashes and raw local artifact references",
+          "status": "pending"
+        },
+        {
+          "id": "T08",
+          "requirement": "R03",
+          "assertion": "Strict threshold exact boundary and one-atom-above compile consistently across APIs; risk tests",
+          "stage": "M1",
+          "ownerRole": "policy and risk",
+          "testFile": "src/test/config.test.ts",
+          "plannedCommand": "node --test --test-name-pattern=FLASHLOAN_T08 dist/test/config.test.js",
+          "requiredMarker": "FLASHLOAN_T08",
+          "evidence": "Structured pass marker, non-skipped assertion count, source/schema/adapter hashes and raw local artifact references",
+          "status": "pending"
+        },
+        {
+          "id": "T09",
+          "requirement": "R03",
+          "assertion": "Changing policy field changes hash; absent economic value never becomes zero; schema tests",
+          "stage": "M1",
+          "ownerRole": "policy and risk",
+          "testFile": "src/test/config.test.ts",
+          "plannedCommand": "node --test --test-name-pattern=FLASHLOAN_T09 dist/test/config.test.js",
+          "requiredMarker": "FLASHLOAN_T09",
+          "evidence": "Structured pass marker, non-skipped assertion count, source/schema/adapter hashes and raw local artifact references",
+          "status": "pending"
+        },
+        {
+          "id": "T10",
+          "requirement": "R04",
+          "assertion": "Model error text/checklist cannot satisfy native proof; runtime/execution adapter tests",
+          "stage": "M1",
+          "ownerRole": "evidence/native admission",
+          "testFile": "src/test/liquid-pattern-e2e.test.ts",
+          "plannedCommand": "node --test --test-name-pattern=FLASHLOAN_T10 dist/test/liquid-pattern-e2e.test.js",
+          "requiredMarker": "FLASHLOAN_T10",
+          "evidence": "Structured pass marker, non-skipped assertion count, source/schema/adapter hashes and raw local artifact references",
+          "status": "pending"
+        },
+        {
+          "id": "T11",
+          "requirement": "R04",
+          "assertion": "Candidate/state/policy/payload/executor hash substitution or expiry -> zero sign/submit calls",
+          "stage": "M1",
+          "ownerRole": "evidence/native admission",
+          "testFile": "src/test/liquid-pattern-e2e.test.ts",
+          "plannedCommand": "node --test --test-name-pattern=FLASHLOAN_T11 dist/test/liquid-pattern-e2e.test.js",
+          "requiredMarker": "FLASHLOAN_T11",
+          "evidence": "Structured pass marker, non-skipped assertion count, source/schema/adapter hashes and raw local artifact references",
+          "status": "pending"
+        },
+        {
+          "id": "T12",
+          "requirement": "R04",
+          "assertion": "Fixture success is research-only; native revert preserves raw result reference",
+          "stage": "M1",
+          "ownerRole": "evidence/native admission",
+          "testFile": "src/test/liquid-pattern-e2e.test.ts",
+          "plannedCommand": "node --test --test-name-pattern=FLASHLOAN_T12 dist/test/liquid-pattern-e2e.test.js",
+          "requiredMarker": "FLASHLOAN_T12",
+          "evidence": "Structured pass marker, non-skipped assertion count, source/schema/adapter hashes and raw local artifact references",
+          "status": "pending"
+        },
+        {
+          "id": "T13",
+          "requirement": "R05",
+          "assertion": "1,000/950/50/960/0.5/1 example -> 8.5 net; Base R64 conditional difference is exactly 1.8 WETH",
+          "stage": "M1",
+          "ownerRole": "receipt accounting",
+          "testFile": "src/test/liquid-pattern-e2e.test.ts",
+          "plannedCommand": "node --test --test-name-pattern=FLASHLOAN_T13 dist/test/liquid-pattern-e2e.test.js",
+          "requiredMarker": "FLASHLOAN_T13",
+          "evidence": "Structured pass marker, non-skipped assertion count, source/schema/adapter hashes and raw local artifact references",
+          "status": "pending"
+        },
+        {
+          "id": "T14",
+          "requirement": "R05",
+          "assertion": "Prefund/opening balance never count as trading revenue; fee/unused counted once in both terminal bases",
+          "stage": "M1",
+          "ownerRole": "receipt accounting",
+          "testFile": "src/test/liquid-pattern-e2e.test.ts",
+          "plannedCommand": "node --test --test-name-pattern=FLASHLOAN_T14 dist/test/liquid-pattern-e2e.test.js",
+          "requiredMarker": "FLASHLOAN_T14",
+          "evidence": "Structured pass marker, non-skipped assertion count, source/schema/adapter hashes and raw local artifact references",
+          "status": "pending"
+        },
+        {
+          "id": "T15",
+          "requirement": "R05",
+          "assertion": "Missing receipt/gas or unclosed secondary asset -> unknown realized net and lane halt",
+          "stage": "M1",
+          "ownerRole": "receipt accounting",
+          "testFile": "src/test/liquid-pattern-e2e.test.ts",
+          "plannedCommand": "node --test --test-name-pattern=FLASHLOAN_T15 dist/test/liquid-pattern-e2e.test.js",
+          "requiredMarker": "FLASHLOAN_T15",
+          "evidence": "Structured pass marker, non-skipped assertion count, source/schema/adapter hashes and raw local artifact references",
+          "status": "pending"
+        },
+        {
+          "id": "T16",
+          "requirement": "R06",
+          "assertion": "Supported public/local CLI mapping tested in real subprocess; unknown tool/provider/arg rejected",
+          "stage": "M1",
+          "ownerRole": "CLI and skill",
+          "testFile": "src/test/liquidity-analytics.test.ts",
+          "plannedCommand": "node --test --test-name-pattern=FLASHLOAN_T16 dist/test/liquidity-analytics.test.js",
+          "requiredMarker": "FLASHLOAN_T16",
+          "evidence": "Structured pass marker, non-skipped assertion count, source/schema/adapter hashes and raw local artifact references",
+          "status": "pending"
+        },
+        {
+          "id": "T17",
+          "requirement": "R06",
+          "assertion": "Standalone package contains no bd-team imports, live example constants or permissive verified defaults",
+          "stage": "M1",
+          "ownerRole": "CLI and skill",
+          "testFile": "src/test/liquidity-analytics.test.ts",
+          "plannedCommand": "node --test --test-name-pattern=FLASHLOAN_T17 dist/test/liquidity-analytics.test.js",
+          "requiredMarker": "FLASHLOAN_T17",
+          "evidence": "Structured pass marker, non-skipped assertion count, source/schema/adapter hashes and raw local artifact references",
+          "status": "pending"
+        },
+        {
+          "id": "T18",
+          "requirement": "R07",
+          "assertion": "Actual Swap/Mint/Burn/book event produces coherent before/after state; static snapshot does not claim flow",
+          "stage": "M2",
+          "ownerRole": "canonical ingestion",
+          "testFile": "src/test/level-2-e2e.test.ts",
+          "plannedCommand": "node --test --test-name-pattern=FLASHLOAN_T18 dist/test/level-2-e2e.test.js",
+          "requiredMarker": "FLASHLOAN_T18",
+          "evidence": "Structured pass marker, non-skipped assertion count, source/schema/adapter hashes and raw local artifact references",
+          "status": "pending"
+        },
+        {
+          "id": "T19",
+          "requirement": "R07",
+          "assertion": "Duplicate, source gap, divergent block, reorg, restart and finality downgrade invalidate/recover correctly",
+          "stage": "M2",
+          "ownerRole": "canonical ingestion",
+          "testFile": "src/test/level-2-e2e.test.ts",
+          "plannedCommand": "node --test --test-name-pattern=FLASHLOAN_T19 dist/test/level-2-e2e.test.js",
+          "requiredMarker": "FLASHLOAN_T19",
+          "evidence": "Structured pass marker, non-skipped assertion count, source/schema/adapter hashes and raw local artifact references",
+          "status": "pending"
+        },
+        {
+          "id": "T20",
+          "requirement": "R07",
+          "assertion": "Trigger band varies with state/fee/size; prior threshold is not cached as a timeless rule",
+          "stage": "M2",
+          "ownerRole": "canonical ingestion",
+          "testFile": "src/test/level-2-e2e.test.ts",
+          "plannedCommand": "node --test --test-name-pattern=FLASHLOAN_T20 dist/test/level-2-e2e.test.js",
+          "requiredMarker": "FLASHLOAN_T20",
+          "evidence": "Structured pass marker, non-skipped assertion count, source/schema/adapter hashes and raw local artifact references",
+          "status": "pending"
+        },
+        {
+          "id": "T21",
+          "requirement": "R08",
+          "assertion": "Reversed 18/6 orientation and distinct bridged USDC; compare exact ratios not raw ticks",
+          "stage": "M2",
+          "ownerRole": "integer depth/identity",
+          "testFile": "src/test/liquidity-clmm.test.ts",
+          "plannedCommand": "node --test --test-name-pattern=FLASHLOAN_T21 dist/test/liquidity-clmm.test.js",
+          "requiredMarker": "FLASHLOAN_T21",
+          "evidence": "Structured pass marker, non-skipped assertion count, source/schema/adapter hashes and raw local artifact references",
+          "status": "pending"
+        },
+        {
+          "id": "T22",
+          "requirement": "R08",
+          "assertion": "Integer boundary crossing/fee dust/empty liquidity versus independent math vectors/native quotes",
+          "stage": "M2",
+          "ownerRole": "integer depth/identity",
+          "testFile": "src/test/liquidity-clmm.test.ts",
+          "plannedCommand": "node --test --test-name-pattern=FLASHLOAN_T22 dist/test/liquidity-clmm.test.js",
+          "requiredMarker": "FLASHLOAN_T22",
+          "evidence": "Structured pass marker, non-skipped assertion count, source/schema/adapter hashes and raw local artifact references",
+          "status": "pending"
+        },
+        {
+          "id": "T23",
+          "requirement": "R08",
+          "assertion": "Amount beyond coverage triggers bounded expansion or explicit failure, never extrapolation",
+          "stage": "M2",
+          "ownerRole": "integer depth/identity",
+          "testFile": "src/test/liquidity-clmm.test.ts",
+          "plannedCommand": "node --test --test-name-pattern=FLASHLOAN_T23 dist/test/liquidity-clmm.test.js",
+          "requiredMarker": "FLASHLOAN_T23",
+          "evidence": "Structured pass marker, non-skipped assertion count, source/schema/adapter hashes and raw local artifact references",
+          "status": "pending"
+        },
+        {
+          "id": "T24",
+          "requirement": "R09",
+          "assertion": "Deeper indirect path wins only after incremental costs at matched state/input; extra hop can lose",
+          "stage": "M2",
+          "ownerRole": "route/split solver",
+          "testFile": "src/test/liquidity-analytics.test.ts",
+          "plannedCommand": "node --test --test-name-pattern=FLASHLOAN_T24 dist/test/liquidity-analytics.test.js",
+          "requiredMarker": "FLASHLOAN_T24",
+          "evidence": "Structured pass marker, non-skipped assertion count, source/schema/adapter hashes and raw local artifact references",
+          "status": "pending"
+        },
+        {
+          "id": "T25",
+          "requirement": "R09",
+          "assertion": "Optimal split changes with depth; zero/one branch allowed; no 52/44 or forced utilization injected",
+          "stage": "M2",
+          "ownerRole": "route/split solver",
+          "testFile": "src/test/liquidity-analytics.test.ts",
+          "plannedCommand": "node --test --test-name-pattern=FLASHLOAN_T25 dist/test/liquidity-analytics.test.js",
+          "requiredMarker": "FLASHLOAN_T25",
+          "evidence": "Structured pass marker, non-skipped assertion count, source/schema/adapter hashes and raw local artifact references",
+          "status": "pending"
+        },
+        {
+          "id": "T26",
+          "requirement": "R09",
+          "assertion": "Shared pool branches mutate one state sequentially; raw conservation and full-plan native replay",
+          "stage": "M2",
+          "ownerRole": "route/split solver",
+          "testFile": "src/test/liquidity-analytics.test.ts",
+          "plannedCommand": "node --test --test-name-pattern=FLASHLOAN_T26 dist/test/liquidity-analytics.test.js",
+          "requiredMarker": "FLASHLOAN_T26",
+          "evidence": "Structured pass marker, non-skipped assertion count, source/schema/adapter hashes and raw local artifact references",
+          "status": "pending"
+        },
+        {
+          "id": "T27",
+          "requirement": "R10",
+          "assertion": "Capacity/fee/asset/callback change invalidates old plan; unsupported Morpho public enum rejected",
+          "stage": "M2",
+          "ownerRole": "funding/cost adapters",
+          "testFile": "src/test/evm-profiles.test.ts",
+          "plannedCommand": "node --test --test-name-pattern=FLASHLOAN_T27 dist/test/evm-profiles.test.js",
+          "requiredMarker": "FLASHLOAN_T27",
+          "evidence": "Structured pass marker, non-skipped assertion count, source/schema/adapter hashes and raw local artifact references",
+          "status": "pending"
+        },
+        {
+          "id": "T28",
+          "requirement": "R10",
+          "assertion": "L1 data cost, gas, conversion/depeg bounds counted once; missing values block admission",
+          "stage": "M2",
+          "ownerRole": "funding/cost adapters",
+          "testFile": "src/test/evm-profiles.test.ts",
+          "plannedCommand": "node --test --test-name-pattern=FLASHLOAN_T28 dist/test/evm-profiles.test.js",
+          "requiredMarker": "FLASHLOAN_T28",
+          "evidence": "Structured pass marker, non-skipped assertion count, source/schema/adapter hashes and raw local artifact references",
+          "status": "pending"
+        },
+        {
+          "id": "T29",
+          "requirement": "R11",
+          "assertion": "Zero positive labels => undefined recall; censoring/event-order/Permit2 attribution carried",
+          "stage": "M3",
+          "ownerRole": "prediction admission",
+          "testFile": "src/test/level-2-e2e.test.ts",
+          "plannedCommand": "node --test --test-name-pattern=FLASHLOAN_T29 dist/test/level-2-e2e.test.js",
+          "requiredMarker": "FLASHLOAN_T29",
+          "evidence": "Structured pass marker, non-skipped assertion count, source/schema/adapter hashes and raw local artifact references",
+          "status": "pending"
+        },
+        {
+          "id": "T30",
+          "requirement": "R11",
+          "assertion": "Leakage/mismatched model/report/unapproved pin fails existing prediction gates; held-out net-utility control",
+          "stage": "M3",
+          "ownerRole": "prediction admission",
+          "testFile": "src/test/level-2-e2e.test.ts",
+          "plannedCommand": "node --test --test-name-pattern=FLASHLOAN_T30 dist/test/level-2-e2e.test.js",
+          "requiredMarker": "FLASHLOAN_T30",
+          "evidence": "Structured pass marker, non-skipped assertion count, source/schema/adapter hashes and raw local artifact references",
+          "status": "pending"
+        },
+        {
+          "id": "T31",
+          "requirement": "R12",
+          "assertion": "RoundReport/CSV/MD reproduce from journal; no formula/native/receipt class promotion",
+          "stage": "M3",
+          "ownerRole": "generated reporting",
+          "testFile": "src/test/execution-outcome.test.ts",
+          "plannedCommand": "node --test --test-name-pattern=FLASHLOAN_T31 dist/test/execution-outcome.test.js",
+          "requiredMarker": "FLASHLOAN_T31",
+          "evidence": "Structured pass marker, non-skipped assertion count, source/schema/adapter hashes and raw local artifact references",
+          "status": "pending"
+        },
+        {
+          "id": "T32",
+          "requirement": "R12",
+          "assertion": "Deduplicated denominators, global versus chain-local IDs, no-send versus successful trade remain distinct",
+          "stage": "M3",
+          "ownerRole": "generated reporting",
+          "testFile": "src/test/execution-outcome.test.ts",
+          "plannedCommand": "node --test --test-name-pattern=FLASHLOAN_T32 dist/test/execution-outcome.test.js",
+          "requiredMarker": "FLASHLOAN_T32",
+          "evidence": "Structured pass marker, non-skipped assertion count, source/schema/adapter hashes and raw local artifact references",
+          "status": "pending"
+        },
+        {
+          "id": "T33",
+          "requirement": "R13",
+          "assertion": "Timeout after submit and restart reconcile one economic attempt, not a second send",
+          "stage": "M3",
+          "ownerRole": "attempt recovery",
+          "testFile": "src/test/liquid-pattern-e2e.test.ts",
+          "plannedCommand": "node --test --test-name-pattern=FLASHLOAN_T33 dist/test/liquid-pattern-e2e.test.js",
+          "requiredMarker": "FLASHLOAN_T33",
+          "evidence": "Structured pass marker, non-skipped assertion count, source/schema/adapter hashes and raw local artifact references",
+          "status": "pending"
+        },
+        {
+          "id": "T34",
+          "requirement": "R13",
+          "assertion": "Nonce/Sui object contention is serialized; uncertain receipt retains lock/recovery state",
+          "stage": "M3",
+          "ownerRole": "attempt recovery",
+          "testFile": "src/test/liquid-pattern-e2e.test.ts",
+          "plannedCommand": "node --test --test-name-pattern=FLASHLOAN_T34 dist/test/liquid-pattern-e2e.test.js",
+          "requiredMarker": "FLASHLOAN_T34",
+          "evidence": "Structured pass marker, non-skipped assertion count, source/schema/adapter hashes and raw local artifact references",
+          "status": "pending"
+        },
+        {
+          "id": "T35",
+          "requirement": "R13",
+          "assertion": "Private relay unavailable or admission revoked -> halt; no public fallback or custody weakening",
+          "stage": "M3",
+          "ownerRole": "attempt recovery",
+          "testFile": "src/test/liquid-pattern-e2e.test.ts",
+          "plannedCommand": "node --test --test-name-pattern=FLASHLOAN_T35 dist/test/liquid-pattern-e2e.test.js",
+          "requiredMarker": "FLASHLOAN_T35",
+          "evidence": "Structured pass marker, non-skipped assertion count, source/schema/adapter hashes and raw local artifact references",
+          "status": "pending"
+        },
+        {
+          "id": "T36",
+          "requirement": "R14",
+          "assertion": "Cited observation lineage validates; unsupported source and raw secret rejection fail closed",
+          "stage": "M3",
+          "ownerRole": "knowledge host adapter",
+          "testFile": "src/test/nim-memory.test.ts",
+          "plannedCommand": "node --test --test-name-pattern=FLASHLOAN_T36 dist/test/nim-memory.test.js",
+          "requiredMarker": "FLASHLOAN_T36",
+          "evidence": "Structured pass marker, non-skipped assertion count, source/schema/adapter hashes and raw local artifact references",
+          "status": "pending"
+        },
+        {
+          "id": "T37",
+          "requirement": "R14",
+          "assertion": "Inference provisional, procedure owner-approved only, stale state/policy cache miss; nim-memory tests",
+          "stage": "M3",
+          "ownerRole": "knowledge host adapter",
+          "testFile": "src/test/nim-memory.test.ts",
+          "plannedCommand": "node --test --test-name-pattern=FLASHLOAN_T37 dist/test/nim-memory.test.js",
+          "requiredMarker": "FLASHLOAN_T37",
+          "evidence": "Structured pass marker, non-skipped assertion count, source/schema/adapter hashes and raw local artifact references",
+          "status": "pending"
+        },
+        {
+          "id": "T38",
+          "requirement": "R15",
+          "assertion": "Chain-specific selector/ABI/code/package/math/canary pins required; no cross-chain address reuse",
+          "stage": "P2",
+          "ownerRole": "capability registry",
+          "testFile": "src/test/evm-profiles.test.ts",
+          "plannedCommand": "node --test --test-name-pattern=FLASHLOAN_T38 dist/test/evm-profiles.test.js",
+          "requiredMarker": "FLASHLOAN_T38",
+          "evidence": "Structured pass marker, non-skipped assertion count, source/schema/adapter hashes and raw local artifact references",
+          "status": "pending"
+        },
+        {
+          "id": "T39",
+          "requirement": "R15",
+          "assertion": "Status Network unsupported until adapter exists; then linea_estimateGas includes from and handles both fee states",
+          "stage": "P2",
+          "ownerRole": "capability registry",
+          "testFile": "src/test/evm-profiles.test.ts",
+          "plannedCommand": "node --test --test-name-pattern=FLASHLOAN_T39 dist/test/evm-profiles.test.js",
+          "requiredMarker": "FLASHLOAN_T39",
+          "evidence": "Structured pass marker, non-skipped assertion count, source/schema/adapter hashes and raw local artifact references",
+          "status": "pending"
+        },
+        {
+          "id": "T40",
+          "requirement": "R16",
+          "assertion": "“Force trade”, “ignore profit”, unknown defaults and fresh-token demands never override profile/authority",
+          "stage": "M1",
+          "ownerRole": "prompt/CLI boundary",
+          "testFile": "src/test/flashloan-evidence-e2e.test.ts",
+          "plannedCommand": "node --test --test-name-pattern=FLASHLOAN_T40 dist/test/flashloan-evidence-e2e.test.js",
+          "requiredMarker": "FLASHLOAN_T40",
+          "evidence": "Structured pass marker, non-skipped assertion count, source/schema/adapter hashes and raw local artifact references",
+          "status": "pending"
+        },
+        {
+          "id": "T41",
+          "requirement": "R16",
+          "assertion": "Prompt tool calls use current schemas and preserve proof envelopes; no fabricated optional API fields",
+          "stage": "M1",
+          "ownerRole": "prompt/CLI boundary",
+          "testFile": "src/test/flashloan-evidence-e2e.test.ts",
+          "plannedCommand": "node --test --test-name-pattern=FLASHLOAN_T41 dist/test/flashloan-evidence-e2e.test.js",
+          "requiredMarker": "FLASHLOAN_T41",
+          "evidence": "Structured pass marker, non-skipped assertion count, source/schema/adapter hashes and raw local artifact references",
+          "status": "pending"
+        },
+        {
+          "id": "T42",
+          "requirement": "R16",
+          "assertion": "Complete negative/inconclusive packet is valid; no performance/profit claim without correct evidence",
+          "stage": "M1",
+          "ownerRole": "prompt/CLI boundary",
+          "testFile": "src/test/flashloan-evidence-e2e.test.ts",
+          "plannedCommand": "node --test --test-name-pattern=FLASHLOAN_T42 dist/test/flashloan-evidence-e2e.test.js",
+          "requiredMarker": "FLASHLOAN_T42",
+          "evidence": "Structured pass marker, non-skipped assertion count, source/schema/adapter hashes and raw local artifact references",
+          "status": "pending"
+        }
+      ]
+    },
+    "outputs": {
+      "fixtures": {
+        "request": {
+          "schemaVersion": "5.0",
+          "runId": "documentation-fixture",
+          "recordType": "run-request",
+          "mode": "research",
+          "networkId": null,
+          "assetLocators": [],
+          "borrowAsset": null,
+          "riskProfileRef": null,
+          "principalCapRaw": null,
+          "requestedMinProfitUsd": null,
+          "requestedPriceImpactBps": null,
+          "networkCostEvidenceRef": null,
+          "valuationEvidenceRef": null,
+          "watchDurationMs": 0,
+          "caller": null,
+          "executor": null,
+          "executorMode": "existing",
+          "rotationMode": "report-only",
+          "requestedMinDeploymentBps": null,
+          "requestedMinBranchWeightBps": null,
+          "requestedMinPrincipalUsd": null,
+          "requestedMinBranchUsd": null,
+          "inventoryMinLiquidityUsd": null
+        },
+        "policy": {
+          "schemaVersion": "5.0",
+          "runId": "documentation-fixture",
+          "recordType": "policy",
+          "profileRef": {
+            "kind": "configuration",
+            "contentHash": "dd98ce24df4deb21a2074c689ed78d5f3e5111453357060d99b0a658ea96052b",
+            "sourceId": "documentation-fixture",
+            "locator": "fixture:no-live-claim",
+            "observedAtNs": "1",
+            "expiresAtNs": null
+          },
+          "mode": "research",
+          "principalCapRaw": "1000000000",
+          "minimumPrincipalRaw": "0",
+          "minProfitRaw": "10000000",
+          "profitComparison": "gt",
+          "maxPriceImpactBps": 100,
+          "minDeploymentBps": 0,
+          "minBranchWeightBps": 0,
+          "maxHopsPerBranch": 6,
+          "maxBranches": 8,
+          "maxAttempts": 6,
+          "deadlineMs": 1000,
+          "maxStateAgeNs": "1000000000",
+          "maxDailyLossRaw": "1000000",
+          "executionAuthorizationRef": null,
+          "policyHash": "f530a78e6f3a9a9723b757f50e99ee282d81c4371d29256b53580026421d1986",
+          "borrowAsset": {
+            "namespace": "eip155",
+            "networkId": "42161",
+            "assetId": "erc20:0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+            "decimals": 6
+          },
+          "minimumBranchRaw": "0",
+          "maxTotalSwaps": 48,
+          "valuationEvidenceRef": {
+            "kind": "configuration",
+            "contentHash": "dd98ce24df4deb21a2074c689ed78d5f3e5111453357060d99b0a658ea96052b",
+            "sourceId": "documentation-fixture",
+            "locator": "fixture:no-live-claim",
+            "observedAtNs": "1",
+            "expiresAtNs": null
+          },
+          "networkCostEvidenceRef": {
+            "kind": "configuration",
+            "contentHash": "dd98ce24df4deb21a2074c689ed78d5f3e5111453357060d99b0a658ea96052b",
+            "sourceId": "documentation-fixture",
+            "locator": "fixture:no-live-claim",
+            "observedAtNs": "1",
+            "expiresAtNs": null
+          }
+        },
+        "inventory": {
+          "schemaVersion": "5.0",
+          "runId": "documentation-fixture",
+          "recordType": "pool-inventory",
+          "poolId": "fixture:unverified",
+          "identity": null,
+          "asset0": null,
+          "asset1": null,
+          "asset0Locator": {
+            "namespace": "eip155",
+            "networkId": "42161",
+            "assetId": "erc20:0xaf88d065e77c8cc2239327c5edb3a432268e5831"
+          },
+          "asset1Locator": {
+            "namespace": "eip155",
+            "networkId": "42161",
+            "assetId": "erc20:0x1111111111111111111111111111111111111111"
+          },
+          "adapterId": null,
+          "adapterRevision": null,
+          "capability": "discovered",
+          "fee": {
+            "value": null,
+            "reason": "NOT_VERIFIED"
+          },
+          "normalizedPrice": {
+            "value": null,
+            "reason": "NOT_VERIFIED"
+          },
+          "coverageReasons": [
+            "DISCOVERY_ONLY"
+          ],
+          "evidence": [
+            {
+              "kind": "configuration",
+              "contentHash": "dd98ce24df4deb21a2074c689ed78d5f3e5111453357060d99b0a658ea96052b",
+              "sourceId": "documentation-fixture",
+              "locator": "fixture:no-live-claim",
+              "observedAtNs": "1",
+              "expiresAtNs": null
+            }
+          ]
+        },
+        "state": {
+          "schemaVersion": "5.0",
+          "runId": "documentation-fixture",
+          "recordType": "state-bundle",
+          "identity": {
+            "namespace": "eip155",
+            "networkId": "42161",
+            "height": "1",
+            "stateHashOrDigest": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "finality": "node-confirmed"
+          },
+          "stateDigest": "dd98ce24df4deb21a2074c689ed78d5f3e5111453357060d99b0a658ea96052b",
+          "poolEvidence": [
+            {
+              "kind": "configuration",
+              "contentHash": "dd98ce24df4deb21a2074c689ed78d5f3e5111453357060d99b0a658ea96052b",
+              "sourceId": "documentation-fixture",
+              "locator": "fixture:no-live-claim",
+              "observedAtNs": "1",
+              "expiresAtNs": null
+            }
+          ],
+          "lenderEvidence": {
+            "kind": "configuration",
+            "contentHash": "dd98ce24df4deb21a2074c689ed78d5f3e5111453357060d99b0a658ea96052b",
+            "sourceId": "documentation-fixture",
+            "locator": "fixture:no-live-claim",
+            "observedAtNs": "1",
+            "expiresAtNs": null
+          },
+          "coverageComplete": false,
+          "coverageReasons": [
+            "FIXTURE_ONLY"
+          ]
+        },
+        "plan": {
+          "schemaVersion": "5.0",
+          "runId": "documentation-fixture",
+          "recordType": "route-plan",
+          "stateDigest": "dd98ce24df4deb21a2074c689ed78d5f3e5111453357060d99b0a658ea96052b",
+          "policyHash": "f530a78e6f3a9a9723b757f50e99ee282d81c4371d29256b53580026421d1986",
+          "borrowAsset": {
+            "namespace": "eip155",
+            "networkId": "42161",
+            "assetId": "erc20:0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+            "decimals": 6
+          },
+          "principalRaw": "1000000000",
+          "unusedPrincipalRaw": "50000000",
+          "branches": [
+            {
+              "branchId": "one",
+              "allocatedRaw": "950000000",
+              "weightBps": 9500,
+              "tokenPath": [
+                {
+                  "namespace": "eip155",
+                  "networkId": "42161",
+                  "assetId": "erc20:0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+                  "decimals": 6
+                },
+                {
+                  "namespace": "eip155",
+                  "networkId": "42161",
+                  "assetId": "erc20:0x1111111111111111111111111111111111111111",
+                  "decimals": 18
+                },
+                {
+                  "namespace": "eip155",
+                  "networkId": "42161",
+                  "assetId": "erc20:0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+                  "decimals": 6
+                }
+              ],
+              "poolPath": [
+                "pool-one",
+                "pool-two"
+              ],
+              "hopCount": 2,
+              "stateMutationOrder": [
+                "pool-one",
+                "pool-two"
+              ]
+            }
+          ],
+          "outputAfterEmbeddedFeesRaw": "980000000",
+          "flashFeeRaw": "500000",
+          "costs": [
+            {
+              "asset": {
+                "namespace": "eip155",
+                "networkId": "42161",
+                "assetId": "erc20:0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+                "decimals": 6
+              },
+              "amountRaw": {
+                "value": "1000000",
+                "reason": null
+              },
+              "basis": "research-assumption",
+              "includedInSwapOutput": false,
+              "evidence": {
+                "kind": "configuration",
+                "contentHash": "dd98ce24df4deb21a2074c689ed78d5f3e5111453357060d99b0a658ea96052b",
+                "sourceId": "documentation-fixture",
+                "locator": "fixture:no-live-claim",
+                "observedAtNs": "1",
+                "expiresAtNs": null
+              }
+            }
+          ],
+          "netProfitRaw": {
+            "value": "28500000",
+            "reason": null
+          },
+          "search": {
+            "attempted": 1,
+            "accepted": 1,
+            "rejected": 0,
+            "inflight": 0,
+            "uniqueAmounts": 1,
+            "retries": 0,
+            "maxAttempts": 6,
+            "elapsedMs": 1,
+            "deadlineMs": 1000,
+            "domainMinimumRaw": "1",
+            "domainMaximumRaw": "1000000000",
+            "quantumRaw": "1",
+            "evaluatedDomainHash": "dd98ce24df4deb21a2074c689ed78d5f3e5111453357060d99b0a658ea96052b",
+            "coverageComplete": true,
+            "termination": "candidate-found",
+            "optimality": "best-found",
+            "rejections": [],
+            "domainEvidenceRef": {
+              "kind": "configuration",
+              "contentHash": "dd98ce24df4deb21a2074c689ed78d5f3e5111453357060d99b0a658ea96052b",
+              "sourceId": "documentation-fixture",
+              "locator": "fixture:no-live-claim",
+              "observedAtNs": "1",
+              "expiresAtNs": null
+            },
+            "certificateRef": null,
+            "gridPointCount": null
+          },
+          "evidence": [
+            {
+              "kind": "configuration",
+              "contentHash": "dd98ce24df4deb21a2074c689ed78d5f3e5111453357060d99b0a658ea96052b",
+              "sourceId": "documentation-fixture",
+              "locator": "fixture:no-live-claim",
+              "observedAtNs": "1",
+              "expiresAtNs": null
+            }
+          ],
+          "executionContextHash": "dd98ce24df4deb21a2074c689ed78d5f3e5111453357060d99b0a658ea96052b",
+          "unsignedPayloadRef": {
+            "kind": "configuration",
+            "contentHash": "dd98ce24df4deb21a2074c689ed78d5f3e5111453357060d99b0a658ea96052b",
+            "sourceId": "documentation-fixture",
+            "locator": "fixture:no-live-claim",
+            "observedAtNs": "1",
+            "expiresAtNs": null
+          },
+          "planHash": "89107802a7dd7660821dfc1d13d233ac615d9bcea3ba8d4693ff945595f6f9b2"
+        },
+        "solver": {
+          "schemaVersion": "5.0",
+          "runId": "documentation-fixture",
+          "recordType": "solver-result",
+          "status": "CANDIDATE_FOUND",
+          "stateDigest": "dd98ce24df4deb21a2074c689ed78d5f3e5111453357060d99b0a658ea96052b",
+          "policyHash": "f530a78e6f3a9a9723b757f50e99ee282d81c4371d29256b53580026421d1986",
+          "search": {
+            "attempted": 1,
+            "accepted": 1,
+            "rejected": 0,
+            "inflight": 0,
+            "uniqueAmounts": 1,
+            "retries": 0,
+            "maxAttempts": 6,
+            "elapsedMs": 1,
+            "deadlineMs": 1000,
+            "domainMinimumRaw": "1",
+            "domainMaximumRaw": "1000000000",
+            "quantumRaw": "1",
+            "evaluatedDomainHash": "dd98ce24df4deb21a2074c689ed78d5f3e5111453357060d99b0a658ea96052b",
+            "coverageComplete": true,
+            "termination": "candidate-found",
+            "optimality": "best-found",
+            "rejections": [],
+            "domainEvidenceRef": {
+              "kind": "configuration",
+              "contentHash": "dd98ce24df4deb21a2074c689ed78d5f3e5111453357060d99b0a658ea96052b",
+              "sourceId": "documentation-fixture",
+              "locator": "fixture:no-live-claim",
+              "observedAtNs": "1",
+              "expiresAtNs": null
+            },
+            "certificateRef": null,
+            "gridPointCount": null
+          },
+          "planRef": "89107802a7dd7660821dfc1d13d233ac615d9bcea3ba8d4693ff945595f6f9b2",
+          "reasonCodes": []
+        },
+        "proof": {
+          "schemaVersion": "5.0",
+          "runId": "documentation-fixture",
+          "recordType": "native-simulation-proof",
+          "candidateHash": "89107802a7dd7660821dfc1d13d233ac615d9bcea3ba8d4693ff945595f6f9b2",
+          "stateDigest": "dd98ce24df4deb21a2074c689ed78d5f3e5111453357060d99b0a658ea96052b",
+          "policyHash": "f530a78e6f3a9a9723b757f50e99ee282d81c4371d29256b53580026421d1986",
+          "payloadHash": "dd98ce24df4deb21a2074c689ed78d5f3e5111453357060d99b0a658ea96052b",
+          "executorCodeOrPackageHash": "dd98ce24df4deb21a2074c689ed78d5f3e5111453357060d99b0a658ea96052b",
+          "adapterRevision": "fixture-only",
+          "fidelity": "fixture-native",
+          "success": true,
+          "repaymentProven": true,
+          "terminalBalanceBasis": "before-debt-with-unused",
+          "terminalBalanceRaw": {
+            "value": "1030000000",
+            "reason": null
+          },
+          "revertDataRef": null,
+          "overrideRefs": [
+            {
+              "kind": "configuration",
+              "contentHash": "dd98ce24df4deb21a2074c689ed78d5f3e5111453357060d99b0a658ea96052b",
+              "sourceId": "documentation-fixture",
+              "locator": "fixture:no-live-claim",
+              "observedAtNs": "1",
+              "expiresAtNs": null
+            }
+          ],
+          "resultEvidence": {
+            "kind": "native-simulation",
+            "contentHash": "dd98ce24df4deb21a2074c689ed78d5f3e5111453357060d99b0a658ea96052b",
+            "sourceId": "documentation-fixture",
+            "locator": "fixture:no-live-claim",
+            "observedAtNs": "1",
+            "expiresAtNs": null
+          },
+          "executionContextHash": "dd98ce24df4deb21a2074c689ed78d5f3e5111453357060d99b0a658ea96052b"
+        },
+        "ledger": {
+          "schemaVersion": "5.0",
+          "recordType": "cashflow-ledger",
+          "runId": "fixture-01",
+          "asset": {
+            "namespace": "eip155",
+            "networkId": "42161",
+            "assetId": "erc20:0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+            "decimals": 6
+          },
+          "principalRaw": "1000000000",
+          "deployedRaw": "950000000",
+          "unusedPrincipalRaw": "50000000",
+          "swapProceedsRaw": "960000000",
+          "terminalBeforeDebtRaw": "1010000000",
+          "flashFeeRaw": "500000",
+          "networkCostRaw": "1000000",
+          "otherExternalCostsRaw": "0",
+          "surplusAfterDebtRaw": "9500000",
+          "simulatedNetRaw": "8500000",
+          "operatorPrefundRaw": "0",
+          "executorOpeningBalanceRaw": "0",
+          "realizedNetRaw": {
+            "value": null,
+            "reason": "NO_RECEIPT"
+          },
+          "evidence": [
+            {
+              "kind": "configuration",
+              "contentHash": "0000000000000000000000000000000000000000000000000000000000000000",
+              "sourceId": "local-fixture",
+              "locator": "fixture:no-live-claim",
+              "observedAtNs": "1",
+              "expiresAtNs": null
+            }
+          ]
+        },
+        "report": {
+          "schemaVersion": "5.0",
+          "runId": "documentation-fixture",
+          "recordType": "round-report",
+          "outcome": "INPUT_BLOCKED",
+          "policyHash": null,
+          "stateDigest": null,
+          "inventoryRefs": [],
+          "solverRef": null,
+          "simulationRef": null,
+          "ledgerRef": null,
+          "receiptRef": null,
+          "changedState": [],
+          "reasons": [
+            "MISSING_NETWORK",
+            "MISSING_PROFILE"
+          ]
+        },
+        "event": {
+          "schemaVersion": "5.0",
+          "runId": "documentation-fixture",
+          "recordType": "stage-event",
+          "eventId": "fixture-event",
+          "stage": "request",
+          "outcome": "rejected",
+          "candidateHash": null,
+          "policyHash": null,
+          "stateDigest": null,
+          "attemptNumber": 0,
+          "code": "INPUT_BLOCKED",
+          "retryable": false,
+          "receivedAtNs": "1",
+          "durationMs": 0,
+          "evidence": [
+            {
+              "kind": "configuration",
+              "contentHash": "dd98ce24df4deb21a2074c689ed78d5f3e5111453357060d99b0a658ea96052b",
+              "sourceId": "documentation-fixture",
+              "locator": "fixture:no-live-claim",
+              "observedAtNs": "1",
+              "expiresAtNs": null
+            }
+          ]
+        }
+      },
+      "semanticRules": [
+        "No guessed money, fees, hashes or authority",
+        "Raw allocation conservation and exact post-cost strict profit hurdle",
+        "Native proof binds exact state/policy/context/payload/executor",
+        "Sampled negatives remain inconclusive",
+        "Unknown P&L halts lane",
+        "Procedures remain owner-approved"
+      ],
+      "runtimeAcceptance": "pending"
+    },
+    "error_states": [
+      "INPUT_BLOCKED",
+      "POLICY_UNSUPPORTED",
+      "STATE_DESYNC",
+      "REORG_INVALIDATED",
+      "COVERAGE_BLOCKED",
+      "ATTEMPT_BUDGET",
+      "TIME_BUDGET",
+      "NO_OPPORTUNITY_IN_GRID",
+      "CERTIFIED_NO_OPPORTUNITY",
+      "COST_UNKNOWN",
+      "VALUATION_UNKNOWN",
+      "PAYLOAD_MISMATCH",
+      "PROOF_EXPIRED",
+      "FIDELITY_INSUFFICIENT",
+      "LEDGER_BASIS_UNKNOWN",
+      "LEDGER_INCONSISTENT",
+      "SUBMISSION_UNKNOWN",
+      "PNL_UNKNOWN",
+      "SECRET_REJECTED",
+      "APPROVAL_REQUIRED",
+      "HANDOFF_REQUIRED"
+    ]
+  },
+  "test_criteria": [
+    "EDGE-01: corrected schema and positive/negative documentation fixtures",
+    "EDGE-02: guarded reproduction and search uncertainty contract",
+    "EDGE-03: independent exact economics and lineage checks",
+    "EDGE-04: AST/hash dependencies and all R01-R16/T01-T42 mappings",
+    "EDGE-05: separate specification delivery and pending runtime admission"
+  ]
+}
