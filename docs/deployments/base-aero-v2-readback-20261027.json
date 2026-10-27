@@ -1,0 +1,160 @@
+{
+  "schemaVersion": "1.0",
+  "verified": true,
+  "scope": "Read-only finalized runtime, owner, all 28 configured root entries, root code and implementation code, deployment receipt",
+  "source": "https://mainnet.base.org",
+  "checkedAt": "2026-10-27T13:41:44.658Z",
+  "chainId": 8453,
+  "blockNumber": "53159023",
+  "blockHash": "0xa4ac069472aca1a89e4eb75bf9fff53e0e4e6f69482d41c6df285ca13d98bac0",
+  "address": "0x63bdcea3ce513317b5b8694978908a1e3d3a4e87",
+  "runtimeCodeHash": "0x35c84dac168a1fa190940fac287d2d544bda45afdc3132d8daad2ce0eff721d1",
+  "owner": "0xc75aAeBD1F395cFc9e7c7f291Ea32d5C9d4c270a",
+  "deploymentTransactionHash": "0x35e798309c80e5c26f5870d829bece86b74b6f9aaf1c6c5e611abe6cdbe22951",
+  "receiptStatus": "success",
+  "configurationReadBack": true,
+  "roots": [
+    {
+      "role": "morpho",
+      "address": "0xbbbbbbbbbb9cc5e90e3b3af64bdaf62c37eeffcb",
+      "verified": true
+    },
+    {
+      "role": "balancer-v2",
+      "address": "0xba12222222228d8ba445958a75a0704d566bf2c8",
+      "verified": true
+    },
+    {
+      "role": "v4-manager",
+      "address": "0x498581ff718922c3f8e6a244956af099b2652b2b",
+      "verified": true
+    },
+    {
+      "role": "aero-factory",
+      "address": "0x420dd381b31aef6683db6b902084cb0ffece40da",
+      "verified": true
+    },
+    {
+      "role": "aero-factory",
+      "address": "0x5e7bb104d84c7cb9b682aac2f3d509f5f406809a",
+      "verified": true
+    },
+    {
+      "role": "aero-factory",
+      "address": "0xade65c38cd4849adba595a4323a8c7ddfe89716a",
+      "verified": true
+    },
+    {
+      "role": "aero-factory",
+      "address": "0xf8f2eb4940cfe7d13603dddd87f123820fc061ef",
+      "verified": true
+    },
+    {
+      "role": "aero-factory",
+      "address": "0x8909dc15e40173ff4699343b6eb8132c65e18ec6",
+      "verified": true
+    },
+    {
+      "role": "aero-factory",
+      "address": "0x33128a8fc17869897dce68ed026d694621f6fdfd",
+      "verified": true
+    },
+    {
+      "role": "aero-factory",
+      "address": "0x498581ff718922c3f8e6a244956af099b2652b2b",
+      "verified": true
+    },
+    {
+      "role": "v2-fee",
+      "address": "0x8909dc15e40173ff4699343b6eb8132c65e18ec6",
+      "verified": true
+    },
+    {
+      "role": "aero-pool",
+      "address": "0xcdac0d6c6c59727a65f871236188350531885c43",
+      "verified": true
+    },
+    {
+      "role": "aero-pool",
+      "address": "0x3548029694fbb241d45fb24ba0cd9c9d4e745f16",
+      "verified": true
+    },
+    {
+      "role": "aero-pool",
+      "address": "0xdbc6998296caa1652a810dc8d3baf4a8294330f1",
+      "verified": true
+    },
+    {
+      "role": "aero-pool",
+      "address": "0xb150768cf55d1625e2337a08fbd1b0f02ff94bdb",
+      "verified": true
+    },
+    {
+      "role": "aero-pool",
+      "address": "0xaad23a67f2ac693abbe543489aeb3f24f561d517",
+      "verified": true
+    },
+    {
+      "role": "aero-pool",
+      "address": "0xb2cc224c1c9fee385f8ad6a55b4d94e92359dc59",
+      "verified": true
+    },
+    {
+      "role": "aero-pool",
+      "address": "0x148bc43946a902258916e580b0e6d92aaa74746f",
+      "verified": true
+    },
+    {
+      "role": "aero-pool",
+      "address": "0x0652202c4b2d09cb93aedefadc14b36869483a98",
+      "verified": true
+    },
+    {
+      "role": "aero-pool",
+      "address": "0xc758d81b9b81a6fcdad075bd471874a2c46b54e0",
+      "verified": true
+    },
+    {
+      "role": "aero-pool",
+      "address": "0x4e392fbfe4d0557c82d2f97f02ec39daa31516dd",
+      "verified": true
+    },
+    {
+      "role": "aero-pool",
+      "address": "0x493e74eda2720e127baccc1a19b2d567bc14ab43",
+      "verified": true
+    },
+    {
+      "role": "aero-pool",
+      "address": "0x3fe04a59ebd38cf06080a6f60a98d124eb59392a",
+      "verified": true
+    },
+    {
+      "role": "aero-pool",
+      "address": "0x88a43bbdf9d098eec7bceda4e2494615dfd9bb9c",
+      "verified": true
+    },
+    {
+      "role": "aero-pool",
+      "address": "0xb4cb800910b228ed3d0834cf79d697127bbb00e5",
+      "verified": true
+    },
+    {
+      "role": "aero-pool",
+      "address": "0xd0b53d9277642d899df5c87a3966a349a798f224",
+      "verified": true
+    },
+    {
+      "role": "aero-pool",
+      "address": "0x6c561b446416e1a00e8e93e221854d6ea4171372",
+      "verified": true
+    },
+    {
+      "role": "aero-pool",
+      "address": "0x0b1c2dcbbfa744ebd3fc17ff1a96a1e1eb4b2d69",
+      "verified": true
+    }
+  ],
+  "broadcast": false,
+  "liveTradingAdmitted": false
+}

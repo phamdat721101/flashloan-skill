@@ -53,16 +53,18 @@
     "aero:test": "forge build --quiet && npm run build && node --test dist/test/aero-*.test.js && forge test --match-contract 'AeroSplitExecutor(V2)?Test'",
     "aero:local-e2e": "npm run build && node scripts/aero-local-e2e.mjs",
     "aero:fork-e2e": "npm run build && node scripts/aero-fork-e2e.mjs",
-    "aero:v2-local-e2e": "npm run build && node scripts/aero-v2-local-e2e.mjs"
+    "aero:v2-local-e2e": "npm run build && node scripts/aero-v2-local-e2e.mjs",
+    "evidence:test": "npm run build && node --test dist/test/flashloan-evidence*.test.js",
+    "evidence:local-e2e": "forge build --offline && npm run build && node scripts/flashloan-evidence-local-e2e.mjs"
   },
   "dependencies": {
     "@mysten/sui": "^2.0.0",
     "@noble/hashes": "1.8.0",
-    "viem": "^2.28.1"
+    "viem": "^2.28.1",
+    "ajv": "8.20.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
-    "ajv": "8.20.0",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2"
   }

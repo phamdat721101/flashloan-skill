@@ -1,82 +1,57 @@
-/**
- * Chooses a trade amount from live bounds instead of a fixed list of USD tiers.
- * The caller owns quoting and must use exact route calldata for each observation.
- */
+/** Exact, state-bound sampling. Every invocation consumes an attempt, including failures. */
 export interface SizingBounds {
-  minAmount: bigint;
-  maxAmount: bigint;
-  maxEvaluations?: number;
-  maxPriceImpactBps: number;
+  minAmount: bigint; maxAmount: bigint; quantum: bigint;
+  maxEvaluations: number; deadlineMs: number; maxPriceImpactBps: number;
+  expectedBlock: bigint; expectedStateDigest: string; minProfitRaw: bigint;
+  signal?: AbortSignal;
 }
-
 export interface SizeQuote {
-  amountIn: bigint;
-  netProfitUsd: number;
-  priceImpactBps: number;
-  quoteBlock: bigint;
+  amountIn: bigint; netProfitRaw: bigint; priceImpactBps: number;
+  quoteBlock: bigint; stateDigest: string;
 }
-
 export interface AdaptiveSizingResult {
-  winner?: SizeQuote;
-  evaluated: SizeQuote[];
+  winner?: SizeQuote; evaluated: SizeQuote[]; attempted: number; rejected: number;
+  rejectedQuotes: Record<string, number>;
+  termination: 'domain-complete' | 'attempt-budget' | 'time-budget' | 'cancelled';
 }
-
-export type SizeQuoter = (amountIn: bigint) => Promise<SizeQuote | undefined>;
-
-function assertBounds(bounds: SizingBounds): void {
-  if (bounds.minAmount <= 0n || bounds.maxAmount < bounds.minAmount) throw new Error('sizing bounds are invalid');
-  if (!Number.isInteger(bounds.maxPriceImpactBps) || bounds.maxPriceImpactBps < 0 || bounds.maxPriceImpactBps > 10_000) throw new Error('maxPriceImpactBps is invalid');
-  if (bounds.maxEvaluations !== undefined && (!Number.isInteger(bounds.maxEvaluations) || bounds.maxEvaluations < 3)) throw new Error('maxEvaluations must be at least 3');
-}
-
-function interpolate(lower: bigint, upper: bigint, numerator: bigint, denominator: bigint): bigint {
-  return lower + (upper - lower) * numerator / denominator;
-}
-
-/**
- * Bounded adaptive search. It samples the full executable range then repeatedly
- * refines the two intervals around the best profitable quote. This does not assume
- * a globally smooth AMM curve, and therefore keeps every valid quote as evidence.
- */
+export type SizeQuoter = (amountIn: bigint, signal: AbortSignal) => Promise<SizeQuote | undefined>;
 export async function optimizeTradeSize(bounds: SizingBounds, quote: SizeQuoter): Promise<AdaptiveSizingResult> {
-  assertBounds(bounds);
-  const limit = bounds.maxEvaluations ?? 9;
-  const seeds = [
-    bounds.minAmount,
-    interpolate(bounds.minAmount, bounds.maxAmount, 1n, 4n),
-    interpolate(bounds.minAmount, bounds.maxAmount, 1n, 2n),
-    interpolate(bounds.minAmount, bounds.maxAmount, 3n, 4n),
-    bounds.maxAmount
-  ];
-  const evaluated: SizeQuote[] = [];
-
-  const observe = async (next: bigint): Promise<void> => {
-    const observation = await quote(next);
-    if (!observation || observation.amountIn !== next || !Number.isFinite(observation.netProfitUsd)) return;
-    evaluated.push(observation);
-  };
-  for (const amount of seeds) {
-    if (evaluated.length >= limit) break;
-    await observe(amount);
-  }
-
-  while (evaluated.length < limit) {
-    const viable = evaluated.filter((item) => item.priceImpactBps <= bounds.maxPriceImpactBps);
-    const best = viable.sort((left, right) => right.netProfitUsd - left.netProfitUsd)[0];
-    if (!best || evaluated.length >= limit) break;
-    const ordered = viable.sort((left, right) => left.amountIn < right.amountIn ? -1 : left.amountIn > right.amountIn ? 1 : 0);
-    const index = ordered.findIndex((item) => item.amountIn === best.amountIn);
-    const lower = ordered[index - 1]?.amountIn ?? bounds.minAmount;
-    const upper = ordered[index + 1]?.amountIn ?? bounds.maxAmount;
-    const left = interpolate(lower, best.amountIn, 1n, 2n);
-    const right = interpolate(best.amountIn, upper, 1n, 2n);
-    const next = upper - best.amountIn >= best.amountIn - lower ? right : left;
-    if (next === best.amountIn || evaluated.some((item) => item.amountIn === next)) break;
-    await observe(next);
-  }
-
-  const winner = evaluated
-    .filter((item) => item.netProfitUsd > 0 && item.priceImpactBps <= bounds.maxPriceImpactBps)
-    .sort((left, right) => right.netProfitUsd - left.netProfitUsd)[0];
-  return { winner, evaluated };
+  if (typeof bounds.minAmount !== 'bigint' || typeof bounds.maxAmount !== 'bigint' || typeof bounds.quantum !== 'bigint' || typeof bounds.minProfitRaw !== 'bigint' || bounds.minAmount <= 0n || bounds.maxAmount < bounds.minAmount || bounds.quantum <= 0n || bounds.minProfitRaw <= 0n || typeof bounds.expectedBlock !== 'bigint' || bounds.expectedBlock < 0n || !/^[a-f0-9]{64}$/.test(bounds.expectedStateDigest) || !Number.isSafeInteger(bounds.maxEvaluations) || bounds.maxEvaluations < 1 || bounds.maxEvaluations > 100000 || !Number.isSafeInteger(bounds.deadlineMs) || bounds.deadlineMs < 1 || bounds.deadlineMs > 3600000 || !Number.isInteger(bounds.maxPriceImpactBps) || bounds.maxPriceImpactBps < 0 || bounds.maxPriceImpactBps > 10000) throw new Error('INVALID_SIZING_BOUNDS');
+  const minimum = (bounds.minAmount + bounds.quantum - 1n) / bounds.quantum * bounds.quantum;
+  const maximum = bounds.maxAmount / bounds.quantum * bounds.quantum;
+  if (minimum > maximum) throw new Error('NO_FEASIBLE_SIZING_DOMAIN');
+  const count = (maximum - minimum) / bounds.quantum + 1n;
+  const limit = Math.min(bounds.maxEvaluations, count > BigInt(bounds.maxEvaluations) ? bounds.maxEvaluations : Number(count));
+  const controller = new AbortController(), deadline = performance.now() + bounds.deadlineMs;
+  const abort = () => controller.abort(); bounds.signal?.addEventListener('abort', abort, { once: true });
+  const result: AdaptiveSizingResult = { evaluated: [], attempted: 0, rejected: 0, rejectedQuotes: {}, termination: 'attempt-budget' };
+  const reject = (code: string) => { result.rejected++; result.rejectedQuotes[code] = (result.rejectedQuotes[code] ?? 0) + 1; };
+  try {
+    for (let i = 0; i < limit; i++) {
+      if (bounds.signal?.aborted) { result.termination = 'cancelled'; break; }
+      const remaining = deadline - performance.now();
+      if (remaining <= 0) { result.termination = 'time-budget'; break; }
+      const index = count <= BigInt(limit) ? BigInt(i) : BigInt(i) * (count - 1n) / BigInt(Math.max(1, limit - 1));
+      const amount = minimum + index * bounds.quantum;
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      let stop: (() => void) | undefined;
+      result.attempted++;
+      try {
+        const cancelled = new Promise<never>((_, fail) => {
+          stop = () => fail(new Error('CANCELLED'));
+          controller.signal.addEventListener('abort', stop, { once: true });
+          timer = setTimeout(() => { fail(new Error('QUOTE_DEADLINE')); controller.abort(); }, remaining);
+        });
+        const q = await Promise.race([Promise.resolve().then(() => quote(amount, controller.signal)), cancelled]);
+        if (!q || q.amountIn !== amount || typeof q.netProfitRaw !== 'bigint' || q.quoteBlock !== bounds.expectedBlock || q.stateDigest !== bounds.expectedStateDigest || !Number.isInteger(q.priceImpactBps) || q.priceImpactBps < 0 || q.priceImpactBps > 10000) { reject('INVALID_OR_FOREIGN_QUOTE'); continue; }
+        result.evaluated.push(q);
+        if (q.priceImpactBps <= bounds.maxPriceImpactBps && q.netProfitRaw >= bounds.minProfitRaw && (!result.winner || q.netProfitRaw > result.winner.netProfitRaw || q.netProfitRaw === result.winner.netProfitRaw && q.amountIn < result.winner.amountIn)) result.winner = q;
+      } catch (error) {
+        const code = error instanceof Error && /^[A-Z_]+$/.test(error.message) ? error.message : 'QUOTE_REJECTED'; reject(code);
+        if (code === 'QUOTE_DEADLINE' || code === 'CANCELLED') { result.termination = bounds.signal?.aborted ? 'cancelled' : 'time-budget'; break; }
+      } finally { clearTimeout(timer); if (stop) controller.signal.removeEventListener('abort', stop); }
+    }
+    if (BigInt(result.attempted) === count && !result.rejected) result.termination = 'domain-complete';
+    return result;
+  } finally { bounds.signal?.removeEventListener('abort', abort); controller.abort(); }
 }

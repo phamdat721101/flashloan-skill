@@ -5,27 +5,27 @@
     {
       "source_uri": "src/adaptive-sizing.ts",
       "entity_id": "optimizeTradeSize",
-      "hash": "sha256:f232d01f5284829b554b2ea4d7fe267c62360b6aa5d171ecebf9bf624cc10762"
+      "hash": "sha256:650334ebc16301dea17f4ca736fe772c6a60b8b3b1aec99a3de716917ec5a2b5"
     },
     {
       "source_uri": "src/arbitrage.ts",
       "entity_id": "buildAdaptiveArbitragePlan",
-      "hash": "sha256:1dc0d52078554cc374533c8353a529c7381fa76280e72213e110fbd7a3b8a171"
+      "hash": "sha256:2d2ec91ef738510a96e17a8178c07ce3ac6aa23f7a94133c3e708866737ff164"
     },
     {
       "source_uri": "src/liquidity/sizing.ts",
       "entity_id": "sizeRoute",
-      "hash": "sha256:10195f5a45230564eb728be7cb03a39659ca4bf01825185181ce6869cb01c019"
+      "hash": "sha256:3aab9b39302b0ba61227ff921ccb8abcb9c0339ea1ce43513fe89c18a289249d"
     },
     {
       "source_uri": "src/liquidity/sizing.ts",
       "entity_id": "sizeConditionalCycle",
-      "hash": "sha256:10195f5a45230564eb728be7cb03a39659ca4bf01825185181ce6869cb01c019"
+      "hash": "sha256:3aab9b39302b0ba61227ff921ccb8abcb9c0339ea1ce43513fe89c18a289249d"
     },
     {
       "source_uri": "src/liquidity/sizing.ts",
       "entity_id": "sizingToCandidate",
-      "hash": "sha256:10195f5a45230564eb728be7cb03a39659ca4bf01825185181ce6869cb01c019"
+      "hash": "sha256:3aab9b39302b0ba61227ff921ccb8abcb9c0339ea1ce43513fe89c18a289249d"
     },
     {
       "source_uri": "src/liquidity/analytics.ts",
@@ -76,6 +76,41 @@
       "source_uri": "docs/PRD-flashloan-evidence-driven-execution-upgrade-2026-10-26.md",
       "entity_id": "requirements-baseline",
       "hash": "sha256:c67b4caab6d66d6441396dd575cf2f1823f9115005891d7dc41ec8e9af7e4d54"
+    },
+    {
+      "source_uri": "src/evidence/runtime.ts",
+      "entity_id": "runEvidence",
+      "hash": "sha256:f0cf5554952337c55efa841df02c452a9ac3b742cb63fdb040bcb0e91ccc1cd4"
+    },
+    {
+      "source_uri": "src/evidence/solver.ts",
+      "entity_id": "solvePoolGraph",
+      "hash": "sha256:89b5decf21917e504e631e4cd7467fb2c9d940f0d253f1409518e5b44050e8b1"
+    },
+    {
+      "source_uri": "src/evidence/integrity.ts",
+      "entity_id": "ArtifactStore",
+      "hash": "sha256:b9ac9886c58fc08071cb544b1c4e36db257629651ccbb06948906e0999a1f4e6"
+    },
+    {
+      "source_uri": "src/liquidity/entry-band.ts",
+      "entity_id": "buildEntryBand",
+      "hash": "sha256:1cb5d566f8830e564c2c5888d6e60b1de08e4fbbf221487a438b603ad9144e69"
+    },
+    {
+      "source_uri": "src/liquidity/trigger-watcher.ts",
+      "entity_id": "runTriggerWatcher",
+      "hash": "sha256:70aca53d10b1d4e8f7f6f8269f539bc0f173dca84ff15f5028eba534e64f437e"
+    },
+    {
+      "source_uri": "src/execution-outcome.ts",
+      "entity_id": "projectRoundRow",
+      "hash": "sha256:128bc6d1a5944da2031908ff409cb61ccb46c195756d0f3ebebf3facfd379a37"
+    },
+    {
+      "source_uri": "src/evm/budget.ts",
+      "entity_id": "assessReadiness",
+      "hash": "sha256:fa2c76bd5bb11cc91035bf2fca6c679cac18f7ca5aef461ba3d6572fdbfd5ad8"
     }
   ],
   "dependencies": [
@@ -148,6 +183,41 @@
       "package_or_module": "src/nim-memory.ts",
       "symbol": "NimRuntimeMemory",
       "file_location": "src/nim-memory.ts"
+    },
+    {
+      "package_or_module": "src/evidence/runtime.ts",
+      "symbol": "runEvidence",
+      "file_location": "src/evidence/runtime.ts"
+    },
+    {
+      "package_or_module": "src/evidence/solver.ts",
+      "symbol": "solvePoolGraph",
+      "file_location": "src/evidence/solver.ts"
+    },
+    {
+      "package_or_module": "src/evidence/integrity.ts",
+      "symbol": "ArtifactStore",
+      "file_location": "src/evidence/integrity.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/entry-band.ts",
+      "symbol": "buildEntryBand",
+      "file_location": "src/liquidity/entry-band.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/trigger-watcher.ts",
+      "symbol": "runTriggerWatcher",
+      "file_location": "src/liquidity/trigger-watcher.ts"
+    },
+    {
+      "package_or_module": "src/execution-outcome.ts",
+      "symbol": "projectRoundRow",
+      "file_location": "src/execution-outcome.ts"
+    },
+    {
+      "package_or_module": "src/evm/budget.ts",
+      "file_location": "src/evm/budget.ts",
+      "symbol": "assessReadiness"
     }
   ],
   "architecture": {
@@ -842,7 +912,7 @@
         {
           "id": "T40",
           "requirement": "R16",
-          "assertion": "“Force trade”, “ignore profit”, unknown defaults and fresh-token demands never override profile/authority",
+          "assertion": "\u201cForce trade\u201d, \u201cignore profit\u201d, unknown defaults and fresh-token demands never override profile/authority",
           "stage": "M1",
           "ownerRole": "prompt/CLI boundary",
           "testFile": "src/test/flashloan-evidence-e2e.test.ts",
@@ -1365,5 +1435,86 @@
     "EDGE-03: independent exact economics and lineage checks",
     "EDGE-04: AST/hash dependencies and all R01-R16/T01-T42 mappings",
     "EDGE-05: separate specification delivery and pending runtime admission"
-  ]
+  ],
+  "implementation": {
+    "version": "5.1",
+    "scope": "local implementation; public runtime pending",
+    "source": "docs/PRD-flashloan-trigger-first-execution-upgrade-2026-10-27.md",
+    "entrypoints": [
+      "npm run liquidity -- evidence-run <request.json>",
+      "npm run liquidity -- evidence-integrity <round-dir> [--previous <round-dir>]"
+    ],
+    "hostContract": "EvidenceHost in src/evidence/runtime.ts; WatchHost in src/liquidity/trigger-watcher.ts; no request-specified modules or commands",
+    "inputOutputSchemas": [
+      "schemas/flashloan-evidence-v5.1.schema.json",
+      "schemas/flashloan-evidence-v5.1-additions.schema.json"
+    ],
+    "requirements": [
+      {
+        "id": "R17",
+        "implementation": [
+          "src/liquidity/entry-band.ts",
+          "src/liquidity/trigger-watcher.ts",
+          "src/liquidity/l2-sources.ts"
+        ],
+        "verification": "Constructed bands, shadow replay, deadline, reorg, ancestry, cache and coverage regressions; original T43/T44/T46 historical fixture assertions pending."
+      },
+      {
+        "id": "R18",
+        "implementation": [
+          "src/liquidity/sizing.ts",
+          "src/evidence/runtime.ts"
+        ],
+        "verification": "Exact state-ordered attribution runs in local pipeline; full T51-T54 native-alternative/historical acceptance pending."
+      },
+      {
+        "id": "R19",
+        "implementation": [
+          "src/evidence/integrity.ts",
+          "src/evidence/solver.ts"
+        ],
+        "verification": "Empty/invalid bytes, lineage, economic mutation, negative-domain replay and freshness regressions; T55 original R66/R67 replay pending."
+      },
+      {
+        "id": "R20",
+        "implementation": [
+          "src/evidence/integrity.ts",
+          "config/lesson-checks.json",
+          "src/evidence/runtime.ts"
+        ],
+        "verification": "Closed predicates, WARN/BLOCK, trusted owner approval and provisional proposals tested; historical lesson mapping and contradiction host integration pending."
+      },
+      {
+        "id": "R21",
+        "implementation": [
+          "src/evm/budget.ts",
+          "src/evidence/runtime.ts"
+        ],
+        "verification": "Readiness regression covers READY plus research mode, missing address, no admission, zero gas, missing budget and noncanonical state. Public admission pending."
+      },
+      {
+        "id": "R22",
+        "implementation": [
+          "src/execution-outcome.ts",
+          "scripts/flashloan-evidence-local-e2e.mjs"
+        ],
+        "verification": "Strict 26-column projection and constructed real local receipt/CSV; original T65 CSV parity and complete T66 staged watcher transcript pending."
+      }
+    ],
+    "verification": [
+      "node scripts/verify-flashloan-implementation.mjs",
+      "npm run evidence:test",
+      "npm test",
+      "npm run evidence:local-e2e"
+    ],
+    "remainingGates": [
+      "original historical fixture/CSV replay",
+      "per-lane pinned native fork parity",
+      "live shadow trigger-survival measurement",
+      "owner-provided public tool/MCP contract",
+      "separately authorized public canary",
+      "P2 forecasting/rotation/venue admission evidence"
+    ],
+    "claim": "Grouped test IDs describe coverage areas, not proof that all T01\u2013T73 assertions passed."
+  }
 }

@@ -3,11 +3,11 @@ import test from 'node:test';
 import { optimizeTradeSize } from '../adaptive-sizing.js';
 
 test('EDGE-09 selects the highest net-profit live quote without fixed tiers', async () => {
-  const result = await optimizeTradeSize({ minAmount: 1n, maxAmount: 1_000n, maxEvaluations: 9, maxPriceImpactBps: 200 }, async (amountIn) => ({
+  const result = await optimizeTradeSize({ minAmount: 1n, maxAmount: 1_000n, maxEvaluations: 9, maxPriceImpactBps: 200, quantum: 1n, deadlineMs: 1000, expectedBlock: 100n, expectedStateDigest: "a".repeat(64), minProfitRaw: 1n }, async (amountIn) => ({
     amountIn,
-    netProfitUsd: 100 - Math.abs(Number(amountIn) - 625) / 10,
+    netProfitRaw: 1000n - (amountIn > 625n ? amountIn - 625n : 625n - amountIn),
     priceImpactBps: 50,
-    quoteBlock: 100n
+    quoteBlock: 100n, stateDigest: "a".repeat(64)
   }));
   assert.ok(result.winner);
   assert.equal(result.winner!.amountIn > 500n && result.winner!.amountIn < 750n, true);
@@ -15,11 +15,11 @@ test('EDGE-09 selects the highest net-profit live quote without fixed tiers', as
 });
 
 test('rejects profitable quotes beyond the configured price-impact bound', async () => {
-  const result = await optimizeTradeSize({ minAmount: 1n, maxAmount: 100n, maxPriceImpactBps: 100 }, async (amountIn) => ({
+  const result = await optimizeTradeSize({ minAmount: 1n, maxAmount: 100n, maxPriceImpactBps: 100, quantum: 1n, maxEvaluations: 9, deadlineMs: 1000, expectedBlock: 100n, expectedStateDigest: "a".repeat(64), minProfitRaw: 1n }, async (amountIn) => ({
     amountIn,
-    netProfitUsd: Number(amountIn),
+    netProfitRaw: amountIn,
     priceImpactBps: amountIn > 50n ? 101 : 50,
-    quoteBlock: 100n
+    quoteBlock: 100n, stateDigest: "a".repeat(64)
   }));
   assert.ok(result.winner);
   assert.equal(result.winner!.amountIn <= 50n, true);

@@ -43,3 +43,5 @@ docs/deployments/*
 !docs/features/flashloan-evidence-driven-execution-map.md
 !docs/PRD-flashloan-evidence-driven-execution-upgrade-2026-10-26.md
 !docs/features/aero-v2-routing.md
+
+!docs/PRD-flashloan-trigger-first-execution-upgrade-2026-10-27.md

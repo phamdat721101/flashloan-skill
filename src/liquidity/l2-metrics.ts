@@ -12,7 +12,7 @@ const canonical = (o: MarketObservation) => o.status === 'node-confirmed' || o.s
  */
 export function executableDepth(raw: PoolStateEnvelope,bps: number,side: 'bid' | 'ask'): DepthPoint {
   const pool = parsePoolState(raw);
-  if (![100,200,500].includes(bps) || !['bid','ask'].includes(side) || pool.stateClass !== 'canonical') throw new Error('L2_INVALID_DEPTH_REQUEST');
+  if (![10,25,50,100,200,500].includes(bps) || !['bid','ask'].includes(side) || pool.stateClass !== 'canonical') throw new Error('L2_INVALID_DEPTH_REQUEST');
   const tokenIn = side === 'bid' ? pool.token0 : pool.token1, tokenOut = side === 'bid' ? pool.token1 : pool.token0;
   const point = { bps,side,inputAsset: tokenIn,outputAsset: tokenOut };
   const spot = poolPrice(pool), target = rational(BigInt(spot.numerator) * BigInt(10000 + (side === 'bid' ? -bps : bps)),BigInt(spot.denominator) * 10000n);

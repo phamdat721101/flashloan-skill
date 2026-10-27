@@ -222,3 +222,47 @@ export async function* streamMarketMessages(url: string,subscription: unknown,si
     if (failure) throw failure;
   } finally { abort(); signal?.removeEventListener('abort',abort); }
 }
+
+/** Continuous canonical EVM capture using the existing durable follower, with bounded catch-up. */
+export async function* followEvmTriggerBlocks(config:Omit<ArbitrumL2Capture,'blockNumber'>,journal:import('./ingestion.js').SourceJournal,options:import('./ingestion.js').FollowSourceOptions):AsyncGenerator<import('./trigger-watcher.js').TriggerBlock>{
+  const {followSource}=await import('./ingestion.js');
+  if(config.pools.some(p=>p.protocol==='uniswap-v4'))throw new Error('UNSUPPORTED_WATCH_LIQUIDITY_EVENTS');
+  const {evidenceIdentity}=await import('./entry-band.js');
+  secureEndpoint(config.rpcUrl);
+  const client=createPublicClient({transport:http(config.rpcUrl,{timeout:15000,retryCount:0})});
+  const network=String(await client.getChainId());if(!['8453','42161','421614'].includes(network))throw new Error('UNSUPPORTED_WATCH_NETWORK');
+  let emitted=0;
+  while(!options.signal?.aborted&&emitted<options.maxFrames){
+    let captured:import('./ingestion.js').SourceFrame|undefined;
+    const result=await followSource(journal,{...options,maxFrames:1},async()=>String(await client.getBlockNumber({cacheTime:0})),async height=>{
+      if(options.signal?.aborted)throw new Error('WATCH_CANCELLED');
+      const prior=await journal.latest();
+      if(prior?.identity.height===height&&prior.identity.chain!=='sui'){
+        const header=await client.getBlock({blockNumber:BigInt(height)});if(header.hash===prior.identity.blockHash)return {identity:prior.identity,parentDigest:prior.parentDigest,payload:prior.payload};
+      }
+      const observations=await captureArbitrumL2({...config,blockNumber:height});
+      const state=observations.find(o=>o.payload.kind==='pool');if(!state?.identity)throw new Error('WATCH_STATE_UNAVAILABLE');
+      const liquidityEvents:string[]=[];
+      for(const pool of config.pools){const events=pool.protocol==='uniswap-v2'?parseAbi(['event Mint(address indexed sender,uint256 amount0,uint256 amount1)','event Burn(address indexed sender,uint256 amount0,uint256 amount1,address indexed to)']):parseAbi(['event Mint(address sender,address indexed owner,int24 indexed tickLower,int24 indexed tickUpper,uint128 amount,uint256 amount0,uint256 amount1)','event Burn(address indexed owner,int24 indexed tickLower,int24 indexed tickUpper,uint128 amount,uint256 amount0,uint256 amount1)']);
+        const logs=await client.getLogs({address:pool.address,events,fromBlock:BigInt(height),toBlock:BigInt(height)});if(logs.length>10000)throw new Error('L2_LOG_LIMIT');
+        for(const log of logs){if(log.blockHash!==(state.identity.chain==='sui'?'':state.identity.blockHash)||log.removed)throw new Error('L2_BLOCK_DIVERGENCE');liquidityEvents.push(`${log.blockHash}:${log.transactionHash}:${log.logIndex}`);}
+      }
+      if((await client.getBlock({blockNumber:BigInt(height)})).hash!==(state.identity.chain==='sui'?'':state.identity.blockHash))throw new Error('L2_BLOCK_DIVERGENCE');
+      return {identity:state.identity,parentDigest:state.parentDigest,payload:{observations,liquidityEvents}};
+    },async frame=>{captured=frame;});
+    if(!captured){if(result.status!=='frame-limit')return;continue;}
+    const payload=captured.payload as {observations?:MarketObservation[];liquidityEvents?:string[]};
+    const observations=Array.isArray(captured.payload)?captured.payload as MarketObservation[]:payload.observations;if(!observations)throw new Error('INVALID_WATCH_FRAME');
+    const pools=observations.flatMap(o=>o.payload.kind==='pool'?[o.payload.pool]:[]);
+    if(!pools.length)throw new Error('WATCH_STATE_UNAVAILABLE');
+    const base=[pools[0].token0,pools[0].token1].sort()[0];
+    const swaps=observations.flatMap(o=>{
+      if(o.payload.kind!=='trade')return [];const pool=pools.find(p=>p.poolId===o.poolId);if(!pool)throw new Error('WATCH_POOL_MISMATCH');
+      const index=o.eventId.lastIndexOf(':'),transactionId=o.eventId.slice(0,index),logIndex=Number(o.eventId.slice(index+1));
+      if(!/^0x[a-f0-9]{64}$/.test(transactionId)||!Number.isSafeInteger(logIndex)||logIndex<0)throw new Error('WATCH_EVENT_ID_INVALID');
+      const tokenIn=o.payload.side==='sell'?pool.token0:pool.token1;
+      return [{transactionId,logIndex,poolId:o.poolId,direction:tokenIn===base?'sell-base' as const:'buy-base' as const,amountInRaw:o.payload.side==='sell'?o.payload.baseAtoms:o.payload.quoteAtoms,observedAtNs:o.receivedTimeNs,inclusionToObservationMs:null}];
+    });
+    emitted++;yield {state:evidenceIdentity(pools[0]),parentHash:captured.parentDigest??'',pools,swaps,liquidityEvents:payload.liquidityEvents??[]};
+  }
+}

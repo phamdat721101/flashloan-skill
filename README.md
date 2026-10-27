@@ -23,10 +23,17 @@ For the liquid-pattern workflow, start with [capture, size and prepare](#use-a-l
 
 ## Latest upgrade and how to use it
 
+The **2026-10-27 v5.1 upgrade** implements local evidence-driven research and
+trigger-first evaluation: exact integer sizing, bounded searches, canonical
+trigger replay and head rechecks, semantic artifact validation, owner-approved
+lesson gates, and typed reporting. The [implementation companion](docs/features/flashloan-evidence-driven-execution.md)
+describes the host interfaces and remaining acceptance gates.
+
 The latest recorded Base executor is **AeroSplitFlashExecutorV2**, deployed on
-2026-10-24. The 2026-10-26 **evidence-driven v5 upgrade is an implementation
-specification**, with executable offline checks. It does not deploy a new
-contract or add the proposed `evidence-run` command.
+2026-10-24. This upgrade changes the agent/runtime; its Solidity bytecode is
+unchanged. The deployed executor has no proxy or in-place bytecode upgrade
+mechanism. A future Solidity revision needs a new deployment, configured roots,
+verified artifact binding and fresh admission.
 
 | Item | Published reference |
 | --- | --- |
@@ -37,27 +44,73 @@ contract or add the proposed `evidence-run` command.
 | Selector | `0xc7c01977`; use the [V2 artifact binding](config/aero-base-executor-v2.json) |
 | Deployment/configuration evidence | [Base Aero v2 record](docs/deployments/base-aero-v2-20261024.json), including 28 configured roots and `liveTradingAdmitted: false` |
 
-[Read-only verification on 2026-10-26](docs/deployments/base-aero-v2-readback-20261026.json)
-matched the runtime code hash and owner at Base block `53121789` and confirmed
-the successful deployment receipt. Configuration roots were not re-read in
-that check; their evidence remains the dated deployment record.
+[Read-only verification on 2026-10-27](docs/deployments/base-aero-v2-readback-20261027.json)
+records the finalized block, executor runtime hash, owner, deployment receipt,
+and readback of all 28 configured root entries. This evidence establishes the
+recorded contract state at that block; trading admission remains separate.
 
-Update an existing checkout on `aero-v2-routing`, then build and verify the
-specification without a wallet or RPC:
+Update an existing checkout on `aero-v2-routing`, then build and verify:
 
 ```sh
 git pull --ff-only origin aero-v2-routing
 npm ci
-forge build
+forge build --offline
 npm run build
 npm run evidence:spec
+npm run evidence:test
+node scripts/verify-flashloan-implementation.mjs
 ```
 
-`evidence:spec` verifies all five specification edges, corrected v5 record
-examples, source/dependency hashes, exact ledger/hurdle arithmetic and the
-R01–R16/T01–T42 implementation map. It also reproduces the known legacy sizing
-budget defect under a finite host guard. Passing this command verifies the
-specification package; the sizing fix and runtime acceptance tests remain pending.
+`evidence:spec` checks the original specification and file-specific dependency
+pins. `evidence:test` tests the implemented local runtime and watcher.
+The implementation verifier compiles all schemas strictly and executes five
+local edge proofs. These commands require no wallet or public RPC.
+
+For an agent using v5.1:
+
+1. Follow [prompt v4](skills/flashloan-agent/prompt-v4.md). Build a strict
+   [v5.1 RunRequest](schemas/flashloan-evidence-v5.1.schema.json) with a unique
+   `runId`, network and asset locators, hash-bound risk profile, raw principal
+   cap, and cost/valuation references. Monetary integers are decimal strings;
+   asset decimals are explicit and must match captured pools.
+2. Supply an explicit `EvidenceHost` for profile, inventory and canonical
+   capture. Native simulation additionally needs compile/simulate adapters and
+   caller/executor context. The CLI's optional `FLASHLOAN_EVIDENCE_HOST_FILE`
+   accepts only an owner-configured `evidence-host/1.0` snapshot-file with
+   `profile`, `inventory` and `market`; it cannot sign or run native simulation.
+3. Run the evidence workflow and inspect its durable report:
+
+   ```sh
+   npm run liquidity -- evidence-run request.json
+   npm run liquidity -- evidence-integrity .nim/evidence/rounds/YOUR_RUN_ID
+   ```
+
+   `FLASHLOAN_EVIDENCE_ROOT` can select another artifact root. Missing host
+   capability produces an explicit handoff/inconclusive report. Integrity or
+   approved lesson BLOCK refuses publication and returns a nonzero CLI status.
+4. For continuous trigger evaluation, embed `runTriggerWatcher` with a
+   `WatchHost`; `followEvmTriggerBlocks` supplies journal-backed V2/V3 Swap and
+   liquidity events. One bounded worker replays the trigger block and rechecks
+   canonical head state. Bandless shadow evaluation is supported. There is no
+   standalone `evidence-watch` CLI or implicit native adapter; V4 watcher
+   liquidity events remain unsupported.
+5. Consume the report, manifest, integrity and recall records under
+   `rounds/<runId>/` and content-addressed JSON under `objects/`. Records join
+   by state/policy/plan/payload hashes. A model remains `SNAPSHOT_MODEL`;
+   `NATIVE_SIM` requires bound native evidence, and `RECEIPT` requires a raw
+   receipt and reconciled attempt journal. The standalone audit has no trusted
+   journal adapter and cannot re-establish receipt authority. Report helpers
+   project typed 26-column CSV/sheet data; unknown dollar metrics stay null.
+
+`npm run evidence:local-e2e` deploys constructed localhost liquidity and the
+existing executor, then verifies borrow → two swaps → repayment → preserved
+opening funds → journal/receipt → report/CSV. It requires Anvil and permission
+to bind localhost. It does not send to a public chain.
+
+Original historical snapshot/CSV parity, pinned native forks, live-shadow
+survival measurements, public tool integration and authorized canaries remain
+acceptance gates. Procedures/rules from memory require owner approval; recalled
+memory never replaces current evidence or execution authorization.
 
 For the deployed V2 workflow, capture the configured pools without signing:
 
@@ -70,19 +123,17 @@ npm run aero -- capture \
 Capture uses `BASE_RPC_URL` when configured and otherwise the public Base RPC.
 Use the [V2 operating workflow](#aero-v2-aerodrome--uniswap-routing-with-live-sends)
 for its separate fork rehearsal and explicitly authorized send path. Match V2
-requests (`aero-split/1.1`) to the V2 artifact; the proposed evidence `5.0`
-records are a separate contract. Deployment and local simulation do not establish
+requests (`aero-split/1.1`) to the V2 artifact; evidence `5.0`/`5.1`
+records are separate host data contracts. Deployment and local simulation do not establish
 a profitable live trade or authorize one.
 
-For implementing the evidence upgrade, read the [original PRD](docs/PRD-flashloan-evidence-driven-execution-upgrade-2026-10-26.md),
+For the full design and verified dependencies, read the [original v5 PRD](docs/PRD-flashloan-evidence-driven-execution-upgrade-2026-10-26.md),
+[trigger-first addendum](docs/PRD-flashloan-trigger-first-execution-upgrade-2026-10-27.md),
 [implementation companion](docs/features/flashloan-evidence-driven-execution.md),
-[corrected v5 schema](schemas/flashloan-evidence-v5.schema.json), and
+[v5.1 additions](schemas/flashloan-evidence-v5.1-additions.schema.json), and
 [requirement/test manifest](docs/features/flashloan-evidence-driven-execution.spec.json).
 The [delivery maps](docs/features/flashloan-evidence-driven-execution-map.md)
-separate completed specification verification from Draft runtime work. The
-companion defines policy, canonical state, bounded exact search, native proof,
-receipt accounting and cited knowledge, with full local trading E2E and per-lane
-fork/canary gates required before runtime completion.
+keep full public runtime acceptance Draft until its remaining evidence passes.
 
 ## Base and Robinhood execution
 

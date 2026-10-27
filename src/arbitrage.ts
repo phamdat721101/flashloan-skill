@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { optimizeTradeSize, type SizeQuote, type SizingBounds } from './adaptive-sizing.js';
 import type { ExecutorCapability } from './contracts/flash-executor.js';
-import type { Address, AllocationPlan, Hex } from './types.js';
+import type { Address, Hex } from './types.js';
 
 export type PoolFamily = 'uniswap-v2' | 'uniswap-v3' | 'uniswap-v4';
 
@@ -13,13 +13,15 @@ export interface FactoryPoolCandidate {
   expiresAt: string;
   flashAsset: Address;
   flashAssetDecimals: number;
-  flashAssetUsd: number;
+  flashAssetUsd: { numerator: string; denominator: string };
+  stateDigest: string;
   pools: Address[];
 }
 
 export interface ArbitrageQuote extends SizeQuote {
   amountOut: bigint;
   flashFee: bigint;
+  externalCostRaw: bigint;
   transaction: { to: Address; data: Hex };
 }
 
@@ -36,8 +38,16 @@ function capability(family: PoolFamily): ExecutorCapability {
 function validate(candidate: FactoryPoolCandidate, bounds: SizingBounds): void {
   if (!candidate.id || candidate.chainId <= 0 || candidate.pools.length === 0) throw new Error('factory pool candidate is invalid');
   if (Date.parse(candidate.expiresAt) <= Date.now()) throw new Error('factory pool candidate has expired');
-  if (!Number.isInteger(candidate.flashAssetDecimals) || candidate.flashAssetDecimals < 0 || !Number.isFinite(candidate.flashAssetUsd) || candidate.flashAssetUsd <= 0) throw new Error('flash asset valuation is invalid');
-  if (bounds.maxAmount < bounds.minAmount) throw new Error('factory pool bounds are invalid');
+  if (!Number.isInteger(candidate.flashAssetDecimals) || candidate.flashAssetDecimals < 0 || !candidate.flashAssetUsd || !/^[1-9][0-9]*$/.test(candidate.flashAssetUsd.numerator) || !/^[1-9][0-9]*$/.test(candidate.flashAssetUsd.denominator)) throw new Error('flash asset valuation is invalid');
+  if (bounds.expectedBlock !== candidate.observedBlock || bounds.expectedStateDigest !== candidate.stateDigest || bounds.maxAmount < bounds.minAmount) throw new Error('factory pool bounds are invalid');
+}
+
+export interface ExactArbitragePlan {
+  id: string; opportunityId: string; chainId: number; strategy: string; priceImpactBps: number;
+  netProfitRaw: string; stateDigest: string;
+  legs: Array<{ venue: string; path: Address[]; allocationBps: number; minAmountOut: bigint }>;
+  transaction: { to: Address; data: Hex }; sourceBlock: bigint; quoteBlock: bigint; capability: ExecutorCapability;
+  profitTokenUsd: { numerator: string; denominator: string }; profitTokenDecimals: number; expiresAt: string;
 }
 
 /** Builds one exact, highest-net proposal after adaptive bounded quote sampling. */
@@ -46,28 +56,25 @@ export async function buildAdaptiveArbitragePlan(
   bounds: SizingBounds,
   quoter: ArbitrageQuoter,
   executorAddress: Address
-): Promise<AllocationPlan | undefined> {
+): Promise<ExactArbitragePlan | undefined> {
   validate(candidate, bounds);
   const quotes = new Map<bigint, ArbitrageQuote>();
   const result = await optimizeTradeSize(bounds, async (amountIn) => {
     const quote = await quoter.quote(candidate, amountIn);
-    if (!quote || quote.amountIn !== amountIn || quote.amountOut <= amountIn + quote.flashFee) return undefined;
+    if (!quote || quote.amountIn !== amountIn || quote.externalCostRaw < 0n || quote.amountOut <= amountIn + quote.flashFee + quote.externalCostRaw || quote.netProfitRaw !== quote.amountOut - amountIn - quote.flashFee - quote.externalCostRaw) return undefined;
     quotes.set(amountIn, quote);
     return quote;
   });
   const winner = result.winner && quotes.get(result.winner.amountIn);
   if (!winner) return undefined;
-  const scale = 10 ** candidate.flashAssetDecimals;
-  const quotedNetProfitUsd = Number(winner.amountOut - winner.amountIn - winner.flashFee) / scale * candidate.flashAssetUsd;
-  if (!Number.isFinite(quotedNetProfitUsd) || quotedNetProfitUsd <= 0) return undefined;
   return {
     id: `arbitrage-${randomUUID()}`,
     opportunityId: candidate.id,
     chainId: candidate.chainId,
     strategy: `${candidate.family}-factory-arbitrage`,
-    borrowTierUsd: 0,
     priceImpactBps: winner.priceImpactBps,
-    quotedNetProfitUsd,
+    netProfitRaw: winner.netProfitRaw.toString(),
+    stateDigest: winner.stateDigest,
     legs: [{ venue: candidate.family, path: [candidate.flashAsset], allocationBps: 10_000, minAmountOut: winner.amountOut }],
     transaction: { to: executorAddress, data: winner.transaction.data },
     sourceBlock: candidate.observedBlock,

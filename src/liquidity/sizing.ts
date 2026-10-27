@@ -1,9 +1,11 @@
 import { digest, parseSnapshot, uint, type LiquiditySnapshot } from './state.js';
 import type { RouteCandidate } from './runtime.js';
 import { parsePoolState, projectPool, type PoolStateEnvelope, type ProjectionResult } from './projection.js';
-import { ceilDiv, v2StationarySeed } from './v2.js';
+import { ceilDiv, v2StationarySeed, rational } from './v2.js';
 import { quoteAlgebraExactInput, type AlgebraLinkedState, type AlgebraFeeResolution } from './algebra.js';
 import { quoteDeepBookExactInput, type DeepBookBookState } from '../sui/deepbook.js';
+import { executableDepth } from './l2-metrics.js';
+import { poolPrice } from './projection.js';
 import { parseStateIdentity, type StateIdentity } from './state.js';
 
 export interface SizingRequest {
@@ -146,7 +148,7 @@ export function sizeRoute(inputs: unknown, rawRequest: unknown): SizingResult {
     }
   }
   const selected = best && best.profit > 0n && best.profit >= uint(request.minProfit) ? best : undefined;
-  return { schemaVersion: '4.0', status: selected ? 'selected' : 'no-profitable-size', optimality: BigInt(samples.size) === count ? 'certified' : 'best-found', snapshotDigest, requestDigest: digest(request), stateClass: pools.every(pool => pool.stateClass === 'canonical') ? 'canonical' : 'projected', borrowAsset: request.borrowAsset, feasibleMinimum: minimum.toString(), feasibleMaximum: maximum.toString(), quantum: quantum.toString(), evaluations: samples.size, amountIn: selected?.amount.toString() ?? '0', amountOut: selected?.output.toString() ?? '0', flashFee: selected?.fee.toString() ?? '0', repayment: selected ? (selected.amount + selected.fee).toString() : '0', costInBorrowAsset: request.costInBorrowAsset, netProfit: selected?.profit.toString() ?? '0', legs: selected?.legs ?? [], rejectedQuotes };
+  return { schemaVersion: '4.0', status: selected ? 'selected' : 'no-profitable-size', optimality: BigInt(samples.size) === count && Object.keys(rejectedQuotes).every(code => ['ZERO_ROUTE_OUTPUT','NON_BASE_ROUTE_REMAINDER'].includes(code)) ? 'certified' : 'best-found', snapshotDigest, requestDigest: digest(request), stateClass: pools.every(pool => pool.stateClass === 'canonical') ? 'canonical' : 'projected', borrowAsset: request.borrowAsset, feasibleMinimum: minimum.toString(), feasibleMaximum: maximum.toString(), quantum: quantum.toString(), evaluations: samples.size, amountIn: selected?.amount.toString() ?? '0', amountOut: selected?.output.toString() ?? '0', flashFee: selected?.fee.toString() ?? '0', repayment: selected ? (selected.amount + selected.fee).toString() : '0', costInBorrowAsset: request.costInBorrowAsset, netProfit: selected?.profit.toString() ?? '0', legs: selected?.legs ?? [], rejectedQuotes };
 }
 
 /** Bridge to the existing simulation/signing runtime. A projected or altered quote cannot become a candidate.
@@ -244,6 +246,48 @@ export function sizeConditionalCycle(raw: ConditionalVenue[],rawRequest: unknown
       rejectedQuotes[code] = (rejectedQuotes[code] ?? 0) + 1;
     }
   }
-  const evidenceComplete = !rejectedQuotes.UNRESOLVED_ALGEBRA_PLUGIN;
+  const evidenceComplete = Object.keys(rejectedQuotes).every(code => ['ZERO_ROUTE_OUTPUT','NON_BASE_ROUTE_REMAINDER'].includes(code));
   return { schemaVersion: '4.0',eligibility: 'simulation-required',status: best ? 'selected' : evidenceComplete ? 'no-profitable-size' : 'incomplete-evidence',evidenceComplete,snapshotDigest: request.snapshotDigest,requestDigest: digest(request),direction: best?.direction ?? null,amountIn: best?.amount.toString() ?? '0',amountOut: best?.output.toString() ?? '0',repayment: best?.debt.toString() ?? '0',netProfit: best?.profit.toString() ?? '0',evaluations,optimality: evidenceComplete && BigInt(amounts.size) === count ? 'certified' : 'best-found',quotes: best?.quotes ?? [],rejectedQuotes };
+}
+
+export interface AttributionPlan {
+  runId: string; planHash: string; stateDigest: string; requestedRaw: string; solvedRaw: string; netRaw: string;
+  legs: Array<{ branchId: string; quote: ProjectionResult }>;
+}
+export interface AttributionAlternative { action:'SPLIT_EXIT_LEG'|'ADD_HUB_HOP';stateDigest:string;principalRaw:string;netRaw:string;addedCostRaw:string;replayed:boolean }
+/** Attribute impact against the state immediately before each ordered leg, including decimal scaling. */
+export function attributeLegs(plan:AttributionPlan,bundle:PoolStateEnvelope[],triggerPoolId?:string,alternatives:AttributionAlternative[]=[]){
+  if(plan.stateDigest!==digest(bundle)||!plan.legs.length)throw new Error('ATTRIBUTION_STATE_MISMATCH');
+  const states=new Map(bundle.map(p=>[p.poolId,parsePoolState(p)])),indices=new Map<string,number>();
+  let dislocated=triggerPoolId;
+  if(triggerPoolId&&!states.has(triggerPoolId))throw new Error('TRIGGER_POOL_MISMATCH');
+  if(!dislocated){
+    let greatest:{poolId:string;n:bigint;d:bigint}|undefined;
+    const groups=new Map<string,PoolStateEnvelope[]>();
+    for(const pool of bundle){const key=[pool.token0,pool.token1].sort().join(':');groups.set(key,[...(groups.get(key)??[]),pool]);}
+    for(const venues of groups.values()){
+      if(venues.length<2)continue;const base=[venues[0].token0,venues[0].token1].sort()[0];
+      const points=venues.map(pool=>{const p=poolPrice(pool),normal=pool.token0===base,depth=executableDepth(pool,100,normal?'ask':'bid').inputAtoms.value;return {poolId:pool.poolId,price:normal?p:{numerator:p.denominator,denominator:p.numerator},weight:depth===null?0n:BigInt(depth)};}).filter(p=>p.weight>0n);
+      const weight=points.reduce((n,p)=>n+p.weight,0n);if(!weight)continue;let mean=rational(0n,1n);
+      for(const p of points)mean=rational(BigInt(mean.numerator)*BigInt(p.price.denominator)+BigInt(p.price.numerator)*p.weight*BigInt(mean.denominator),BigInt(mean.denominator)*BigInt(p.price.denominator));
+      mean=rational(BigInt(mean.numerator),BigInt(mean.denominator)*weight);
+      for(const p of points){const difference=BigInt(p.price.numerator)*BigInt(mean.denominator)-BigInt(mean.numerator)*BigInt(p.price.denominator),n=difference<0n?-difference:difference,d=BigInt(p.price.denominator)*BigInt(mean.numerator);if(d>0n&&(!greatest||n*greatest.d>greatest.n*d||n*greatest.d===greatest.n*d&&p.poolId<greatest.poolId))greatest={poolId:p.poolId,n,d};}
+    }
+    dislocated=greatest?.poolId;
+  }
+  const legs=plan.legs.map(({branchId,quote})=>{
+    const pool=states.get(quote.projectedState.poolId);if(!pool||quote.snapshotDigest!==digest(pool))throw new Error('ATTRIBUTION_REPLAY_REQUIRED');
+    const zero=quote.tokenIn===pool.token0,price=quote.priceBefore;
+    const numerator=zero?BigInt(price.numerator):BigInt(price.denominator),denominator=zero?BigInt(price.denominator):BigInt(price.numerator);
+    const inputDecimals=zero?pool.decimals0:pool.decimals1,outputDecimals=zero?pool.decimals1:pool.decimals0;
+    const effective=uint(quote.consumedInput)-uint(quote.feeAmount),spot=effective*numerator*10n**BigInt(outputDecimals)/(denominator*10n**BigInt(inputDecimals));
+    if(!spot)throw new Error('ATTRIBUTION_ZERO_SPOT');
+    const index=indices.get(branchId)??0;indices.set(branchId,index+1);states.set(pool.poolId,quote.projectedState);
+    return {branchId,legIndex:index,poolId:pool.poolId,inputRaw:quote.amountIn,outputRaw:quote.amountOut,spotOutputRaw:spot.toString(),feeRaw:quote.feeAmount,impactBps:{numerator:((spot-uint(quote.amountOut))*10000n).toString(),denominator:spot.toString()},isDislocatedLeg:pool.poolId===dislocated};
+  });
+  const dominant=legs.reduce((a,b)=>BigInt(a.impactBps.numerator)*BigInt(b.impactBps.denominator)>=BigInt(b.impactBps.numerator)*BigInt(a.impactBps.denominator)?a:b);
+  const evaluated=alternatives.filter(a=>a.stateDigest===plan.stateDigest&&a.principalRaw===plan.solvedRaw&&a.replayed&&uint(a.addedCostRaw)>=0n);
+  const best=evaluated.sort((a,b)=>BigInt(a.netRaw)>BigInt(b.netRaw)?-1:1)[0];
+  const action=dominant.isDislocatedLeg?(uint(plan.solvedRaw)<uint(plan.requestedRaw)?'REDUCE_SIZE':'KEEP'):best&&BigInt(best.netRaw)>BigInt(plan.netRaw)?best.action:'KEEP';
+  return {schemaVersion:'5.1' as const,recordType:'leg-attribution' as const,runId:plan.runId,planHash:plan.planHash,stateDigest:plan.stateDigest,legs,dominantImpactLeg:{branchId:dominant.branchId,legIndex:dominant.legIndex},hopDecision:{action,alternativesEvaluated:evaluated.length,netGainRaw:best?(BigInt(best.netRaw)-BigInt(plan.netRaw)).toString():null,addedCostRaw:best?.addedCostRaw??null,reason:!dislocated?'DISLOCATION_UNRESOLVED':dominant.isDislocatedLeg?'DISLOCATED_LEG_DOMINATES':best?'MATCHED_STATE_NET_COMPARISON':'ALTERNATIVE_NOT_SNAPSHOTTED'}};
 }

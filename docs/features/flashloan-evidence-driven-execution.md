@@ -1,6 +1,6 @@
 # Flashloan evidence-driven execution: implementation companion
 
-Status: specification package. Runtime changes, T01–T42, native parity and live admission remain pending. The owner selected full staged coverage, a corrected v5 contract, an atomic exact-unit caller migration, split verification caching and local plus per-lane execution gates.
+Status: local v5.1 implementation delivered with bounded research and shadow adapters; full PRD acceptance, native fork parity and live admission remain pending. The owner selected full staged coverage, a corrected v5 contract, an atomic exact-unit caller migration, split verification caching and local plus per-lane execution gates.
 
 Baseline: `671e5d3610a687b36af4bbc0d9602cecda42e07d`. The 23 file hashes in the [original PRD](../PRD-flashloan-evidence-driven-execution-upgrade-2026-10-26.md#appendix-a--verified-sourcedependency-inventory) matched at verification. Reverify hashes on every implementation branch. This companion supersedes the PRD's embedded **proposed** schema where the correction table below differs; the original PRD remains the requirements source. Neither document authorizes signing or trading.
 
@@ -233,6 +233,26 @@ The offline verifier emits five specification-only markers and checks the record
 
 Nim-deliver's specification profile validates this brief, local environment contract, actual workrule entry, executable spec edges and post-delivery evidence. Runtime readiness remains independently rejected while its map is Draft and edge proofs are absent. Record actual interventions and verification episodes, propose reusable learning with immutable citations, and leave procedures unapproved. Handoff includes changed files, source hashes, verified commands/artifacts and pending runtime gates only.
 
+## Integrated v5.1 implementation contract
+
+The implemented boundary is local research and explicit host integration. `src/evidence/runtime.ts` runs profile → inventory → capture → exact solve → optional host-native simulation → semantic publication. `src/liquidity/trigger-watcher.ts` consumes an explicit `WatchHost`: one bounded queue and worker, trigger-block replay, fresh canonical-head check, durable decisions and reorg invalidation. `followEvmTriggerBlocks` supplies source-journal-backed EVM blocks and Swap/Mint/Burn observations. Embedders provide the host; there is no public `evidence-watch` command or implicitly loaded native service.
+
+**Input:** strict `RunRequest` v5.1 in `schemas/flashloan-evidence-v5.1.schema.json`, an immutable hash-bound profile, exact decimal metadata, canonical pool bytes, lender capacity/fee, cost and valuation references, explicit caller/executor context for simulation. Every monetary integer is a decimal string. Profile limits can be tightened by requests. Unsupported or absent host capabilities return a durable inconclusive or handoff report.
+
+**Output:** content-addressed canonical JSON artifacts, a round manifest, typed round report, derived integrity class, recall results and stage events. State, policy, plan, payload, simulation and receipt are joined by hashes. Raw bytes are retained. Schema validity alone cannot establish arithmetic truth or evidence fidelity. A model remains `SNAPSHOT_MODEL`; only raw native evidence with matching context can establish `NATIVE_SIM`, and a reconciled journal plus raw receipt/candidate bridge can establish `RECEIPT`. Re-auditing receipts requires the trusted journal; the standalone read-only audit deliberately cannot recover receipt authority from saved booleans.
+
+**Economics and search:** bounded bigint sizing consumes rejected attempts and times out hung hosts. Minimum USD principal/branch amounts round upward; exclusive net-profit thresholds use exact raw units. Principal, deployment, unused cash, embedded fees, external costs and opening balances reconcile separately. Missing coverage cannot certify a negative. Deterministically zero-output or unusable-remainder candidates are evaluated infeasible. Cycle enumeration is explicitly bounded; unsupported branch/hop domains remain incomplete. Attribution and bands use existing projection math and never authorize a send.
+
+**Trigger records:** bandless shadow SOLVE requires a solver ID and reason. QUEUED is persisted before dispatch. Inclusion latency stays null when actual observation timing is unavailable. Entry bands bind costs, lender, liquidity, revision and valuation; new liquidity events, tick movement or TTL expiry rebuild them. Survival requires both replay and fresh-head evidence; unavailable evidence is UNKNOWN. No lifetime or realized-dollar statistic is invented.
+
+**Memory:** six cited WARN checks are enabled by configuration. A BLOCK check requires an approval reference resolved by a trusted host set, independent of request input. Malformed mappings and unknown predicates fail closed. New memory proposals remain provisional; procedures and rules need owner approval.
+
+**Run locally:** `npm run liquidity -- evidence-run request.json`. Optional `FLASHLOAN_EVIDENCE_HOST_FILE` points to an owner-configured `evidence-host/1.0` snapshot-file containing profile, market and inventory. It never signs or simulates. `FLASHLOAN_EVIDENCE_ROOT` selects local artifact storage. `npm run liquidity -- evidence-integrity <round-directory> [--previous <round-directory>]` audits without modifying custody. No new secret or runtime service is required. Ajv, already installed for development, is now a runtime dependency because published inputs are validated on entry.
+
+**Verification:** `npm run evidence:test` executes the exact-math, schema, publication, host timeout, watcher and cache regressions. `node scripts/verify-flashloan-implementation.mjs` compiles all three schemas strictly and executes five nonempty assertion sets, emitting `FLASHLOAN_LOCAL_EDGE_01_REORG`, `02_DEADLINE`, `03_BAND_INVALIDATION`, `04_EVIDENCE_CLASS`, and `05_LESSON_GATE` with full prefixes and log hashes. `npm run evidence:local-e2e` deploys constructed localhost liquidity and the existing executor, then performs borrow → two nonzero swaps → lender repayment → preserved opening balance → journal/receipt → report/26-column CSV. It is a local transaction proof, not public profitability evidence.
+
+**Remaining acceptance gates:** original R66/R67 fixtures and historical CSV were not present; full historical parity is unverified. Public native/tool contracts, pinned per-lane forks, live-shadow survival observations, forecasting/rotation admission and authorized canaries remain separate delivery items. The historical runtime map stays Draft. Grouped test labels do not mean every T01–T73 assertion passed. Status Network remains unadmitted; any future adapter must use sender-bound `linea_estimateGas`, returned fees and a fresh estimate near send.
+
 ## GSTACK REVIEW REPORT
 
 | Review | Runs | Status | Findings and decisions |
@@ -243,6 +263,6 @@ Nim-deliver's specification profile validates this brief, local environment cont
 | Performance | 1 | Reviewed | Owner selected immutable verification cache with fresh mutable admission checks |
 | Independent model | 0 | Skipped | Running under Codex; no independent confirmation claimed |
 
-VERDICT: specification package only; implementation and live admission require their mapped executable evidence. No durable procedure or safety-rule change is approved by this review.
+VERDICT: local implementation reviewed; public runtime acceptance remains Draft until the listed external evidence gates pass. Specialist review corrected economic publication, raw-state fidelity, decimal metadata, finite-domain certification, host deadlines, reorg durability and band invalidation. No durable procedure or safety-rule change is approved by this review.
 
 NO UNRESOLVED DECISIONS

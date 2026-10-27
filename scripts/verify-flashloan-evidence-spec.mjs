@@ -5,6 +5,8 @@ import { readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { Ajv2020 } from 'ajv/dist/2020.js';
 import ts from 'typescript';
+import { execFileSync } from 'node:child_process';
+const historicalSource = file => execFileSync('git', ['show', `e5177c1224978aa28e8278e74da426cd6f5e7c5f:${file}`], { encoding: 'utf8' });
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const read = file => readFileSync(new URL(file, `file://${root}`), 'utf8');
@@ -108,7 +110,7 @@ const checks = [
     invalid('Search', { ...examples.solver.search, inflight: -1 });
   },
   async () => {
-    const source = read('src/adaptive-sizing.ts');
+    const source = historicalSource('src/adaptive-sizing.ts'); // Preserve the original defect reproduction after migration.
     const js = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ES2022 } }).outputText;
     const { optimizeTradeSize } = await import(`data:text/javascript;base64,${Buffer.from(js).toString('base64')}`);
     const seen = [];
@@ -171,7 +173,7 @@ const checks = [
   async () => {
     let baselineCount = 0;
     for (const match of prd.matchAll(/\| `([^`]+)` \|[^\n]+\| `([a-f0-9]{64})` \|/g)) {
-      assert.equal(hashBytes(read(match[1])), match[2], `PRD baseline drift: ${match[1]}`); baselineCount++;
+      assert.equal(hashBytes(historicalSource(match[1])), match[2], `Historical PRD baseline drift: ${match[1]}`); baselineCount++;
     }
     assert.equal(baselineCount, 23);
     for (const dependency of spec.dependencies) {

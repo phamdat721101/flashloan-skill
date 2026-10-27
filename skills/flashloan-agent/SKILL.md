@@ -7,6 +7,12 @@ description: "Operate the installed Arbitrum & Sui flashloan runtime and liquidi
 
 Use the installed `flashloan-agent` package. It is self-contained: never read, import, or run code from `bd-team/scripts`. Build the Rust workspace with the pinned toolchain before using the live route engine.
 
+## Evidence-driven workflow (prompt version 4)
+
+Use the stable prompt in `skills/flashloan-agent/prompt-v4.md`. Keep its prefix unchanged during a round and append dynamic inputs. Research and unsigned simulation do not authorize signing. The supported research entrypoint is `npm run liquidity -- evidence-run <request.json>`; absent an explicitly configured host, it emits `HANDOFF_REQUIRED`. `evidence-integrity <round-directory> [--previous <round-directory>]` is read-only.
+
+Watch only included canonical swaps, then reacquire state and solve. Hypothetical entry bands rank observations; they are not proof or execution authority. Require exact costs, ledger conservation, native fidelity and pre-save integrity. Preserve incomplete searches and unavailable inputs. No principal floor, utilization target, fixed split weight or additional hop is mandatory.
+
 ## Prompt workflow
 
 Interpret the request as one of these operations:
@@ -33,7 +39,7 @@ Interpret the request as one of these operations:
 
 For the latest liquidity upgrade, use `LIQUIDITY_UPGRADE_DEPLOYMENT` from `src/contracts/flash-executor.ts`: executor `0xba4681b7cae1a67c703f43f1476b25fef2635b0a` and V4 state quoter `0x552d73e6b424b98a9d74fb335e62ee198d0601ad`. The record includes verified code hashes and Aave/V2/V3/V4/Morpho/Balancer pins. Prepare unsigned Morpho/Balancer trades with `prepare-arbitrum`, then integrate `ArbitrumLiquidityExecutionAdapter` with `LiquidityRuntime`; these are separate from the legacy opportunity CLI. Historical `MULTI_VENUE_EXECUTOR_DEPLOYMENT` and `DYNAMIC_V4_EXECUTOR_DEPLOYMENT` records remain revoked for V4. Deployment metadata does not admit trading; retain fresh simulation, canary evidence, explicit execution authorization and budget gates. See the README's liquid-pattern flashloan workflow.
 
-For >= $100,000 multi-pool split and multi-hop triangular arbitrage, use `ArbitrumMultiSplitFlashExecutor` at `0xb1aac2079c52fd31e038ec348505a0f55859d60f` (deploy tx `0x0996d0328a43ae3f23cb5d0297c76292d910f59a88a1276c928578a52010f5ef`). It supports 0%-fee Morpho Blue flash loans >= $100k (e.g. 40 WETH), convex multi-pool routing across non-USDC assets (WETH, ARB, USDT on PancakeSwap v3, Camelot v3, Uniswap v3), dynamic intermediate balance unwinding, and atomic profit verification. Live verified on Arbitrum One at Block #513468682 (tx: `0xa27982015c84388c2e9a41993a937d5fa227ff76017ff6ea60ce1da10767733c`).
+Historical deployment evidence (not an operating recipe): `ArbitrumMultiSplitFlashExecutor` at `0xb1aac2079c52fd31e038ec348505a0f55859d60f` (deploy tx `0x0996d0328a43ae3f23cb5d0297c76292d910f59a88a1276c928578a52010f5ef`). This deployment was exercised with Morpho Blue funding and multi-pool routing across non-USDC assets (WETH, ARB, USDT on PancakeSwap v3, Camelot v3, Uniswap v3), dynamic intermediate balance unwinding, and atomic profit verification. Live verified on Arbitrum One at Block #513468682 (tx: `0xa27982015c84388c2e9a41993a937d5fa227ff76017ff6ea60ce1da10767733c`).
 
 The runtime verifies executor bytecode, chain ID, ABI selector, and `owner()` signer; requires every split to total 10,000 bps; enforces gas/price-impact/daily-loss limits; rejects stale proposals; and repeats the exact simulation immediately before broadcast. Unknown receipt P&L halts future autonomous sends until reviewed.
 

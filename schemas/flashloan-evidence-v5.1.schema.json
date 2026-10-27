@@ -1,0 +1,2296 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:flashloan:contracts:5.1",
+  "title": "Flashloan evidence v5: reviewed companion contract",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/RunRequest"
+    },
+    {
+      "$ref": "#/$defs/StageEvent"
+    },
+    {
+      "$ref": "#/$defs/Policy"
+    },
+    {
+      "$ref": "#/$defs/StateBundle"
+    },
+    {
+      "$ref": "#/$defs/Inventory"
+    },
+    {
+      "$ref": "#/$defs/Plan"
+    },
+    {
+      "$ref": "#/$defs/SolverResult"
+    },
+    {
+      "$ref": "#/$defs/NativeProof"
+    },
+    {
+      "$ref": "#/$defs/Ledger"
+    },
+    {
+      "$ref": "#/$defs/Report"
+    },
+    {
+      "$ref": "#/$defs/Receipt"
+    },
+    {
+      "$ref": "#/$defs/RawEvidence"
+    },
+    {
+      "$ref": "#/$defs/ExecutionCandidate"
+    }
+  ],
+  "$defs": {
+    "Raw": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)$",
+      "maxLength": 78
+    },
+    "SignedRaw": {
+      "type": "string",
+      "pattern": "^(0|-?[1-9][0-9]*)$",
+      "maxLength": 79
+    },
+    "Hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "Asset": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "namespace": {
+          "enum": [
+            "eip155",
+            "sui"
+          ]
+        },
+        "networkId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "assetId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "decimals": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        }
+      },
+      "required": [
+        "namespace",
+        "networkId",
+        "assetId",
+        "decimals"
+      ]
+    },
+    "Ratio": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "numerator": {
+          "type": "string",
+          "pattern": "^(0|-?[1-9][0-9]*)$",
+          "maxLength": 79
+        },
+        "denominator": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*$",
+          "maxLength": 156
+        }
+      },
+      "required": [
+        "numerator",
+        "denominator"
+      ]
+    },
+    "EvidenceRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "discovery",
+            "canonical-state",
+            "counterfactual-model",
+            "native-quote",
+            "native-simulation",
+            "receipt",
+            "configuration"
+          ]
+        },
+        "contentHash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "sourceId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "locator": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "observedAtNs": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "expiresAtNs": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]*)$",
+              "maxLength": 78
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "kind",
+        "contentHash",
+        "sourceId",
+        "locator",
+        "observedAtNs",
+        "expiresAtNs"
+      ]
+    },
+    "StateIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "namespace": {
+          "enum": [
+            "eip155",
+            "sui"
+          ]
+        },
+        "networkId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "height": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "stateHashOrDigest": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "finality": {
+          "enum": [
+            "provisional",
+            "node-confirmed",
+            "checkpoint-certified"
+          ]
+        }
+      },
+      "required": [
+        "namespace",
+        "networkId",
+        "height",
+        "stateHashOrDigest",
+        "finality"
+      ]
+    },
+    "Cost": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "asset": {
+          "$ref": "#/$defs/Asset"
+        },
+        "amountRaw": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "value": {
+                  "type": "string",
+                  "pattern": "^(0|[1-9][0-9]*)$",
+                  "maxLength": 78
+                },
+                "reason": {
+                  "type": "null"
+                }
+              },
+              "required": [
+                "value",
+                "reason"
+              ]
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "value": {
+                  "type": "null"
+                },
+                "reason": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 512
+                }
+              },
+              "required": [
+                "value",
+                "reason"
+              ]
+            }
+          ]
+        },
+        "basis": {
+          "enum": [
+            "fee-estimate",
+            "measured",
+            "research-assumption"
+          ]
+        },
+        "includedInSwapOutput": {
+          "type": "boolean"
+        },
+        "evidence": {
+          "$ref": "#/$defs/EvidenceRef"
+        }
+      },
+      "required": [
+        "asset",
+        "amountRaw",
+        "basis",
+        "includedInSwapOutput",
+        "evidence"
+      ]
+    },
+    "Branch": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "branchId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "allocatedRaw": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "weightBps": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "tokenPath": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Asset"
+          },
+          "maxItems": 512
+        },
+        "poolPath": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "maxItems": 512
+        },
+        "hopCount": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "stateMutationOrder": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "maxItems": 512
+        }
+      },
+      "required": [
+        "branchId",
+        "allocatedRaw",
+        "weightBps",
+        "tokenPath",
+        "poolPath",
+        "hopCount",
+        "stateMutationOrder"
+      ]
+    },
+    "Search": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "attempted": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "accepted": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "rejected": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "uniqueAmounts": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "retries": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "maxAttempts": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "elapsedMs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "deadlineMs": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "domainMinimumRaw": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "domainMaximumRaw": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "quantumRaw": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "evaluatedDomainHash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "coverageComplete": {
+          "type": "boolean"
+        },
+        "termination": {
+          "enum": [
+            "candidate-found",
+            "grid-complete",
+            "domain-certified",
+            "attempt-budget",
+            "time-budget",
+            "coverage-exhausted",
+            "cancelled",
+            "invalid-input"
+          ]
+        },
+        "optimality": {
+          "enum": [
+            "best-found",
+            "grid-complete",
+            "domain-certified"
+          ]
+        },
+        "rejections": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "code": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512
+              },
+              "count": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "code",
+              "count"
+            ]
+          },
+          "maxItems": 512
+        },
+        "inflight": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "domainEvidenceRef": {
+          "$ref": "#/$defs/EvidenceRef"
+        },
+        "certificateRef": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EvidenceRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "gridPointCount": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Raw"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "attempted",
+        "accepted",
+        "rejected",
+        "uniqueAmounts",
+        "retries",
+        "maxAttempts",
+        "elapsedMs",
+        "deadlineMs",
+        "domainMinimumRaw",
+        "domainMaximumRaw",
+        "quantumRaw",
+        "evaluatedDomainHash",
+        "coverageComplete",
+        "termination",
+        "optimality",
+        "rejections",
+        "inflight",
+        "domainEvidenceRef",
+        "certificateRef",
+        "gridPointCount"
+      ]
+    },
+    "Policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schemaVersion": {
+          "const": "5.1"
+        },
+        "recordType": {
+          "const": "policy"
+        },
+        "runId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "profileRef": {
+          "$ref": "#/$defs/EvidenceRef"
+        },
+        "policyHash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "mode": {
+          "enum": [
+            "research",
+            "unsigned-simulation",
+            "authorized-execution"
+          ]
+        },
+        "principalCapRaw": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "minimumPrincipalRaw": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "minProfitRaw": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "profitComparison": {
+          "const": "gt"
+        },
+        "maxPriceImpactBps": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "minDeploymentBps": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "minBranchWeightBps": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "maxHopsPerBranch": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "maxBranches": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "maxAttempts": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "deadlineMs": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "maxStateAgeNs": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "maxDailyLossRaw": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "executionAuthorizationRef": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EvidenceRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "borrowAsset": {
+          "$ref": "#/$defs/Asset"
+        },
+        "minimumBranchRaw": {
+          "$ref": "#/$defs/Raw"
+        },
+        "maxTotalSwaps": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "valuationEvidenceRef": {
+          "$ref": "#/$defs/EvidenceRef"
+        },
+        "networkCostEvidenceRef": {
+          "$ref": "#/$defs/EvidenceRef"
+        },
+        "maxTriggerToSimulationBlocks": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "bandTtlBlocks": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "bandRebuildTicks": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "bandMaxEvaluationsPerRow": {
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 1024
+        },
+        "bandMaxEvaluationsTotal": {
+          "type": "integer",
+          "minimum": 2
+        },
+        "watchQueueCapacity": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000
+        },
+        "watchMaxSolves": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "watchMode": {
+          "enum": [
+            "off",
+            "shadow",
+            "band"
+          ]
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "recordType",
+        "runId",
+        "profileRef",
+        "policyHash",
+        "mode",
+        "principalCapRaw",
+        "minimumPrincipalRaw",
+        "minProfitRaw",
+        "profitComparison",
+        "maxPriceImpactBps",
+        "minDeploymentBps",
+        "minBranchWeightBps",
+        "maxHopsPerBranch",
+        "maxBranches",
+        "maxAttempts",
+        "deadlineMs",
+        "maxStateAgeNs",
+        "maxDailyLossRaw",
+        "executionAuthorizationRef",
+        "borrowAsset",
+        "minimumBranchRaw",
+        "maxTotalSwaps",
+        "valuationEvidenceRef",
+        "networkCostEvidenceRef"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "type": "object",
+            "required": [
+              "watchMode"
+            ],
+            "properties": {
+              "watchMode": {
+                "enum": [
+                  "shadow",
+                  "band"
+                ]
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "maxTriggerToSimulationBlocks",
+              "watchQueueCapacity",
+              "watchMaxSolves"
+            ],
+            "type": "object",
+            "properties": {
+              "maxTriggerToSimulationBlocks": true,
+              "watchQueueCapacity": true,
+              "watchMaxSolves": true
+            }
+          }
+        },
+        {
+          "if": {
+            "type": "object",
+            "required": [
+              "watchMode"
+            ],
+            "properties": {
+              "watchMode": {
+                "const": "band"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "maxTriggerToSimulationBlocks",
+              "bandTtlBlocks",
+              "bandRebuildTicks",
+              "bandMaxEvaluationsPerRow",
+              "bandMaxEvaluationsTotal",
+              "watchQueueCapacity",
+              "watchMaxSolves",
+              "watchMode"
+            ],
+            "type": "object",
+            "properties": {
+              "maxTriggerToSimulationBlocks": true,
+              "bandTtlBlocks": true,
+              "bandRebuildTicks": true,
+              "bandMaxEvaluationsPerRow": true,
+              "bandMaxEvaluationsTotal": true,
+              "watchQueueCapacity": true,
+              "watchMaxSolves": true,
+              "watchMode": true
+            }
+          }
+        }
+      ]
+    },
+    "StateBundle": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schemaVersion": {
+          "const": "5.1"
+        },
+        "recordType": {
+          "const": "state-bundle"
+        },
+        "runId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "identity": {
+          "$ref": "#/$defs/StateIdentity"
+        },
+        "stateDigest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "poolEvidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "maxItems": 512
+        },
+        "lenderEvidence": {
+          "$ref": "#/$defs/EvidenceRef"
+        },
+        "coverageComplete": {
+          "type": "boolean"
+        },
+        "coverageReasons": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "maxItems": 512
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "recordType",
+        "runId",
+        "identity",
+        "stateDigest",
+        "poolEvidence",
+        "lenderEvidence",
+        "coverageComplete",
+        "coverageReasons"
+      ]
+    },
+    "Inventory": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schemaVersion": {
+          "const": "5.1"
+        },
+        "recordType": {
+          "const": "pool-inventory"
+        },
+        "runId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "poolId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "identity": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/StateIdentity"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "asset0": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Asset"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "asset1": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Asset"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "adapterId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "adapterRevision": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "capability": {
+          "enum": [
+            "discovered",
+            "state-verified",
+            "quote-verified",
+            "simulation-verified",
+            "execution-admitted",
+            "unsupported"
+          ]
+        },
+        "fee": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "value": {
+                  "$ref": "#/$defs/Ratio"
+                },
+                "reason": {
+                  "type": "null"
+                }
+              },
+              "required": [
+                "value",
+                "reason"
+              ]
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "value": {
+                  "type": "null"
+                },
+                "reason": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 512
+                }
+              },
+              "required": [
+                "value",
+                "reason"
+              ]
+            }
+          ]
+        },
+        "normalizedPrice": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "value": {
+                  "$ref": "#/$defs/Ratio"
+                },
+                "reason": {
+                  "type": "null"
+                }
+              },
+              "required": [
+                "value",
+                "reason"
+              ]
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "value": {
+                  "type": "null"
+                },
+                "reason": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 512
+                }
+              },
+              "required": [
+                "value",
+                "reason"
+              ]
+            }
+          ]
+        },
+        "coverageReasons": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "maxItems": 512
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "maxItems": 512
+        },
+        "asset0Locator": {
+          "$ref": "#/$defs/AssetLocator"
+        },
+        "asset1Locator": {
+          "$ref": "#/$defs/AssetLocator"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "recordType",
+        "runId",
+        "poolId",
+        "identity",
+        "asset0",
+        "asset1",
+        "adapterId",
+        "adapterRevision",
+        "capability",
+        "fee",
+        "normalizedPrice",
+        "coverageReasons",
+        "evidence",
+        "asset0Locator",
+        "asset1Locator"
+      ]
+    },
+    "Plan": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schemaVersion": {
+          "const": "5.1"
+        },
+        "recordType": {
+          "const": "route-plan"
+        },
+        "runId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "planHash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "stateDigest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "policyHash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "borrowAsset": {
+          "$ref": "#/$defs/Asset"
+        },
+        "principalRaw": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "unusedPrincipalRaw": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "branches": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Branch"
+          },
+          "maxItems": 512
+        },
+        "outputAfterEmbeddedFeesRaw": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "flashFeeRaw": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "costs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Cost"
+          },
+          "maxItems": 512
+        },
+        "netProfitRaw": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "value": {
+                  "type": "string",
+                  "pattern": "^(0|-?[1-9][0-9]*)$",
+                  "maxLength": 79
+                },
+                "reason": {
+                  "type": "null"
+                }
+              },
+              "required": [
+                "value",
+                "reason"
+              ]
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "value": {
+                  "type": "null"
+                },
+                "reason": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 512
+                }
+              },
+              "required": [
+                "value",
+                "reason"
+              ]
+            }
+          ]
+        },
+        "search": {
+          "$ref": "#/$defs/Search"
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "maxItems": 512
+        },
+        "executionContextHash": {
+          "$ref": "#/$defs/Hash"
+        },
+        "unsignedPayloadRef": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EvidenceRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "recordType",
+        "runId",
+        "planHash",
+        "stateDigest",
+        "policyHash",
+        "borrowAsset",
+        "principalRaw",
+        "unusedPrincipalRaw",
+        "branches",
+        "outputAfterEmbeddedFeesRaw",
+        "flashFeeRaw",
+        "costs",
+        "netProfitRaw",
+        "search",
+        "evidence",
+        "executionContextHash",
+        "unsignedPayloadRef"
+      ]
+    },
+    "SolverResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schemaVersion": {
+          "const": "5.1"
+        },
+        "recordType": {
+          "const": "solver-result"
+        },
+        "runId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "status": {
+          "enum": [
+            "CANDIDATE_FOUND",
+            "NO_OPPORTUNITY_IN_GRID",
+            "CERTIFIED_NO_OPPORTUNITY",
+            "INCONCLUSIVE",
+            "COVERAGE_BLOCKED",
+            "INPUT_BLOCKED",
+            "POLICY_UNSUPPORTED",
+            "TOOL_ERROR"
+          ]
+        },
+        "stateDigest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "policyHash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "search": {
+          "$ref": "#/$defs/Search"
+        },
+        "planRef": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reasonCodes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "maxItems": 512
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "recordType",
+        "runId",
+        "status",
+        "stateDigest",
+        "policyHash",
+        "search",
+        "planRef",
+        "reasonCodes"
+      ]
+    },
+    "NativeProof": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schemaVersion": {
+          "const": "5.1"
+        },
+        "recordType": {
+          "const": "native-simulation-proof"
+        },
+        "runId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "candidateHash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "stateDigest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "policyHash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "payloadHash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "executorCodeOrPackageHash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "adapterRevision": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "fidelity": {
+          "enum": [
+            "existing-native",
+            "fixture-native",
+            "counterfactual-model",
+            "not-attempted"
+          ]
+        },
+        "success": {
+          "type": "boolean"
+        },
+        "repaymentProven": {
+          "type": "boolean"
+        },
+        "terminalBalanceBasis": {
+          "enum": [
+            "before-debt-with-unused",
+            "after-debt-with-unused",
+            "unknown"
+          ]
+        },
+        "terminalBalanceRaw": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "value": {
+                  "type": "string",
+                  "pattern": "^(0|[1-9][0-9]*)$",
+                  "maxLength": 78
+                },
+                "reason": {
+                  "type": "null"
+                }
+              },
+              "required": [
+                "value",
+                "reason"
+              ]
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "value": {
+                  "type": "null"
+                },
+                "reason": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 512
+                }
+              },
+              "required": [
+                "value",
+                "reason"
+              ]
+            }
+          ]
+        },
+        "revertDataRef": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EvidenceRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "overrideRefs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "maxItems": 512
+        },
+        "resultEvidence": {
+          "$ref": "#/$defs/EvidenceRef"
+        },
+        "executionContextHash": {
+          "$ref": "#/$defs/Hash"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "recordType",
+        "runId",
+        "candidateHash",
+        "stateDigest",
+        "policyHash",
+        "payloadHash",
+        "executorCodeOrPackageHash",
+        "adapterRevision",
+        "fidelity",
+        "success",
+        "repaymentProven",
+        "terminalBalanceBasis",
+        "terminalBalanceRaw",
+        "revertDataRef",
+        "overrideRefs",
+        "resultEvidence",
+        "executionContextHash"
+      ]
+    },
+    "Ledger": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schemaVersion": {
+          "const": "5.1"
+        },
+        "recordType": {
+          "const": "cashflow-ledger"
+        },
+        "runId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "asset": {
+          "$ref": "#/$defs/Asset"
+        },
+        "principalRaw": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "deployedRaw": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "unusedPrincipalRaw": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "swapProceedsRaw": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "terminalBeforeDebtRaw": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "flashFeeRaw": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "networkCostRaw": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "otherExternalCostsRaw": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "surplusAfterDebtRaw": {
+          "type": "string",
+          "pattern": "^(0|-?[1-9][0-9]*)$",
+          "maxLength": 79
+        },
+        "simulatedNetRaw": {
+          "type": "string",
+          "pattern": "^(0|-?[1-9][0-9]*)$",
+          "maxLength": 79
+        },
+        "operatorPrefundRaw": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "executorOpeningBalanceRaw": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "realizedNetRaw": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "value": {
+                  "type": "string",
+                  "pattern": "^(0|-?[1-9][0-9]*)$",
+                  "maxLength": 79
+                },
+                "reason": {
+                  "type": "null"
+                }
+              },
+              "required": [
+                "value",
+                "reason"
+              ]
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "value": {
+                  "type": "null"
+                },
+                "reason": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 512
+                }
+              },
+              "required": [
+                "value",
+                "reason"
+              ]
+            }
+          ]
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "maxItems": 512
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "recordType",
+        "runId",
+        "asset",
+        "principalRaw",
+        "deployedRaw",
+        "unusedPrincipalRaw",
+        "swapProceedsRaw",
+        "terminalBeforeDebtRaw",
+        "flashFeeRaw",
+        "networkCostRaw",
+        "otherExternalCostsRaw",
+        "surplusAfterDebtRaw",
+        "simulatedNetRaw",
+        "operatorPrefundRaw",
+        "executorOpeningBalanceRaw",
+        "realizedNetRaw",
+        "evidence"
+      ]
+    },
+    "Report": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schemaVersion": {
+          "const": "5.1"
+        },
+        "recordType": {
+          "const": "round-report"
+        },
+        "runId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "outcome": {
+          "enum": [
+            "SIMULATED_OPPORTUNITY",
+            "NO_OPPORTUNITY",
+            "INCONCLUSIVE",
+            "COVERAGE_BLOCKED",
+            "INPUT_BLOCKED",
+            "POLICY_UNSUPPORTED",
+            "TOOL_ERROR",
+            "RECONCILED"
+          ]
+        },
+        "policyHash": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Hash"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "stateDigest": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "inventoryRefs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "maxItems": 512
+        },
+        "solverRef": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "simulationRef": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "ledgerRef": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "receiptRef": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EvidenceRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "changedState": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "maxItems": 512
+        },
+        "reasons": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "maxItems": 512
+        },
+        "readinessRef": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Hash"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "patternRef": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Hash"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "entryBandRef": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Hash"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "triggerRef": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Hash"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "legAttributionRef": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Hash"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "integrityRef": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Hash"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "recallRef": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Hash"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "evidenceClass": {
+          "$ref": "#/$defs/EvidenceClass"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "recordType",
+        "runId",
+        "outcome",
+        "policyHash",
+        "stateDigest",
+        "inventoryRefs",
+        "solverRef",
+        "simulationRef",
+        "ledgerRef",
+        "receiptRef",
+        "changedState",
+        "reasons"
+      ]
+    },
+    "AssetLocator": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "namespace": {
+          "enum": [
+            "eip155",
+            "sui"
+          ]
+        },
+        "networkId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "assetId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        }
+      },
+      "required": [
+        "namespace",
+        "networkId",
+        "assetId"
+      ]
+    },
+    "RunRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schemaVersion": {
+          "const": "5.1"
+        },
+        "recordType": {
+          "const": "run-request"
+        },
+        "runId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "mode": {
+          "enum": [
+            "research",
+            "unsigned-simulation"
+          ]
+        },
+        "networkId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "assetLocators": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AssetLocator"
+          },
+          "maxItems": 512
+        },
+        "borrowAsset": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AssetLocator"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "riskProfileRef": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EvidenceRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "principalCapRaw": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]*)$",
+              "maxLength": 78
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "requestedMinProfitUsd": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Ratio"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "requestedPriceImpactBps": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 10000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "networkCostEvidenceRef": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EvidenceRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "valuationEvidenceRef": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EvidenceRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "watchDurationMs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "caller": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "executor": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "executorMode": {
+          "enum": [
+            "existing",
+            "fixture"
+          ]
+        },
+        "rotationMode": {
+          "const": "report-only"
+        },
+        "requestedMinDeploymentBps": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 10000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "requestedMinBranchWeightBps": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 10000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "requestedMinPrincipalUsd": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Ratio"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "requestedMinBranchUsd": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Ratio"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "inventoryMinLiquidityUsd": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Ratio"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "roundId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "previousRoundRef": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "watchPools": {
+          "type": "array",
+          "maxItems": 16,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "triggerGridRaw": {
+          "type": "array",
+          "maxItems": 256,
+          "items": {
+            "$ref": "#/$defs/Raw"
+          }
+        },
+        "recalledLessons": {
+          "type": "array",
+          "maxItems": 1024,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "lessonId": {
+                "type": "string"
+              },
+              "versionHash": {
+                "$ref": "#/$defs/Hash"
+              },
+              "status": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "lessonId",
+              "versionHash",
+              "status"
+            ]
+          }
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "recordType",
+        "runId",
+        "mode",
+        "networkId",
+        "assetLocators",
+        "borrowAsset",
+        "riskProfileRef",
+        "principalCapRaw",
+        "requestedMinProfitUsd",
+        "requestedPriceImpactBps",
+        "networkCostEvidenceRef",
+        "valuationEvidenceRef",
+        "watchDurationMs",
+        "caller",
+        "executor",
+        "executorMode",
+        "rotationMode",
+        "requestedMinDeploymentBps",
+        "requestedMinBranchWeightBps",
+        "requestedMinPrincipalUsd",
+        "requestedMinBranchUsd",
+        "inventoryMinLiquidityUsd"
+      ]
+    },
+    "StageEvent": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schemaVersion": {
+          "const": "5.1"
+        },
+        "recordType": {
+          "const": "stage-event"
+        },
+        "runId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "eventId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "stage": {
+          "enum": [
+            "request",
+            "discovery",
+            "state",
+            "quote",
+            "solve",
+            "simulate",
+            "admit",
+            "submit",
+            "receipt",
+            "memory",
+            "readiness",
+            "pattern",
+            "watch",
+            "integrity",
+            "recall"
+          ]
+        },
+        "outcome": {
+          "enum": [
+            "accepted",
+            "rejected",
+            "failed",
+            "unknown"
+          ]
+        },
+        "candidateHash": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "policyHash": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "stateDigest": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "attemptNumber": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "retryable": {
+          "type": "boolean"
+        },
+        "receivedAtNs": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "durationMs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "maxItems": 512
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "recordType",
+        "runId",
+        "eventId",
+        "stage",
+        "outcome",
+        "candidateHash",
+        "policyHash",
+        "stateDigest",
+        "attemptNumber",
+        "code",
+        "retryable",
+        "receivedAtNs",
+        "durationMs",
+        "evidence"
+      ]
+    },
+    "EvidenceClass": {
+      "enum": [
+        "RECEIPT",
+        "NATIVE_SIM",
+        "SNAPSHOT_MODEL",
+        "PARAMETRIC"
+      ]
+    },
+    "Receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schemaVersion": {
+          "const": "5.1"
+        },
+        "recordType": {
+          "const": "execution-receipt"
+        },
+        "runId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "transactionId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "lane": {
+          "type": "string",
+          "minLength": 1
+        },
+        "success": {
+          "type": "boolean"
+        },
+        "repaymentProven": {
+          "type": "boolean"
+        },
+        "profitCustodyProven": {
+          "type": "boolean"
+        },
+        "source": {
+          "$ref": "#/$defs/EvidenceRef"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "recordType",
+        "runId",
+        "transactionId",
+        "lane",
+        "success",
+        "repaymentProven",
+        "profitCustodyProven",
+        "source"
+      ]
+    },
+    "RawEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schemaVersion": {
+          "const": "5.1"
+        },
+        "recordType": {
+          "const": "raw-evidence"
+        },
+        "runId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidenceKind": {
+          "enum": [
+            "raw-pool",
+            "unsigned-payload",
+            "native-result",
+            "search-domain",
+            "native-receipt"
+          ]
+        },
+        "bytesHex": {
+          "type": "string",
+          "pattern": "^0x([a-f0-9]{2})+$"
+        },
+        "contentHash": {
+          "$ref": "#/$defs/Hash"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "recordType",
+        "runId",
+        "evidenceKind",
+        "bytesHex",
+        "contentHash"
+      ]
+    },
+    "ExecutionCandidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schemaVersion": {
+          "const": "5.1"
+        },
+        "recordType": {
+          "const": "execution-candidate"
+        },
+        "runId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "planHash": {
+          "$ref": "#/$defs/Hash"
+        },
+        "candidate": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "recordType",
+        "runId",
+        "planHash",
+        "candidate"
+      ]
+    }
+  },
+  "$comment": "Proposed implementation contract, not an admitted runtime API. The companion specification records corrections to the original PRD."
+}

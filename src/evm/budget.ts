@@ -46,3 +46,28 @@ export class EvmBudget {
     r.cancelled=true;await atomicJson(this.path,this.state);
   }
 }
+
+export interface ReadinessChainContext {
+  identity: import('../evidence/contracts.js').Identity;
+  nativeBalance(address:string):Promise<string>;
+  executorBalances(address:string):Promise<Array<{asset:import('../evidence/contracts.js').Asset;balanceRaw:string}>>;
+  canonical():Promise<boolean>;
+}
+/** Read-only preflight. Failure to establish a balance or budget permits research, never admission. */
+export async function assessReadiness(mode:'research'|'unsigned-simulation'|'authorized-execution',chain:ReadinessChainContext,operator:string|null,executor:string|null,manifest:{admitted:boolean},journal:import('../liquidity/journal.js').AttemptJournal,budget:EvmBudget|undefined,runId:string){
+  const {validateRecord}=await import('../evidence/contracts.js');
+  const reasons:string[]=[];let balance:string|null=null,gasBudget:string|null=null;
+  let stray:Array<{asset:import('../evidence/contracts.js').Asset;balanceRaw:string}>=[],halt=true;
+  try{const attempts=await journal.latest();halt=attempts.some(a=>!['reconciled','cancelled'].includes(a.state));}catch{reasons.push('ATTEMPT_JOURNAL_UNAVAILABLE');}
+  if(operator)try{balance=await chain.nativeBalance(operator);}catch{reasons.push('GAS_BALANCE_UNAVAILABLE');}
+  if(executor)try{stray=await chain.executorBalances(executor);}catch{reasons.push('EXECUTOR_BALANCES_UNAVAILABLE');}
+  if(budget)try{await budget.load();const remaining=budget.remaining('trade');gasBudget=remaining>=0n?remaining.toString():null;if(budget.unresolved().length)halt=true;}catch{reasons.push('BUDGET_UNAVAILABLE');}
+  let canonical=false;try{canonical=await chain.canonical();}catch{reasons.push('CANONICALITY_UNAVAILABLE');}
+  if(!operator)reasons.push('OPERATOR_CONTEXT_UNAVAILABLE');if(!executor)reasons.push('EXECUTOR_CONTEXT_UNAVAILABLE');
+  if(mode!=='authorized-execution')reasons.push('RESEARCH_MODE');
+  if(!manifest.admitted)reasons.push('ADAPTER_NOT_ADMITTED');
+  if(balance===null||!/^(0|[1-9][0-9]*)$/.test(balance)||BigInt(balance)===0n)reasons.push('GAS_UNAVAILABLE');
+  if(gasBudget===null||BigInt(gasBudget)===0n)reasons.push('GAS_BUDGET_UNAVAILABLE');
+  if(halt)reasons.push('PNL_UNKNOWN_HALT');if(!canonical)reasons.push('STATE_NOT_CANONICAL');
+  return validateRecord('Readiness',{schemaVersion:'5.1',recordType:'readiness',runId,mode,state:chain.identity,operatorGasBalanceRaw:balance,gasBudgetRaw:gasBudget,executorStrayBalances:stray,adapterAdmitted:manifest.admitted,pnlUnknownHalt:halt,verdict:canonical?(reasons.length?'RESEARCH_ONLY':'READY'):'BLOCKED',reasons});
+}

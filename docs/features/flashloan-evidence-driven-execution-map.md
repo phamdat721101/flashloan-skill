@@ -130,7 +130,7 @@ Draft until implementation, owner approval and actual full local/native/fork/can
   "taskType": "feature",
   "status": "Draft",
   "input": {
-    "entrypoint": "Future validated evidence-run CLI and explicit host adapters",
+    "entrypoint": "Validated evidence-run CLI and explicit host adapters; public acceptance gated",
     "payload": "v5 run packet, approved profile and coherent state"
   },
   "processing": {
@@ -149,7 +149,7 @@ Draft until implementation, owner approval and actual full local/native/fork/can
     ]
   },
   "output": {
-    "state": "Not implemented by this specification package",
+    "state": "Local core implemented; full historical/native/public acceptance pending",
     "transitions": [
       "input-blocked or canonical-state",
       "bounded search -> native simulation",

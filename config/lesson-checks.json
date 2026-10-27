@@ -1,0 +1,91 @@
+{
+  "schemaVersion": "5.1",
+  "checks": [
+    {
+      "schemaVersion": "5.1",
+      "recordType": "lesson-check",
+      "checkId": "v51-nonempty",
+      "lessonId": "flashloan-v51-nonempty",
+      "lessonVersionHash": "ca2487a537df86a27dfdaf5fc806855f354a82229c360a4704a5a001bcb57337",
+      "stage": "report",
+      "predicate": {
+        "kind": "NONEMPTY_ARTIFACTS"
+      },
+      "severity": "WARN",
+      "ownerApprovalRef": null
+    },
+    {
+      "schemaVersion": "5.1",
+      "recordType": "lesson-check",
+      "checkId": "v51-conservation",
+      "lessonId": "flashloan-v51-conservation",
+      "lessonVersionHash": "b687842712ef850e11eebd61666442bdf73291711f671cf6cf5149c6075e656a",
+      "stage": "report",
+      "predicate": {
+        "kind": "PRINCIPAL_CONSERVED"
+      },
+      "severity": "WARN",
+      "ownerApprovalRef": null
+    },
+    {
+      "schemaVersion": "5.1",
+      "recordType": "lesson-check",
+      "checkId": "v51-state-result",
+      "lessonId": "flashloan-v51-state-result",
+      "lessonVersionHash": "3cb1ed8ee9d544e17a3f807278567914a438b12a0a97eedb0640f747155c14bc",
+      "stage": "report",
+      "predicate": {
+        "kind": "RESULT_MUST_CHANGE_WITH_STATE",
+        "resultPointer": "/ledger/simulatedNetRaw"
+      },
+      "severity": "WARN",
+      "ownerApprovalRef": null
+    },
+    {
+      "schemaVersion": "5.1",
+      "recordType": "lesson-check",
+      "checkId": "v51-native-source",
+      "lessonId": "flashloan-v51-native-source",
+      "lessonVersionHash": "4087ed284f1488b2f44a3ee44401ab782d812d8c6dafb3845429b2c43f1f8ef4",
+      "stage": "report",
+      "predicate": {
+        "kind": "REQUIRES_EVIDENCE_KIND",
+        "when": "NATIVE_SIM",
+        "evidenceKind": "native-simulation"
+      },
+      "severity": "WARN",
+      "ownerApprovalRef": null
+    },
+    {
+      "schemaVersion": "5.1",
+      "recordType": "lesson-check",
+      "checkId": "v51-reuse",
+      "lessonId": "flashloan-v51-reuse",
+      "lessonVersionHash": "b2cd6b3b1993ad9bba6e34185bd377bb4a5d15b1194feaae9752459d0814e0ca",
+      "stage": "report",
+      "predicate": {
+        "kind": "HASH_DIFFERS_FROM_PREVIOUS_ROUND",
+        "artifactKind": "discovery"
+      },
+      "severity": "WARN",
+      "ownerApprovalRef": null
+    },
+    {
+      "schemaVersion": "5.1",
+      "recordType": "lesson-check",
+      "checkId": "v51-weights",
+      "lessonId": "flashloan-v51-weights",
+      "lessonVersionHash": "1849501176b0d88ea49938b3e82581ece67c41549b36c90c949b9f1973d8c73c",
+      "stage": "report",
+      "predicate": {
+        "kind": "FORBID_POLICY_VALUE",
+        "field": "fixedWeightsBps",
+        "forbidden": [
+          "52/44"
+        ]
+      },
+      "severity": "WARN",
+      "ownerApprovalRef": null
+    }
+  ]
+}
