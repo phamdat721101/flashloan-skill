@@ -8,14 +8,14 @@
   "artifactHash": "77ca964945024551e0865f691125d082af257b0f2435b6141acd6256b467f06e",
   "deployTxHash": "0xc6fcfadd9f7ec0b1ba86e7f40b22de539a66b5b7459d4782a549d17ce79865a7",
   "deploymentBlock": "519058877",
-  "verifiedAt": "2026-10-28T13:29:12.670Z",
+  "verifiedAt": "2026-10-28T13:52:24.613Z",
   "checkedBlock": {
-    "number": "519059748",
-    "hash": "0x17ce6edb1807518242a94d28f5eac234a02e115485a23dd38b8a015291e18be8"
+    "number": "519064928",
+    "hash": "0x373b12becc0d7605cddbc19eaa8cb1c40bb6a1e5842ad08c6a45415af8319b64"
   },
   "confirmationsAtLeast": 2,
-  "l1Finalized": false,
-  "finalizedBlock": "519055708",
+  "l1Finalized": true,
+  "finalizedBlock": "519061260",
   "selectors": [
     {
       "name": "executeArbitrage",

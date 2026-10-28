@@ -31,7 +31,9 @@ and up to eight branches where the selected executor supports them. Exact fees,
 repayment, opening-balance custody, native simulation and receipt reconciliation
 remain required. Existing v5.0/v5.1 requests keep their prior policy semantics.
 
-Update the published implementation branch and reinstall the agent skill:
+The [agent skill](skills/flashloan-agent/SKILL.md) includes the v5.2 request path,
+current portable executor pin, and separate DexPair/portable ABI bindings. Update
+the published implementation branch and reinstall the skill:
 
 ```sh
 cd ~/.flashloan-agent/flashloan-skill
@@ -73,6 +75,7 @@ outputs, host adapters and remaining public-network acceptance gates.
 | Limits | Up to eight branches and six hops per branch; route-specified borrow asset |
 | Funding | Morpho/Balancer for splits; inherited linear Morpho/Balancer/Aave entrypoints |
 | Configuration | Ten code-hash-pinned lender/protocol roots; hooks disabled |
+| Finality | All eleven receipts L1-finalized at readback; finalized L2 block `519061260` |
 | Deployment + configuration gas | `98996676676000` wei (`0.000098996676676 ETH`), eleven successful transactions |
 | Evidence | [Deployment and root readback](docs/deployments/arbitrum-price-gap-executor-20261028.json); [manifest](config/arbitrum-price-gap.json) |
 
