@@ -61,43 +61,59 @@ permits further verification; it does not grant execution authority. The full
 [implementation guide](docs/features/price-gap-engine.md) describes inputs,
 outputs, host adapters and remaining public-network acceptance gates.
 
-**Contract upgrade path:** the latest recorded Arbitrum MultiVenue v2 at
-`0x2502539753df1182f015378f32fbdef0ec9c9de2` is immutable and executes linear
-routes. The prepared [replacement manifest](config/arbitrum-price-gap.json)
-selects the existing `PortableMultiSplitFlashExecutor`, which inherits its linear
-entrypoints and adds `executeSplitArbitrage` for Morpho/Balancer loans with up to
-eight branches. Inherited Aave execution remains linear. This is a replacement
-deployment, not an in-place proxy upgrade. No replacement address is claimed
-until a confirmed deployment, matching runtime/owner, and trust-root readback
-are recorded. Keep the old address as rollback and preserve its funds.
+**New Arbitrum deployment:** `PortableMultiSplitFlashExecutor` is deployed at
+[`0x1df55df59413e823d2bbd926ee76c9a3fd63c478`](https://arbiscan.io/address/0x1df55df59413e823d2bbd926ee76c9a3fd63c478).
 
-[Read-only preflight](docs/deployments/arbitrum-price-gap-preflight-20261028.json)
-at Arbitrum block `519054854` verified the current code/owner and all ten root
-pins. The replacement runtime is 19,995 bytes. RPC estimated deployment-only
-maximum cost at `106438200000000` wei; configuration costs are additional and
-all fees must be refreshed before broadcast. No transaction was sent.
+| Item | Verified value |
+| --- | --- |
+| Deployment transaction | [`0xc6fc…865a7`](https://arbiscan.io/tx/0xc6fcfadd9f7ec0b1ba86e7f40b22de539a66b5b7459d4782a549d17ce79865a7), block `519058877` |
+| Runtime code hash | `0xa86825585912690c2d008410bf9315f8691ee0ffcad92f6e390b774ab05d89bb` |
+| Owner | `0xc75aAeBD1F395cFc9e7c7f291Ea32d5C9d4c270a` |
+| Split selector | `executeSplitArbitrage`: `0xec01ba1f` |
+| Limits | Up to eight branches and six hops per branch; route-specified borrow asset |
+| Funding | Morpho/Balancer for splits; inherited linear Morpho/Balancer/Aave entrypoints |
+| Configuration | Ten code-hash-pinned lender/protocol roots; hooks disabled |
+| Deployment + configuration gas | `98996676676000` wei (`0.000098996676676 ETH`), eleven successful transactions |
+| Evidence | [Deployment and root readback](docs/deployments/arbitrum-price-gap-executor-20261028.json); [manifest](config/arbitrum-price-gap.json) |
 
-After choosing this Arbitrum target, the supported resumable deployment commands are:
+This replacement adds split execution to the prior linear MultiVenue deployment
+`0x2502539753df1182f015378f32fbdef0ec9c9de2`. The old immutable contract and its
+funds remain intact for rollback. Base Aero v2 remains a separate deployment.
+`FLASH_EXECUTOR_ADDRESS` must still identify the DexPair executor; its ABI is
+different. For the new inherited MultiVenue entrypoints, explicitly select:
+
+```sh
+MULTI_VENUE_EXECUTOR_ADDRESS=0x1df55df59413e823d2bbd926ee76c9a3fd63c478
+```
+
+Split hosts must bind the new address, runtime hash and split selector to the
+`PortableMultiSplitFlashExecutor` ABI. Keep principal allocation conservation,
+exact external costs, native simulation and owner authorization checks. No live
+arbitrage trade was sent and trading admission remains `not-admitted`; deployment
+receipts do not establish profitable execution. The evidence record reports L1
+finality separately from confirmed canonical L2 receipts.
+
+To re-check from the deployment checkout, use its persisted public transaction
+state and an explicit environment loader:
 
 ```sh
 forge build
-node --env-file=.env dist/evm/cli.js deploy \
-  --manifest config/arbitrum-price-gap.json --env-file .env \
-  --state .nim/deployments/arbitrum-price-gap.json
+npm run build
+node --env-file=.env scripts/price-gap-deployment-readback.mjs
 node --env-file=.env dist/evm/cli.js deployment-status \
   --manifest config/arbitrum-price-gap.json \
   --state .nim/deployments/arbitrum-price-gap.json
 ```
 
-Bind new runtime hashes/selectors in the matching host only after readback and
-required fork/canary checks. Keep `FLASH_EXECUTOR_ADDRESS` on the DexPair executor;
-its ABI is different. Base Aero v2 already supports split routes and is a separate
-deployment target. Updating code or publishing this manifest does not change it.
-
+The deployer now gives portable-only replacements a fixed `-portable-split`
+authority ledger while retaining the existing shared signer lock and cumulative
+gas budget. Preserve `.nim/deployment-ledger`, `.nim/deployments` and
+`.nim/evm-budgets` when resuming; a fresh checkout without those ledgers must not
+be mistaken for the recorded deployment's recovery state.
 
 ### 2026-10-28 (later): Chainlink gas pricing replaces `NATIVE_TOKEN_USD`
 
-The orchestrator (`simulate`, `execute-auto`, `run`) no longer uses a hand-set ETH price. Gas is priced from **Chainlink ETH/USD at the block being valued**: the simulation block, then the receipt block. It is gated on the Arbitrum L2 sequencer being up. No contract changed. The latest deployed executors are still MultiVenue v2 [`0x2502…9de2`](https://arbiscan.io/address/0x2502539753df1182f015378f32fbdef0ec9c9de2) and DexPair `0x093e…d192` (table below).
+The orchestrator (`simulate`, `execute-auto`, `run`) no longer uses a hand-set ETH price. Gas is priced from **Chainlink ETH/USD at the block being valued**: the simulation block, then the receipt block. It is gated on the Arbitrum L2 sequencer being up. This pricing change did not alter contracts. The portable split replacement above is now the latest deployment; the earlier MultiVenue v2 remains available for rollback and DexPair `0x093e…d192` retains its separate ABI.
 
 | Item | Value |
 | --- | --- |
@@ -159,7 +175,7 @@ npm ci && forge build --offline && npm run build && cargo build -p flashloan-sca
 
 ```sh
 FLASH_EXECUTOR_ADDRESS=0x093e98a6e2e278426adc7161b61bb2132e0ad192        # DexPair entrypoint (flashloan-scan arb, orchestrator)
-MULTI_VENUE_EXECUTOR_ADDRESS=0x2502539753df1182f015378f32fbdef0ec9c9de2  # universe-probe default
+MULTI_VENUE_EXECUTOR_ADDRESS=0x1df55df59413e823d2bbd926ee76c9a3fd63c478  # latest portable replacement; inherited MultiVenue entrypoint
 # UNIVERSE_PATH / ASSET_POLICY_PATH / MAX_PAIRS: opt-in dynamic scanner mode
 ```
 

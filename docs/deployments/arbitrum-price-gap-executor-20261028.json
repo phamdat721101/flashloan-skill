@@ -1,0 +1,234 @@
+{
+  "schemaVersion": "1.0",
+  "chainId": 42161,
+  "contract": "PortableMultiSplitFlashExecutor",
+  "address": "0x1df55df59413e823d2bbd926ee76c9a3fd63c478",
+  "owner": "0xc75aAeBD1F395cFc9e7c7f291Ea32d5C9d4c270a",
+  "runtimeCodeHash": "0xa86825585912690c2d008410bf9315f8691ee0ffcad92f6e390b774ab05d89bb",
+  "artifactHash": "77ca964945024551e0865f691125d082af257b0f2435b6141acd6256b467f06e",
+  "deployTxHash": "0xc6fcfadd9f7ec0b1ba86e7f40b22de539a66b5b7459d4782a549d17ce79865a7",
+  "deploymentBlock": "519058877",
+  "verifiedAt": "2026-10-28T13:29:12.670Z",
+  "checkedBlock": {
+    "number": "519059748",
+    "hash": "0x17ce6edb1807518242a94d28f5eac234a02e115485a23dd38b8a015291e18be8"
+  },
+  "confirmationsAtLeast": 2,
+  "l1Finalized": false,
+  "finalizedBlock": "519055708",
+  "selectors": [
+    {
+      "name": "executeArbitrage",
+      "selector": "0x3c29e3c6"
+    },
+    {
+      "name": "executeLenderArbitrage",
+      "selector": "0xd88c7a76"
+    },
+    {
+      "name": "executeSplitArbitrage",
+      "selector": "0xec01ba1f"
+    }
+  ],
+  "capabilities": {
+    "maximumBranches": 8,
+    "maximumHopsPerBranch": 6,
+    "splitLenders": [
+      "morpho",
+      "balancer-v2"
+    ],
+    "linearLenders": [
+      "morpho",
+      "balancer-v2",
+      "aave-v3"
+    ],
+    "hookPolicy": "disabled",
+    "assetPolicy": "route-specified; exact native simulation required"
+  },
+  "rootPins": [
+    {
+      "role": "morpho",
+      "address": "0x6c247b1F6182318877311737BaC0844bAa518F5e",
+      "codeHash": "0xd2bb64e51bc71ff5ce00ae89eab643e65fda6fc59f4ab8c367241c4bedf8acf5",
+      "source": "https://docs.morpho.org/get-started/resources/addresses",
+      "key": "morpho",
+      "verified": true,
+      "configuredCodeHash": "0xd2bb64e51bc71ff5ce00ae89eab643e65fda6fc59f4ab8c367241c4bedf8acf5"
+    },
+    {
+      "role": "balancer-v2",
+      "address": "0xBA12222222228d8Ba445958a75a0704d566BF2C8",
+      "codeHash": "0x96f131af73d8a231741b91e266fb54e0bc8c3041954deb51652113600549093a",
+      "source": "https://docs.balancer.fi/reference/contracts/deployment-addresses/arbitrum.html",
+      "key": "balancer-v2",
+      "verified": true,
+      "configuredCodeHash": "0x96f131af73d8a231741b91e266fb54e0bc8c3041954deb51652113600549093a"
+    },
+    {
+      "role": "aave-provider",
+      "address": "0xa97684ead0e402dC232d5A977953DF7ECBaB3CDb",
+      "codeHash": "0x1a95f317ee56e0b9aedc4f4b7abd9e546dc45c26d1d77e95bcf62b789d9a5486",
+      "source": "https://github.com/bgd-labs/aave-address-book/blob/main/src/AaveV3Arbitrum.sol",
+      "key": "aave-provider",
+      "verified": true,
+      "configuredCodeHash": "0x1a95f317ee56e0b9aedc4f4b7abd9e546dc45c26d1d77e95bcf62b789d9a5486"
+    },
+    {
+      "role": "v2-factory",
+      "address": "0xf1D7CC64Fb4452F05c498126312eBE29f30Fbcf9",
+      "codeHash": "0xbab145d02e7005f0d84c6c1639d39b799b0ea16df99ebbdaf5a14d9da820b4e0",
+      "source": "https://docs.uniswap.org/contracts/v2/reference/smart-contracts/v2-deployments",
+      "key": "v2-factory:0xf1d7cc64fb4452f05c498126312ebe29f30fbcf9",
+      "verified": true,
+      "configuredCodeHash": "0xbab145d02e7005f0d84c6c1639d39b799b0ea16df99ebbdaf5a14d9da820b4e0"
+    },
+    {
+      "role": "v2-factory",
+      "address": "0xc35DADB65012eC5796536bD9864eD8773aBc74C4",
+      "codeHash": "0xeba2e349904f5b2c1f6086ffb00d5c7efb4a2c8ea8af2efccfd1c812c7869b6c",
+      "source": "https://docs.sushi.com/contracts/cpamm",
+      "key": "v2-factory:0xc35dadb65012ec5796536bd9864ed8773abc74c4",
+      "verified": true,
+      "configuredCodeHash": "0xeba2e349904f5b2c1f6086ffb00d5c7efb4a2c8ea8af2efccfd1c812c7869b6c"
+    },
+    {
+      "role": "v3-factory",
+      "address": "0x1F98431c8aD98523631AE4a59f267346ea31F984",
+      "codeHash": "0x4d7b8525cd5d14343fa67a732fba5b24cddba11620ca88392f4ec6c52f91fd69",
+      "source": "https://docs.uniswap.org/contracts/v3/reference/deployments/arbitrum-deployments",
+      "key": "v3-factory:0x1f98431c8ad98523631ae4a59f267346ea31f984",
+      "verified": true,
+      "configuredCodeHash": "0x4d7b8525cd5d14343fa67a732fba5b24cddba11620ca88392f4ec6c52f91fd69"
+    },
+    {
+      "role": "v3-factory",
+      "address": "0x1af415a1EbA07a4986a52B6f2e7dE7003D82231e",
+      "codeHash": "0x1322b4f72cb500ce9148934db841b68577e4ab05740d75767786a054047ae2e0",
+      "source": "https://docs.sushi.com/contracts/clamm",
+      "key": "v3-factory:0x1af415a1eba07a4986a52b6f2e7de7003d82231e",
+      "verified": true,
+      "configuredCodeHash": "0x1322b4f72cb500ce9148934db841b68577e4ab05740d75767786a054047ae2e0"
+    },
+    {
+      "role": "v3-factory",
+      "address": "0x0BFbCF9fa4f9C56B0F40a671Ad40E0805A091865",
+      "codeHash": "0x8191d3ab1d55d3da9822199f28865415c99566b6f1aee4a4b16713f57930678c",
+      "source": "https://developer.pancakeswap.finance/contracts/v3/addresses",
+      "key": "v3-factory:0x0bfbcf9fa4f9c56b0f40a671ad40e0805a091865",
+      "verified": true,
+      "configuredCodeHash": "0x8191d3ab1d55d3da9822199f28865415c99566b6f1aee4a4b16713f57930678c"
+    },
+    {
+      "role": "algebra-factory",
+      "address": "0x1a3c9B1d2F0529D97f2afC5136Cc23e58f1FD35B",
+      "codeHash": "0xd2e121b20e1ffe21cebd67e884032884c11425315d7d0f746673b246371558d3",
+      "source": "https://docs.camelot.exchange/contracts/arbitrum-one-mainnet",
+      "key": "algebra-factory",
+      "verified": true,
+      "configuredCodeHash": "0xd2e121b20e1ffe21cebd67e884032884c11425315d7d0f746673b246371558d3"
+    },
+    {
+      "role": "v4-manager",
+      "address": "0x360E68faCcca8cA495c1B759Fd9EEe466db9FB32",
+      "codeHash": "0xe4b2759e456c9c4ef763e3b4e257c5105e1ba283d7de8b131dd321197de794a4",
+      "source": "https://docs.uniswap.org/contracts/v4/deployments",
+      "key": "v4-manager",
+      "verified": true,
+      "configuredCodeHash": "0xe4b2759e456c9c4ef763e3b4e257c5105e1ba283d7de8b131dd321197de794a4"
+    }
+  ],
+  "transactions": [
+    {
+      "label": "deploy:PortableMultiSplitFlashExecutor",
+      "hash": "0xc6fcfadd9f7ec0b1ba86e7f40b22de539a66b5b7459d4782a549d17ce79865a7",
+      "blockNumber": "519058877",
+      "status": "success",
+      "gasUsed": "4396219",
+      "costWei": "88284869958000"
+    },
+    {
+      "label": "configure:PortableMultiSplitFlashExecutor:morpho",
+      "hash": "0x1e99f04a378c175cb016209fcd4600274a2376b8f569e49cfb27edda23baceef",
+      "blockNumber": "519058918",
+      "status": "success",
+      "gasUsed": "53022",
+      "costWei": "1062136704000"
+    },
+    {
+      "label": "configure:PortableMultiSplitFlashExecutor:balancer-v2",
+      "hash": "0x8eac52c2c91d535acce3943e3f849709402d992c3eccc62ffcb68f87fc75594f",
+      "blockNumber": "519058959",
+      "status": "success",
+      "gasUsed": "53065",
+      "costWei": "1061406130000"
+    },
+    {
+      "label": "configure:PortableMultiSplitFlashExecutor:aave-provider",
+      "hash": "0x37df9cf87181b9e3fd22127ea70c43bdc027f9a3883cb4b9523d79a8866869c5",
+      "blockNumber": "519058997",
+      "status": "success",
+      "gasUsed": "52623",
+      "costWei": "1054038690000"
+    },
+    {
+      "label": "configure:PortableMultiSplitFlashExecutor:v2-factory:0xf1d7cc64fb4452f05c498126312ebe29f30fbcf9",
+      "hash": "0x5f96f079ce4b368eb8a65d66efbf2003b760c47a3f11dcb578959c1815f6407b",
+      "blockNumber": "519059039",
+      "status": "success",
+      "gasUsed": "53370",
+      "costWei": "1067720220000"
+    },
+    {
+      "label": "configure:PortableMultiSplitFlashExecutor:v2-factory:0xc35dadb65012ec5796536bd9864ed8773abc74c4",
+      "hash": "0x7bba1d4487995e02a4f06c2420de2edf883bf5b68e26060e56711dd37dc4dfab",
+      "blockNumber": "519059083",
+      "status": "success",
+      "gasUsed": "53370",
+      "costWei": "1067506740000"
+    },
+    {
+      "label": "configure:PortableMultiSplitFlashExecutor:v3-factory:0x1f98431c8ad98523631ae4a59f267346ea31f984",
+      "hash": "0xa8025f7d199c9392200ef0a7e8b6fea851b2ff2b5b593dc3e61d0f1cad0e54bf",
+      "blockNumber": "519059120",
+      "status": "success",
+      "gasUsed": "53402",
+      "costWei": "1068040000000"
+    },
+    {
+      "label": "configure:PortableMultiSplitFlashExecutor:v3-factory:0x1af415a1eba07a4986a52b6f2e7de7003d82231e",
+      "hash": "0xae3a6fc9b1e5ffd7ac8427b540ead8e96194e60d57d820b93fc4c29a639f2ca2",
+      "blockNumber": "519059160",
+      "status": "success",
+      "gasUsed": "53377",
+      "costWei": "1069675080000"
+    },
+    {
+      "label": "configure:PortableMultiSplitFlashExecutor:v3-factory:0x0bfbcf9fa4f9c56b0f40a671ad40e0805a091865",
+      "hash": "0xccdca014097c844c366727423bafc17576514172d3c389c09af9d4e38081a977",
+      "blockNumber": "519059199",
+      "status": "success",
+      "gasUsed": "53402",
+      "costWei": "1068253608000"
+    },
+    {
+      "label": "configure:PortableMultiSplitFlashExecutor:algebra-factory",
+      "hash": "0x0269f033fc2feef5bd405c153362a4cad3fc2307afc1dd9d0117b8604264bdaa",
+      "blockNumber": "519059239",
+      "status": "success",
+      "gasUsed": "53431",
+      "costWei": "1077489546000"
+    },
+    {
+      "label": "configure:PortableMultiSplitFlashExecutor:v4-manager",
+      "hash": "0x38b83176cb7153f4a914fa2092fe7af82eae1f97076f12d91db09e0d003eb3c1",
+      "blockNumber": "519059286",
+      "status": "success",
+      "gasUsed": "55777",
+      "costWei": "1115540000000"
+    }
+  ],
+  "spentWei": "98996676676000",
+  "supersedesForNewPriceGapRoutes": "0x2502539753df1182f015378f32fbdef0ec9c9de2",
+  "liveTradingAdmitted": false,
+  "verificationScope": "deployment, canonical receipts, exact artifact/owner and all ten roots; no live profit/canary claim"
+}

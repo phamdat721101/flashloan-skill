@@ -83,6 +83,11 @@ export function verifyRuntime(artifact: ForgeArtifact, actual: Hex, owner: Addre
   }
   if (!expected || expected !== normalized) throw new Error('DEPLOYED_ARTIFACT_MISMATCH');
 }
+/** Fixed release lanes preserve prior deployment receipts; signer locks and budgets remain shared. */
+export function deploymentLedgerPath(manifest:DeploymentManifest,owner:Address):string {
+  const suffix=manifest.contracts.includes('AeroSplitFlashExecutorV2')?'-aero-v2':manifest.contracts.includes('AeroSplitFlashExecutor')?'-aero':manifest.contracts.length===1&&manifest.contracts[0]==='PortableMultiSplitFlashExecutor'?'-portable-split':'';
+  return `.nim/deployment-ledger/${manifest.chainId}-${owner.toLowerCase()}${suffix}.json`;
+}
 export class EvmDeployment {
   readonly client: PublicClient;
   private readonly submission;
@@ -91,7 +96,7 @@ export class EvmDeployment {
   private readonly authorityPath: string;
   constructor(readonly manifest: DeploymentManifest, rpc: string, submission: string, private readonly account: LocalAccount, private readonly statePath: string, private readonly artifactRoot = 'out') {
     evmProfile(manifest.chainId);
-    this.authorityPath = `.nim/deployment-ledger/${manifest.chainId}-${account.address.toLowerCase()}${manifest.contracts.includes('AeroSplitFlashExecutorV2')?'-aero-v2':manifest.contracts.includes('AeroSplitFlashExecutor')?'-aero':''}.json`;
+    this.authorityPath = deploymentLedgerPath(manifest,account.address);
     this.client = createPublicClient({ transport: http(secureEndpoint(rpc), { timeout: 20000, retryCount: 0 }) });
     this.submission = createPublicClient({ transport: http(secureEndpoint(submission), { timeout: 20000, retryCount: 0 }) });
   }
@@ -186,7 +191,7 @@ export class EvmDeployment {
     }
     if (contract === 'V4StateQuoter') return null;
     if (root.role === 'aave-provider') return encodeFunctionData({ abi: rootAbi, functionName: 'configureAaveProvider', args: [root.address, root.codeHash, true] });
-    if (root.role === 'algebra-factory' && contract !== 'MultiVenueArbitrageExecutor') return null;
+    if (root.role === 'algebra-factory' && !['MultiVenueArbitrageExecutor','PortableMultiSplitFlashExecutor'].includes(contract)) return null;
     if (contract === 'ImmutableArbitrageExecutor') return root.role === 'v4-manager' ? encodeFunctionData({ abi: rootAbi, functionName: 'configurePoolManager', args: [root.address, root.codeHash, true, false] }) : null;
     if (root.role === 'morpho' || root.role === 'balancer-v2') return encodeFunctionData({ abi: rootAbi, functionName: 'configureLender', args: [root.role === 'morpho' ? 1 : 2, root.address, root.codeHash, true] });
     return encodeFunctionData({ abi: rootAbi, functionName: 'configureRoot', args: [root.role === 'v2-factory' ? 2 : root.role === 'v3-factory' ? 3 : root.role === 'algebra-factory' ? 5 : 4, root.address, root.codeHash, true, false] });

@@ -14,7 +14,7 @@ import { loadConfig } from '../config.js';
 import { parseStateIdentity, SnapshotStore, digest } from '../liquidity/state.js';
 import { AttemptJournal } from '../liquidity/journal.js';
 import { loadScannerConfig } from '../scan/config.js';
-import { parseManifest, rootKey, verifyRuntime } from '../evm/deployment.js';
+import { deploymentLedgerPath, EvmDeployment, parseManifest, rootKey, verifyRuntime } from '../evm/deployment.js';
 import { enumerateSimpleProfitCycles, parseAcceptance } from '../evm/acceptance.js';
 import { receiptNativeCost } from '../evm-fees.js';
 import { checkExecutorAbis } from '../evm/abi-check.js';
@@ -146,4 +146,15 @@ test('manifests pin several factories per role and Algebra roots with stable sin
   const m=parseManifest({schemaVersion:'1.0',chainId:42161,roots,contracts:['MultiVenueArbitrageExecutor'],exclusions:[]});
   assert.deepEqual(m.roots.map(r=>rootKey(r,m.roots)),['v3-factory:0x0000000000000000000000000000000000000001','v3-factory:0x0000000000000000000000000000000000000002','algebra-factory','v2-factory','morpho']);
   assert.throws(()=>parseManifest({schemaVersion:'1.0',chainId:42161,roots:[pin('v3-factory',1),pin('v3-factory',1)],contracts:['MultiVenueArbitrageExecutor'],exclusions:[]}),/DUPLICATE_ROOT_ROLE/);
+});
+
+test('portable replacement preserves earlier manifest ledgers and inherits Algebra configuration',()=>{
+ const owner=`0x${'1'.repeat(40)}` as const;
+ const base=parseManifest({schemaVersion:'1.0',chainId:42161,roots:[],contracts:['MultiVenueArbitrageExecutor'],exclusions:[]});
+ const portable={...base,contracts:['PortableMultiSplitFlashExecutor' as const]};
+ assert.notEqual(deploymentLedgerPath(base,owner),deploymentLedgerPath(portable,owner));
+ assert.equal(deploymentLedgerPath({...base,contracts:['MultiVenueArbitrageExecutor','PortableMultiSplitFlashExecutor']},owner),deploymentLedgerPath(base,owner));
+ const d=new EvmDeployment(portable,'https://rpc.example','https://rpc.example',{address:owner} as never,'.nim/unused.json');
+ const call=Reflect.get(d,'rootConfiguration').call(d,'PortableMultiSplitFlashExecutor',{role:'algebra-factory',address:owner,codeHash:`0x${'a'.repeat(64)}`,source:'https://example.invalid'});
+ assert.ok(typeof call==='string'&&call.startsWith('0x')&&call.length>10,'portable Algebra root must produce configuration calldata');
 });
