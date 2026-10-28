@@ -6,7 +6,8 @@ const priceAbi = parseAbi(['function decimals() view returns(uint8)', 'function 
 export interface GasValuation {
   asset: Address; decimals: number; nativeUsdFeed: Address; assetUsdFeed: Address; maxAgeSeconds: number;
 }
-export async function priceUsdE8(client: PublicClient, feed: Address, blockNumber: bigint, maxAgeSeconds: number): Promise<bigint> {
+/** One Chainlink round at a pinned block, with decimals, positivity, round-completeness and age checks. */
+export async function readFeedRound(client: PublicClient, feed: Address, blockNumber: bigint, maxAgeSeconds: number): Promise<{ priceUsdE8: bigint; updatedAt: bigint; blockTimestamp: bigint }> {
   if (!Number.isSafeInteger(maxAgeSeconds) || maxAgeSeconds < 1) throw new Error('INVALID_PRICE_AGE');
   const [decimals, round, block] = await Promise.all([
     client.readContract({ address: feed, abi: priceAbi, functionName: 'decimals', blockNumber }),
@@ -16,7 +17,37 @@ export async function priceUsdE8(client: PublicClient, feed: Address, blockNumbe
   if (decimals > 18 || round[1] <= 0n || round[3] === 0n || round[4] < round[0] || block.timestamp < round[3] || block.timestamp - round[3] > BigInt(maxAgeSeconds)) throw new Error('INVALID_OR_STALE_PRICE');
   const price = round[1] * 100000000n / 10n ** BigInt(decimals);
   if (!price) throw new Error('INVALID_OR_STALE_PRICE');
-  return price;
+  return { priceUsdE8: price, updatedAt: round[3], blockTimestamp: block.timestamp };
+}
+export async function priceUsdE8(client: PublicClient, feed: Address, blockNumber: bigint, maxAgeSeconds: number): Promise<bigint> {
+  return (await readFeedRound(client, feed, blockNumber, maxAgeSeconds)).priceUsdE8;
+}
+export interface NativePricePolicy { feed: Address; maxAgeSeconds: number; sequencerUptimeFeed: Address | null; sequencerGraceSeconds: number }
+export interface NativePriceEvidence { feed: Address; priceUsdE8: string; updatedAt: number; blockNumber: string; blockTimestamp: number; sequencer: { feed: Address; up: true; sinceSeconds: number } | null }
+/** Native/USD at the valued block. L2 sequencer gate: answer 0 = up, and it must have been up for the grace period. */
+export async function quoteNativeUsd(client: PublicClient, policy: NativePricePolicy, blockNumber: bigint): Promise<NativePriceEvidence> {
+  let sequencer: NativePriceEvidence['sequencer'] = null;
+  if (policy.sequencerUptimeFeed) {
+    let status: readonly [bigint, bigint, bigint, bigint, bigint], timestamp: bigint;
+    try {
+      [status, { timestamp }] = await Promise.all([
+        client.readContract({ address: policy.sequencerUptimeFeed, abi: priceAbi, functionName: 'latestRoundData', blockNumber }),
+        client.getBlock({ blockNumber })
+      ]);
+    } catch { throw new Error('NATIVE_FEED_UNREADABLE'); }
+    if (status[1] !== 0n) throw new Error('SEQUENCER_DOWN');
+    if (status[2] === 0n || timestamp < status[2] || timestamp - status[2] < BigInt(policy.sequencerGraceSeconds)) throw new Error('SEQUENCER_GRACE_PERIOD');
+    sequencer = { feed: policy.sequencerUptimeFeed, up: true, sinceSeconds: Number(timestamp - status[2]) };
+  }
+  let round;
+  try { round = await readFeedRound(client, policy.feed, blockNumber, policy.maxAgeSeconds); }
+  catch (error) { throw new Error(error instanceof Error && error.message === 'INVALID_OR_STALE_PRICE' ? 'NATIVE_PRICE_STALE_OR_INVALID' : 'NATIVE_FEED_UNREADABLE'); }
+  return { feed: policy.feed, priceUsdE8: round.priceUsdE8.toString(), updatedAt: Number(round.updatedAt), blockNumber: blockNumber.toString(), blockTimestamp: Number(round.blockTimestamp), sequencer };
+}
+/** Exact gas cost in USD·1e8, rounded up so gas is never understated. */
+export function nativeCostUsdE8(wei: bigint, priceE8: bigint): bigint {
+  if (wei < 0n || priceE8 <= 0n) throw new Error('INVALID_NATIVE_COST');
+  return (wei * priceE8 + 10n ** 18n - 1n) / 10n ** 18n;
 }
 export async function nativeCostInAsset(client: PublicClient, cost: bigint, blockNumber: bigint, valuation: GasValuation): Promise<bigint> {
   if (!Number.isInteger(valuation.decimals) || valuation.decimals < 0 || valuation.decimals > 18) throw new Error('INVALID_ASSET_DECIMALS');

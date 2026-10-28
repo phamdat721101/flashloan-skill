@@ -23,6 +23,42 @@ For the liquid-pattern workflow, start with [capture, size and prepare](#use-a-l
 
 ## Latest upgrade and how to use it
 
+### 2026-10-28 (later): Chainlink gas pricing replaces `NATIVE_TOKEN_USD`
+
+The orchestrator (`simulate`, `execute-auto`, `run`) no longer uses a hand-set ETH price. Gas is priced from **Chainlink ETH/USD at the block being valued**: the simulation block, then the receipt block. It is gated on the Arbitrum L2 sequencer being up. No contract changed. The latest deployed executors are still MultiVenue v2 [`0x2502…9de2`](https://arbiscan.io/address/0x2502539753df1182f015378f32fbdef0ec9c9de2) and DexPair `0x093e…d192` (table below).
+
+| Item | Value |
+| --- | --- |
+| ETH/USD feed | `0x639Fe6ab55C921f74e7fac1ee960C0B6293ba612` (8 decimals; max age 90000 s) |
+| Sequencer uptime feed | `0xFdB631F5EE196F0ed6FAa767959853A9F217697D` (must be up for at least 3600 s) |
+| Gas cost math | `ceil(gasWei × priceUsdE8 / 1e18)` in integer USD·1e8; never understated |
+| Profit floor | `expectedNetProfitUsd = quotedNetProfitUsd − gasCostUsd`. It now subtracts live gas. |
+| Receipt valuation | 3 bounded retries, then P&L `unknown` and a daily halt |
+| Spec | [chainlink-native-price](docs/features/chainlink-native-price.md), [system map](docs/features/chainlink-native-price-map.md) |
+
+**Upgrade an install and env:**
+
+```sh
+cd ~/.flashloan-agent/flashloan-skill && git pull --ff-only origin main && npm run build
+# .env: delete NATIVE_TOKEN_USD (ignored now). Optional overrides, Arbitrum defaults shown:
+# NATIVE_USD_FEED=0x639Fe6ab55C921f74e7fac1ee960C0B6293ba612
+# NATIVE_USD_MAX_AGE_SECONDS=90000
+# SEQUENCER_UPTIME_FEED=0xFdB631F5EE196F0ed6FAa767959853A9F217697D   # or none
+# SEQUENCER_GRACE_SECONDS=3600
+set -a; . ./.env; set +a
+node dist/cli.js validate-config      # prints nativePrice policy; warns if NATIVE_TOKEN_USD is still set
+node dist/cli.js simulate opportunities.json
+```
+
+How to read the output:
+- Each simulation result and receipt carries `nativePrice`: `{feed, priceUsdE8, updatedAt, blockNumber, blockTimestamp, sequencer}`, the exact price used.
+- A plan is rejected with a stable reason when pricing is not safe:
+  - `NATIVE_PRICE_STALE_OR_INVALID`
+  - `NATIVE_FEED_UNREADABLE`
+  - `SEQUENCER_DOWN`
+  - `SEQUENCER_GRACE_PERIOD`
+- There is no fallback to a fixed price.
+
 ### 2026-10-28: dynamic pool universe and Arbitrum MultiVenue executor v2
 
 Price-gap analysis and pool scanning are no longer limited to WETH/USDC. The flashloan MCP discovers pools, and every pool is re-verified on-chain before any scanner uses it. The new Arbitrum executor can execute those verified pools by address.
@@ -317,6 +353,15 @@ Copy `.env.example` to `.env`. Keep `OPERATOR_PRIVATE_KEY` only in your local en
 ```sh
 node dist/cli.js validate-config
 ```
+
+Gas in `simulate`, `execute-auto` and `run` is priced from **Chainlink ETH/USD at the valued block** (simulation block, then receipt block), with an Arbitrum L2 sequencer-uptime gate. `NATIVE_TOKEN_USD` is deprecated and ignored; `validate-config` warns if it is still set. Configuration:
+- Overrides: `NATIVE_USD_FEED`, `NATIVE_USD_MAX_AGE_SECONDS` (default 90000), `SEQUENCER_UPTIME_FEED` (`none` disables the gate) and `SEQUENCER_GRACE_SECONDS` (default 3600).
+
+Behaviour:
+- A stale or invalid price, or a sequencer that is down or inside its grace period, fails the simulation closed (`NATIVE_PRICE_*`, `SEQUENCER_*`).
+- Receipt valuation retries 3 times before marking P&L `unknown` and halting.
+- The $10 profit floor now subtracts the live gas cost from the quoted profit.
+- Spec: [chainlink-native-price](docs/features/chainlink-native-price.md).
 
 The runtime accepts exact executor-ready opportunities matching `schemas/opportunity.schema.json`. `FLASH_EXECUTOR_ADDRESS`, `PRIVATE_RELAY_URL`, and `OPERATOR_PRIVATE_KEY` are explicit local configuration; no executor address or secret is implied.
 

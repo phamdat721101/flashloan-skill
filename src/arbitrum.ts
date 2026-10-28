@@ -2,11 +2,31 @@ import { evmProfile } from './evm-chains.js';
 import { createPublicClient, createWalletClient, decodeFunctionData, formatUnits, http, parseEventLogs } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import type { ExecutorAdapter } from './connectors.js';
-import type { AllocationPlan, ExecutionReceipt, SimulationResult, SkillConfig } from './types.js';
+import type { AllocationPlan, ExecutionReceipt, NativePriceEvidence, SimulationResult, SkillConfig } from './types.js';
+import { nativeCostUsdE8, quoteNativeUsd } from './evm-fees.js';
 import { DYNAMIC_V4_EXECUTOR_DEPLOYMENT, FLASH_EXECUTOR_ABI, FLASH_EXECUTOR_SELECTORS, MULTI_VENUE_EXECUTOR_DEPLOYMENT } from './contracts/flash-executor.js';
 import { executionOutcome } from './execution-outcome.js';
 
-const WEI_PER_ETH = 1_000_000_000_000_000_000n;
+/** Native/USD at a block; Chainlink-backed in production, injected in tests. */
+export interface NativeUsdSource { quote(blockNumber: bigint): Promise<NativePriceEvidence> }
+function chainlinkSource(client: object, config: Pick<SkillConfig, 'nativePrice'>): NativeUsdSource {
+  if (!config.nativePrice) throw new Error('NATIVE_PRICE_POLICY_REQUIRED');
+  const policy = config.nativePrice;
+  return { quote: blockNumber => quoteNativeUsd(client as never, policy, blockNumber) };
+}
+/** Exact gas valuation; the net-profit floor sees the caller's quoted profit minus live gas (review D1). */
+export function valueSimulatedGas(plan: AllocationPlan, gasEstimate: bigint, gasPrice: bigint, nativePrice: NativePriceEvidence): SimulationResult {
+  const gasCostUsd = Number(nativeCostUsdE8(gasEstimate * gasPrice, BigInt(nativePrice.priceUsdE8))) / 1e8;
+  return { ok: true, gasEstimate, gasCostUsd, expectedNetProfitUsd: plan.quotedNetProfitUsd - gasCostUsd, nativePrice };
+}
+/** Bounded retries so one RPC blip after a successful trade does not halt the day (review D2). */
+export async function quoteWithRetry(source: NativeUsdSource, blockNumber: bigint, attempts = 3, delayMs = 1000): Promise<NativePriceEvidence | undefined> {
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    try { return await source.quote(blockNumber); }
+    catch { if (attempt < attempts) await new Promise(resolve => setTimeout(resolve, delayMs)); }
+  }
+  return undefined;
+}
 
 export function validateExecutorPlan(plan: AllocationPlan, config: SkillConfig): void {
   if (!config.executorAddress) throw new Error('executor address is required');
@@ -46,13 +66,15 @@ export class ArbitrumExecutorAdapter implements ExecutorAdapter {
   private readonly publicClient;
   private readonly walletClient;
 
-  constructor(private readonly config: SkillConfig, private readonly nativeTokenUsd: number) {
+  private readonly nativeUsd: NativeUsdSource;
+
+  constructor(private readonly config: SkillConfig, nativeUsd?: NativeUsdSource, private readonly retryDelayMs = 1000) {
     this.chainId = config.chainId; evmProfile(this.chainId);
     if (this.chainId !== 42161) throw new Error('Use the manifest-bound EVM liquidity execution path for new chains');
     if (!config.executorAddress || !config.operatorPrivateKey) throw new Error('executor address and operator key are required for Arbitrum execution');
-    if (!Number.isFinite(nativeTokenUsd) || nativeTokenUsd <= 0) throw new Error('nativeTokenUsd must be positive');
     this.account = privateKeyToAccount(config.operatorPrivateKey);
     this.publicClient = createPublicClient({ chain: evmProfile(config.chainId).chain, transport: http(config.rpcUrl) });
+    this.nativeUsd = nativeUsd ?? chainlinkSource(this.publicClient, config);
     this.walletClient = createWalletClient({ account: this.account, chain: evmProfile(config.chainId).chain, transport: http(config.privateRelayUrl ?? config.rpcUrl) });
   }
 
@@ -69,15 +91,11 @@ export class ArbitrumExecutorAdapter implements ExecutorAdapter {
   async simulate(plan: AllocationPlan): Promise<SimulationResult> {
     try {
       validateExecutorPlan(plan, this.config);
+      const blockNumber = await this.publicClient.getBlockNumber();
       await this.publicClient.call({ account: this.account.address, ...plan.transaction });
       const gasEstimate = await this.publicClient.estimateGas({ account: this.account.address, ...plan.transaction });
       const gasPrice = await this.publicClient.getGasPrice();
-      return {
-        ok: true,
-        gasEstimate,
-        gasCostUsd: Number(gasEstimate * gasPrice) / Number(WEI_PER_ETH) * this.nativeTokenUsd,
-        expectedNetProfitUsd: plan.quotedNetProfitUsd
-      };
+      return valueSimulatedGas(plan, gasEstimate, gasPrice, await this.nativeUsd.quote(blockNumber));
     } catch (error) {
       const outcome = executionOutcome('simulate', error);
       return { ok: false, reason: outcome.message, outcome };
@@ -95,7 +113,9 @@ export class ArbitrumExecutorAdapter implements ExecutorAdapter {
     const transactionHash = await this.walletClient.sendTransaction(plan.transaction);
     const receipt = await this.publicClient.waitForTransactionReceipt({ hash: transactionHash });
     if (receipt.status !== 'success') throw new Error(`executor transaction reverted: ${transactionHash}`);
-    const gasCostUsd = Number(receipt.gasUsed * receipt.effectiveGasPrice) / Number(WEI_PER_ETH) * this.nativeTokenUsd;
+    const nativePrice = await quoteWithRetry(this.nativeUsd, receipt.blockNumber, 3, this.retryDelayMs);
+    if (!nativePrice) return { transactionHash, blockNumber: receipt.blockNumber, gasUsed: receipt.gasUsed, realizedPnlStatus: 'unknown', outcome: { stage: 'receipt', code: 'NATIVE_PRICE_UNAVAILABLE', retryable: false, message: 'receipt gas cannot be priced from Chainlink' } };
+    const gasCostUsd = Number(nativeCostUsdE8(receipt.gasUsed * receipt.effectiveGasPrice, BigInt(nativePrice.priceUsdE8))) / 1e8;
     const events = parseEventLogs({ abi: FLASH_EXECUTOR_ABI, logs: receipt.logs.filter((log) => log.address.toLowerCase() === this.config.executorAddress!.toLowerCase()), strict: false });
     const profit = events.reduce<bigint | undefined>((value, event) => {
       const netProfit = event.args?.netProfit;
@@ -105,7 +125,7 @@ export class ArbitrumExecutorAdapter implements ExecutorAdapter {
       return { transactionHash, blockNumber: receipt.blockNumber, gasUsed: receipt.gasUsed, realizedPnlStatus: 'unknown', outcome: { stage: 'receipt', code: 'REALIZED_PNL_UNKNOWN', retryable: false, message: 'receipt profit cannot be conservatively valued' } };
     }
     const realizedProfitUsd = Number(formatUnits(profit, plan.profitTokenDecimals)) * plan.profitTokenUsd - gasCostUsd;
-    return { transactionHash, blockNumber: receipt.blockNumber, gasUsed: receipt.gasUsed, realizedProfitUsd, realizedPnlStatus: 'known' };
+    return { transactionHash, blockNumber: receipt.blockNumber, gasUsed: receipt.gasUsed, realizedProfitUsd, realizedPnlStatus: 'known', nativePrice };
   }
 }
 
@@ -117,10 +137,12 @@ export class ArbitrumExecutorAdapter implements ExecutorAdapter {
 export class ArbitrumReadOnlySimulator {
   private readonly publicClient;
 
-  constructor(private readonly config: Pick<SkillConfig, 'chainId' | 'rpcUrl' | 'executorAddress'>, private readonly nativeTokenUsd: number) {
+  private readonly nativeUsd: NativeUsdSource;
+
+  constructor(private readonly config: Pick<SkillConfig, 'chainId' | 'rpcUrl' | 'executorAddress' | 'nativePrice'>, nativeUsd?: NativeUsdSource) {
     if (config.chainId !== 42161 || !config.executorAddress) throw new Error('Arbitrum read-only simulation requires chain 42161 and executor address');
-    if (!Number.isFinite(nativeTokenUsd) || nativeTokenUsd <= 0) throw new Error('nativeTokenUsd must be positive');
     this.publicClient = createPublicClient({ chain: evmProfile(config.chainId).chain, transport: http(config.rpcUrl) });
+    this.nativeUsd = nativeUsd ?? chainlinkSource(this.publicClient, config);
   }
 
   async simulate(plan: AllocationPlan): Promise<SimulationResult> {
@@ -130,10 +152,11 @@ export class ArbitrumReadOnlySimulator {
       const bytecode = await this.publicClient.getCode({ address: this.config.executorAddress! });
       if (!bytecode || bytecode === '0x') throw new Error('configured executor has no deployed bytecode');
       const owner = await this.publicClient.readContract({ address: this.config.executorAddress!, abi: FLASH_EXECUTOR_ABI, functionName: 'owner' });
+      const blockNumber = await this.publicClient.getBlockNumber();
       await this.publicClient.call({ account: owner, ...plan.transaction });
       const gasEstimate = await this.publicClient.estimateGas({ account: owner, ...plan.transaction });
       const gasPrice = await this.publicClient.getGasPrice();
-      return { ok: true, gasEstimate, gasCostUsd: Number(gasEstimate * gasPrice) / Number(WEI_PER_ETH) * this.nativeTokenUsd, expectedNetProfitUsd: plan.quotedNetProfitUsd };
+      return valueSimulatedGas(plan, gasEstimate, gasPrice, await this.nativeUsd.quote(blockNumber));
     } catch (error) {
       const outcome = executionOutcome('simulate', error);
       return { ok: false, reason: outcome.message, outcome };

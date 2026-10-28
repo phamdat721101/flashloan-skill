@@ -21,7 +21,12 @@ export interface SkillConfig {
   treasuryAddress?: Address;
   operatorPrivateKey?: Hex;
   risk: RiskPolicy;
+  /** Chainlink native/USD valuation for gas; replaces the deprecated fixed NATIVE_TOKEN_USD. */
+  nativePrice?: NativePricePolicy;
 }
+
+export type { NativePricePolicy, NativePriceEvidence } from './evm-fees.js';
+import type { NativePricePolicy, NativePriceEvidence } from './evm-fees.js';
 
 /** Immutable, block-bound evidence required to send a dynamically-built plan. */
 export interface ProposalEvidence {
@@ -78,6 +83,7 @@ export interface SimulationResult {
   gasEstimate?: bigint;
   gasCostUsd?: number;
   expectedNetProfitUsd?: number;
+  nativePrice?: NativePriceEvidence;
   reason?: string;
   outcome?: ExecutionOutcome;
 }
@@ -106,6 +112,7 @@ export interface ExecutionReceipt {
   gasUsed: bigint;
   realizedProfitUsd?: number;
   realizedPnlStatus: 'known' | 'unknown';
+  nativePrice?: NativePriceEvidence;
   outcome?: ExecutionOutcome;
 }
 

@@ -2,12 +2,75 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "ExecutionReceipt",
   "type": "object",
-  "required": ["transactionHash", "blockNumber", "gasUsed", "realizedPnlStatus"],
+  "required": [
+    "transactionHash",
+    "blockNumber",
+    "gasUsed",
+    "realizedPnlStatus"
+  ],
   "properties": {
-    "transactionHash": { "type": "string", "pattern": "^0x[0-9a-fA-F]+$" },
-    "blockNumber": { "type": ["string", "integer"] },
-    "gasUsed": { "type": ["string", "integer"] },
-    "realizedProfitUsd": { "type": "number" },
-    "realizedPnlStatus": { "enum": ["known", "unknown"] }
+    "transactionHash": {
+      "type": "string",
+      "pattern": "^0x[0-9a-fA-F]+$"
+    },
+    "blockNumber": {
+      "type": [
+        "string",
+        "integer"
+      ]
+    },
+    "gasUsed": {
+      "type": [
+        "string",
+        "integer"
+      ]
+    },
+    "realizedProfitUsd": {
+      "type": "number"
+    },
+    "realizedPnlStatus": {
+      "enum": [
+        "known",
+        "unknown"
+      ]
+    },
+    "nativePrice": {
+      "type": "object",
+      "description": "Chainlink native/USD evidence used to value receipt gas",
+      "required": [
+        "feed",
+        "priceUsdE8",
+        "updatedAt",
+        "blockNumber",
+        "blockTimestamp",
+        "sequencer"
+      ],
+      "properties": {
+        "feed": {
+          "type": "string",
+          "pattern": "^0x[0-9a-fA-F]{40}$"
+        },
+        "priceUsdE8": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*$"
+        },
+        "updatedAt": {
+          "type": "integer"
+        },
+        "blockNumber": {
+          "type": "string",
+          "pattern": "^[0-9]+$"
+        },
+        "blockTimestamp": {
+          "type": "integer"
+        },
+        "sequencer": {
+          "type": [
+            "object",
+            "null"
+          ]
+        }
+      }
+    }
   }
 }

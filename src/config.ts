@@ -1,5 +1,5 @@
-import { evmProfile } from './evm-chains.js';
-import type { Address, Hex, RiskPolicy, SkillConfig } from './types.js';
+import { evmProfile, NATIVE_USD_FEEDS } from './evm-chains.js';
+import type { Address, Hex, NativePricePolicy, RiskPolicy, SkillConfig } from './types.js';
 import { MINIMUM_NET_PROFIT_USD } from './risk.js';
 
 const DEFAULT_RISK: RiskPolicy = {
@@ -78,8 +78,24 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): SkillConfig {
       minNetProfitUsd: minimumProfit(env.MIN_NET_PROFIT_USD),
       maxProposalBlockAge: positive(env.MAX_PROPOSAL_BLOCK_AGE, DEFAULT_RISK.maxProposalBlockAge, 'MAX_PROPOSAL_BLOCK_AGE'),
       rpcConcurrency: positive(env.RPC_CONCURRENCY, DEFAULT_RISK.rpcConcurrency, 'RPC_CONCURRENCY')
-    }
+    },
+    nativePrice: nativePricePolicy(env, chainId)
   };
+}
+
+/** Chainlink gas valuation. Chain defaults apply; NATIVE_TOKEN_USD is deprecated and never read here. */
+export function nativePricePolicy(env: NodeJS.ProcessEnv, chainId: number): NativePricePolicy | undefined {
+  const defaults = NATIVE_USD_FEEDS[chainId];
+  const feed = optionalAddress(env.NATIVE_USD_FEED, 'NATIVE_USD_FEED') ?? defaults?.feed;
+  if (!feed) return undefined;
+  const bounded = (value: string | undefined, fallback: number, min: number, max: number, name: string) => {
+    const parsed = value === undefined ? fallback : Number(value);
+    if (!Number.isSafeInteger(parsed) || parsed < min || parsed > max) throw new Error(`${name} must be an integer from ${min} to ${max}`);
+    return parsed;
+  };
+  const sequencerUptimeFeed = env.SEQUENCER_UPTIME_FEED === 'none' ? null : optionalAddress(env.SEQUENCER_UPTIME_FEED, 'SEQUENCER_UPTIME_FEED') ?? defaults?.sequencerUptimeFeed ?? null;
+  return { feed: feed.toLowerCase() as Address, maxAgeSeconds: bounded(env.NATIVE_USD_MAX_AGE_SECONDS, 90000, 60, 90000, 'NATIVE_USD_MAX_AGE_SECONDS'),
+    sequencerUptimeFeed: sequencerUptimeFeed ? sequencerUptimeFeed.toLowerCase() as Address : null, sequencerGraceSeconds: bounded(env.SEQUENCER_GRACE_SECONDS, 3600, 0, 86400, 'SEQUENCER_GRACE_SECONDS') };
 }
 
 export function canBroadcast(config: SkillConfig): boolean {

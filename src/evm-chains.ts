@@ -9,6 +9,10 @@ export const EVM_PROFILES = {
   4663: { key: 'robinhood', chain: robinhood, rpcEnv: 'ROBINHOOD_RPC_URL', feeModel: 'bundled', wrappedNative: '0x0bd7d308f8e1639fab988df18a8011f41eacad73' }
 } as const;
 export type EvmChainId = keyof typeof EVM_PROFILES;
+/** Chainlink native/USD feed and L2 sequencer uptime feed, verified on-chain 2026-10-28 (ETH/USD 8 dp; uptime answer 0 = up). */
+export const NATIVE_USD_FEEDS: Partial<Record<number, { feed: Address; sequencerUptimeFeed: Address }>> = {
+  42161: { feed: '0x639fe6ab55c921f74e7fac1ee960c0b6293ba612', sequencerUptimeFeed: '0xfdb631f5ee196f0ed6faa767959853a9f217697d' }
+};
 export function evmProfile(chainId: number) {
   if (!Number.isSafeInteger(chainId) || !Object.hasOwn(EVM_PROFILES, chainId)) throw new Error('UNSUPPORTED_EVM_CHAIN');
   return EVM_PROFILES[chainId as EvmChainId];

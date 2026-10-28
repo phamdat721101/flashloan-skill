@@ -16,7 +16,8 @@ const [command, opportunityFile] = process.argv.slice(2);
 
 if (command === 'validate-config') {
   const config = loadConfig();
-  console.log(JSON.stringify({ chainId: config.chainId, executorConfigured: Boolean(config.executorAddress), walletConfigured: Boolean(config.operatorPrivateKey), risk: config.risk }));
+  const warnings = process.env.NATIVE_TOKEN_USD !== undefined ? ['NATIVE_TOKEN_USD is deprecated and ignored; gas is priced from the Chainlink nativePrice feed'] : [];
+  console.log(JSON.stringify({ chainId: config.chainId, executorConfigured: Boolean(config.executorAddress), walletConfigured: Boolean(config.operatorPrivateKey), risk: config.risk, nativePrice: config.nativePrice ?? null, warnings }));
 } else if (command === 'scan') {
   const args = process.argv.slice(3);
   if (args.includes('--live') || args.includes('--execute')) throw new Error('scan is read-only; --live and --execute are not supported');
@@ -61,9 +62,7 @@ if (command === 'validate-config') {
   console.log(JSON.stringify(plans, (_, value) => typeof value === 'bigint' ? value.toString() : value));
 } else if ((command === 'simulate' || command === 'execute-auto' || command === 'run') && opportunityFile) {
   const config = loadConfig();
-  const nativeTokenUsd = Number(process.env.NATIVE_TOKEN_USD);
-  if (!Number.isFinite(nativeTokenUsd) || nativeTokenUsd <= 0) throw new Error('NATIVE_TOKEN_USD is required for live risk accounting');
-  const adapter = new ArbitrumExecutorAdapter(config, nativeTokenUsd);
+  const adapter = new ArbitrumExecutorAdapter(config);
   const stateDir = process.env.FLASHLOAN_STATE_DIR ?? '.flashloan-agent';
   const ledger = new DailyLossLedger(`${stateDir}/daily-loss.json`);
   const lock = new ExecutionLock(`${stateDir}/execution.lock`);
