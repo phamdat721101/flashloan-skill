@@ -80,6 +80,7 @@ all fees must be refreshed before broadcast. No transaction was sent.
 After choosing this Arbitrum target, the supported resumable deployment commands are:
 
 ```sh
+forge build
 node --env-file=.env dist/evm/cli.js deploy \
   --manifest config/arbitrum-price-gap.json --env-file .env \
   --state .nim/deployments/arbitrum-price-gap.json
