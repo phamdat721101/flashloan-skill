@@ -23,6 +23,64 @@ For the liquid-pattern workflow, start with [capture, size and prepare](#use-a-l
 
 ## Latest upgrade and how to use it
 
+### 2026-10-28: dynamic pool universe and Arbitrum MultiVenue executor v2
+
+Price-gap analysis and pool scanning are no longer limited to WETH/USDC. The flashloan MCP discovers pools, and every pool is re-verified on-chain before any scanner uses it. The new Arbitrum executor can execute those verified pools by address.
+
+| Item | Published reference |
+| --- | --- |
+| Network | Arbitrum One, chain ID `42161` |
+| MultiVenue executor v2 | [`0x2502539753df1182f015378f32fbdef0ec9c9de2`](https://arbiscan.io/address/0x2502539753df1182f015378f32fbdef0ec9c9de2) |
+| Deployment transaction | [`0x04b002863b16397c2f66d13dbd2357eab7709b7791aecef8dcbc85ccacc25a60`](https://arbiscan.io/tx/0x04b002863b16397c2f66d13dbd2357eab7709b7791aecef8dcbc85ccacc25a60), block `518949007`, L1-finalized |
+| Runtime code hash | `0x4af4288976e9e54e3f57f954d463fa75b871a88eb9560aa36dc1afedd7c3efe8` |
+| Pinned roots (10) | Uniswap V2/V3/V4, Sushi V2/V3, PancakeSwap V3, Camelot (Algebra) factories; Morpho, Balancer V2, Aave V3 lenders ([manifest](config/arbitrum-mainnet.json)) |
+| Evidence | [deployment record](docs/deployments/arbitrum-one-multi-venue-executor-v2.json): root readback, fork venue proofs, positive fork trade, mainnet dry-run |
+| DexPair executor | `0x093e98a6e2e278426adc7161b61bb2132e0ad192` (the only executor with `executeDexPairArbitrage`); venue ids proven by trace: `0` Camelot, `1` Uniswap V3, `2` PancakeSwap V3 |
+
+Compared with the earlier liquidity executor `0xba46…5b0a`, v2 adds `pancakeV3SwapCallback` and pins several factories per venue type (Sushi, PancakeSwap and Camelot alongside Uniswap). Trading admission is still **not granted**: every live trade needs an approved canary.
+
+**Update an existing install:**
+
+```sh
+cd ~/.flashloan-agent/flashloan-skill
+git pull --ff-only origin main
+npm ci && forge build --offline && npm run build && cargo build -p flashloan-scan --release
+```
+
+**Operator env** (`.env` is local only; see [`.env.example`](.env.example)):
+
+```sh
+FLASH_EXECUTOR_ADDRESS=0x093e98a6e2e278426adc7161b61bb2132e0ad192        # DexPair entrypoint (flashloan-scan arb, orchestrator)
+MULTI_VENUE_EXECUTOR_ADDRESS=0x2502539753df1182f015378f32fbdef0ec9c9de2  # universe-probe default
+# UNIVERSE_PATH / ASSET_POLICY_PATH / MAX_PAIRS: opt-in dynamic scanner mode
+```
+
+`flashloan-scan arb` now refuses an executor without the DexPair entrypoint (`EXECUTOR_LACKS_DEX_PAIR_ENTRYPOINT`). Previously, such an executor was silently reported as `no_edge`.
+
+**Workflow (read-only by default):**
+
+```sh
+set -a; . ./.env; set +a
+# 1. Agent: flashloan_discover_arbitrage_pools(network="arbitrum", tokens=[…]) → save the raw JSON unchanged
+# 2. Verify pools on-chain → pool-universe/1 (expires after 6h; an inventory older than 1h is refused)
+node dist/evm/cli.js universe --inventory .nim/universe/raw-arbitrum.json \
+  --policy config/arbitrum-asset-policy.json --out .nim/universe/arbitrum.json
+# 3. Per-pair spread signals (decimal- and fee-correct)
+UNIVERSE_PATH=.nim/universe/arbitrum.json SIGNAL_ONCE=1 ./target/release/flashloan-scan 100000 10
+# 4. Dry-run every verified pool cycle through MultiVenue v2 (eth_call from the owner; never signs)
+node dist/evm/cli.js universe-probe --universe .nim/universe/arbitrum.json \
+  --lender 0xBA12222222228d8Ba445958a75a0704d566BF2C8 --lender-kind 2 --size-usd 1000
+# 5. DexPair dry-run over universe combos (no --live)
+UNIVERSE_PATH=.nim/universe/arbitrum.json ASSET_POLICY_PATH=config/arbitrum-asset-policy.json ./target/release/flashloan-scan arb
+```
+
+How to read the results:
+- In `universe-probe`, `Unprofitable` means both swaps, both callbacks and the lender repayment executed, and the cycle has no edge at that size.
+- `SIMULATED_PROFITABLE` is a candidate only. Sending still requires the canary approval gates.
+- Aero live on Base accepts `universePath` (plus optional `borrowAsset` and `valuation` for a stablecoin borrow). It plans only pools the V2 executor already trusts. New Base pools from factory `0x9cb2…7a76` are a new pool generation and are not configured.
+
+### 2026-10-27: v5.1 evidence workflow
+
 The **2026-10-27 v5.1 upgrade** implements local evidence-driven research and
 trigger-first evaluation: exact integer sizing, bounded searches, canonical
 trigger replay and head rechecks, semantic artifact validation, owner-approved
@@ -355,7 +413,9 @@ authorize sending or establish liquidity-pattern production admission.
 
 | Network / contract | Recorded address | Scope |
 | --- | --- | --- |
-| Arbitrum One / current liquidity executor | [`0xba4681b7cae1a67c703f43f1476b25fef2635b0a`](https://arbiscan.io/address/0xba4681b7cae1a67c703f43f1476b25fef2635b0a) | Corrected multi-lender/multi-venue ABI; trading admission required |
+| Arbitrum One / MultiVenue executor v2 (universe routing) | [`0x2502539753df1182f015378f32fbdef0ec9c9de2`](https://arbiscan.io/address/0x2502539753df1182f015378f32fbdef0ec9c9de2) | Pool-address legs; Uniswap/Sushi/PancakeSwap/Camelot roots; Morpho, Balancer, Aave lenders; L1-finalized; trading admission required |
+| Arbitrum One / DexPair executor | `0x093e98a6e2e278426adc7161b61bb2132e0ad192` | `executeDexPairArbitrage` (router venues 0 Camelot, 1 Uniswap V3, 2 PancakeSwap V3); `FLASH_EXECUTOR_ADDRESS` target |
+| Arbitrum One / previous liquidity executor | [`0xba4681b7cae1a67c703f43f1476b25fef2635b0a`](https://arbiscan.io/address/0xba4681b7cae1a67c703f43f1476b25fef2635b0a) | Corrected multi-lender/multi-venue ABI without the PancakeSwap V3 callback; trading admission required |
 | Arbitrum One / current V4 state quoter | [`0x552d73e6b424b98a9d74fb335e62ee198d0601ad`](https://arbiscan.io/address/0x552d73e6b424b98a9d74fb335e62ee198d0601ad) | Rollback-only quotation; no flashloan execution |
 | Arbitrum One / multi-split | `0xb1aac2079c52fd31e038ec348505a0f55859d60f` | Separate `executeMultiSplitPairArbitrage` ABI; not the repaired multi-lender ABI |
 | Arbitrum One / historical multi-venue | `0xd130b45b7e7d08fb7dbb1c79fa5d9b95ea8e27b2` | V4 revoked; V2/V3 require their existing gates |
@@ -426,9 +486,7 @@ E2E_ARBITRUM_RPC_URL="$ARBITRUM_RPC_URL" npm test
 This is deployment and simulation evidence, not a claim of a completed
 profitable flash-loan trade. A live execution remains gated on a
 schema-valid, profitable route, final relay simulation, a fresh estimate, and
-the existing execution risk checks. Start in private-relay canary mode with
-the configured executor address in local `FLASH_EXECUTOR_ADDRESS`; do not
-send a public-mempool canary.
+the existing execution risk checks. This historical address has no DexPair entrypoint. Point `FLASH_EXECUTOR_ADDRESS` at the DexPair executor `0x093e…d192`, and use `MULTI_VENUE_EXECUTOR_ADDRESS` for MultiVenue v2. Do not send a public-mempool canary.
 
 ## Liquidity-pattern foundation
 
@@ -740,6 +798,25 @@ attempt journal. Registered exact payloads support receipt recovery without
 resigning or resubmission.
 
 ## Read-only real-time scanning
+
+Price-gap analysis and pool scanning now run over a **verified pool universe** instead of hardcoded WETH/USDC pools. The flashloan MCP (`flashloan_discover_arbitrage_pools`) only does discovery. Its output is never used for execution until every pool has been re-verified on-chain at one pinned block. That check covers the factory allowlist, `token0`/`token1` versus the provider's `asset_ids`, decimals, live state and code hash. Provider `price_usd`/`liquidity_usd` are used only to rank pools.
+
+```sh
+# 1. Agent: call flashloan_discover_arbitrage_pools(network, tokens) and save the raw JSON response unchanged.
+# 2. Verify it into pool-universe/1 (read-only; RPC from ARBITRUM_RPC_URL or the public default):
+node dist/evm/cli.js universe --inventory .nim/universe/raw-arbitrum.json \
+  --policy config/arbitrum-asset-policy.json --out .nim/universe/arbitrum.json
+# 3. Per-pair spread signal over every verified pair (decimal/orientation-correct, fee floor per pool):
+UNIVERSE_PATH=.nim/universe/arbitrum.json SIGNAL_ONCE=1 ARBITRUM_RPC_URL=… flashloan-scan 100000 10
+# 4. Dynamic DexPair dry-run (flash assets = universe assets with feed + lender):
+UNIVERSE_PATH=… ASSET_POLICY_PATH=config/arbitrum-asset-policy.json FLASH_EXECUTOR_ADDRESS=… flashloan-scan arb
+```
+
+- The universe records every dropped pool in `rejected` with a reason (`FACTORY_UNKNOWN`, `TOKEN_MISMATCH`, `SINGLE_POOL_PAIR`, …) and expires after `universeTtlSeconds`. Consumers fail closed on expiry or a chain mismatch.
+- `arb` dynamic mode refuses to run (`VENUE_MAP_UNVERIFIED`) until the owner records `executorVenues.verifiedBlock` in the policy, after a dry-run proves the deployed executor's venue ids.
+- Aero live: set `universePath` (and optionally `borrowAsset` + `valuation` for a stablecoin borrow) in the live config. Pairs come from the universe and pools come from `discoverAeroPools`. Only pools the executor already trusts are planned; the run reports the rest as needing an owner `configurePool` transaction.
+- Without `UNIVERSE_PATH`/`universePath`, behaviour is unchanged.
+- Arbitrum execution path: see [the 2026-10-28 upgrade](#2026-10-28-dynamic-pool-universe-and-arbitrum-multivenue-executor-v2) for the MultiVenue v2 executor and `universe-probe`.
 
 ## Rust/Alloy live route engine
 

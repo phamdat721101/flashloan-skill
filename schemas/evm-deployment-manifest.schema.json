@@ -40,6 +40,7 @@
               "aave-provider",
               "v2-factory",
               "v3-factory",
+                    "algebra-factory",
               "v4-manager",
               "aero-factory",
               "aero-pool"
@@ -251,6 +252,7 @@
                     "aave-provider",
                     "v2-factory",
                     "v3-factory",
+                    "algebra-factory",
                     "v4-manager"
                   ]
                 }

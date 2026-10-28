@@ -53,6 +53,13 @@ ABI pin for a new chain. Read `docs/features/evm-flashloan.md` for exact schemas
 receipt evidence, budgets, recovery and current admission status. The EVM adapter
 is `EvmLiquidityExecutionAdapter`; its old Arbitrum export remains compatible.
 
+## Dynamic pool universe
+
+When the user asks to scan or analyse pools beyond WETH/USDC:
+1. Call `flashloan_discover_arbitrage_pools` for the network with the policy's asset tokens, and save the raw response unchanged to `.nim/universe/raw-<network>.json`.
+2. Run `node dist/evm/cli.js universe --inventory … --policy config/<network>-asset-policy.json --out .nim/universe/<network>.json`.
+3. Report `pairs`, `rejected` reasons and `topGaps`. Never treat MCP `price_usd`/`liquidity_usd` or an unverified pool as execution input.
+
 ## Constraints
 
 - **Level 2 context:** use `node dist/liquidity/cli.js l2-sources` to inspect actual

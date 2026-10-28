@@ -1,0 +1,94 @@
+{
+  "schemaVersion": "asset-policy/1",
+  "chainId": 42161,
+  "maxInventoryAgeSeconds": 3600,
+  "universeTtlSeconds": 21600,
+  "maxPairs": 16,
+  "denylist": [],
+  "assets": {
+    "0x82af49447d8a07e3bd95bd0d56f35241523fbab1": {
+      "symbol": "WETH",
+      "usdFeed": "0x639fe6ab55c921f74e7fac1ee960c0b6293ba612",
+      "flashLenders": [
+        {
+          "kind": "BALANCER_V2",
+          "address": "0xba12222222228d8ba445958a75a0704d566bf2c8"
+        }
+      ]
+    },
+    "0xaf88d065e77c8cc2239327c5edb3a432268e5831": {
+      "symbol": "USDC",
+      "usdFeed": "0x50834f3163758fcc1df9973b6e91f0f0f0434ad3",
+      "flashLenders": [
+        {
+          "kind": "BALANCER_V2",
+          "address": "0xba12222222228d8ba445958a75a0704d566bf2c8"
+        }
+      ]
+    },
+    "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9": {
+      "symbol": "USDT",
+      "usdFeed": "0x3f3f5df88dc9f13eac63df89ec16ef6e7e25dde7",
+      "flashLenders": [
+        {
+          "kind": "BALANCER_V2",
+          "address": "0xba12222222228d8ba445958a75a0704d566bf2c8"
+        }
+      ]
+    },
+    "0xff970a61a04b1ca14834a43f5de4533ebddb5cc8": {
+      "symbol": "USDC.e",
+      "usdFeed": "0x50834f3163758fcc1df9973b6e91f0f0f0434ad3",
+      "flashLenders": []
+    },
+    "0x912ce59144191c1204e64559fe8253a0e49e6548": {
+      "symbol": "ARB",
+      "usdFeed": "0xb2a824043730fe05f3da2efafa1cbbe83fa548d6",
+      "flashLenders": []
+    },
+    "0xda10009cbd5d07dd0cecc66161fc93d7c9000da1": {
+      "symbol": "DAI",
+      "usdFeed": "0xc5c8e77b397e531b8ec06bfb0048328b30e9ecfb",
+      "flashLenders": []
+    }
+  },
+  "factories": {
+    "0x1f98431c8ad98523631ae4a59f267346ea31f984": {
+      "venue": "uniswap-v3",
+      "adapter": "UNISWAP_V3"
+    },
+    "0x0bfbcf9fa4f9c56b0f40a671ad40e0805a091865": {
+      "venue": "pancakeswap-v3",
+      "adapter": "UNISWAP_V3"
+    },
+    "0x1af415a1eba07a4986a52b6f2e7de7003d82231e": {
+      "venue": "sushiswap-v3",
+      "adapter": "UNISWAP_V3"
+    },
+    "0x1a3c9b1d2f0529d97f2afc5136cc23e58f1fd35b": {
+      "venue": "camelot-v3",
+      "adapter": "ALGEBRA",
+      "directionalFee": true
+    },
+    "0xf1d7cc64fb4452f05c498126312ebe29f30fbcf9": {
+      "venue": "uniswap-v2",
+      "adapter": "UNISWAP_V2",
+      "feePips": 3000
+    },
+    "0xc35dadb65012ec5796536bd9864ed8773abc74c4": {
+      "venue": "sushiswap-v2",
+      "adapter": "UNISWAP_V2",
+      "feePips": 3000
+    }
+  },
+  "executorVenues": {
+    "executor": "0x093e98a6e2e278426adc7161b61bb2132e0ad192",
+    "verifiedBlock": "518952544",
+    "evidence": "debug_traceCall of executeDexPairArbitrage on an Arbitrum fork (.nim/fork-arb/venue-trace.json): id 0 -> Camelot router 0x1f72\u20269e18 + Algebra pool, 1 -> Uniswap SwapRouter 0xe592\u20261564 + V3 pool, 2 -> PancakeSwap SmartRouter 0x1b81\u2026eb14 + V3 pool; uniFee selects the Uniswap/Pancake tier. Only 0x093e\u2026 implements this entrypoint; MultiVenue executors (0xd130\u2026, 0x2502\u2026) do not.",
+    "map": {
+      "camelot-v3": 0,
+      "uniswap-v3": 1,
+      "pancakeswap-v3": 2
+    }
+  }
+}

@@ -45,3 +45,5 @@ docs/deployments/*
 !docs/features/aero-v2-routing.md
 
 !docs/PRD-flashloan-trigger-first-execution-upgrade-2026-10-27.md
+!docs/features/dynamic-pool-universe-map.md
+!docs/deployments/arbitrum-one-multi-venue-executor-v2.json

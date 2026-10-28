@@ -47,7 +47,47 @@ contract TestAlgebraPool {
     }
 }
 
+contract TestPancakeFactory {
+    address public pool;
+    function setPool(address value) external { pool = value; }
+    function getPool(address, address, uint24) external view returns (address) { return pool; }
+}
+
+contract TestPancakePool {
+    address public token0;
+    address public token1;
+    constructor(address a, address b) { token0 = a; token1 = b; }
+    function swap(address recipient, bool zeroForOne, int256 input, uint160, bytes calldata) external returns (int256, int256) {
+        uint256 output = uint256(input) * 11 / 10;
+        TestToken(zeroForOne ? token1 : token0).transfer(recipient, output);
+        MultiVenueArbitrageExecutor(msg.sender).pancakeV3SwapCallback(zeroForOne ? input : -int256(output), zeroForOne ? -int256(output) : input, bytes(""));
+        return zeroForOne ? (input, -int256(output)) : (-int256(output), input);
+    }
+}
+
 contract MultiVenueArbitrageExecutorTest {
+    function testPancakeV3CallbackUsesPinnedV3FactoryAndRejectsDirectCalls() external {
+        TestToken a = new TestToken(); TestToken b = new TestToken();
+        (TestToken token0, TestToken token1) = address(a) < address(b) ? (a, b) : (b, a);
+        TestPancakePool pool = new TestPancakePool(address(token0), address(token1));
+        TestPancakeFactory factory = new TestPancakeFactory(); factory.setPool(address(pool));
+        token0.mint(address(pool), 1000); token1.mint(address(pool), 1000);
+        TestMorphoLender lender = new TestMorphoLender(); token0.mint(address(lender), 1000);
+        MultiVenueArbitrageExecutor executor = new MultiVenueArbitrageExecutor(); token0.mint(address(executor), 7);
+        executor.configureRoot(3, address(factory), address(factory).codehash, true, false);
+        executor.configureLender(1, address(lender), address(lender).codehash, true);
+        MultiVenueArbitrageExecutor.Leg[] memory legs = new MultiVenueArbitrageExecutor.Leg[](2);
+        legs[0] = MultiVenueArbitrageExecutor.Leg(3, address(factory), address(pool), address(token0), address(token1), 110, 500, 1, 10, address(0), bytes(""));
+        legs[1] = MultiVenueArbitrageExecutor.Leg(3, address(factory), address(pool), address(token1), address(token0), 120, 500, 1, 10, address(0), bytes(""));
+        MultiVenueArbitrageExecutor.LenderRoute memory route = MultiVenueArbitrageExecutor.LenderRoute(1, address(lender), address(token0), 100, legs, 20, block.timestamp + 1);
+        executor.executeLenderArbitrage(route);
+        require(token0.balanceOf(address(lender)) == 1000 && token0.balanceOf(address(executor)) == 28, "Pancake debt/custody mismatch");
+        (bool ok,) = address(executor).call(abi.encodeCall(executor.pancakeV3SwapCallback, (int256(1), int256(0), bytes(""))));
+        require(!ok, "unauthenticated Pancake callback accepted");
+        executor.configureRoot(3, address(factory), bytes32(0), false, false);
+        (ok,) = address(executor).call(abi.encodeCall(executor.executeLenderArbitrage, route));
+        require(!ok, "untrusted Pancake factory accepted");
+    }
     function testAlgebraFactoryPinAndCallbackRepayLoanWithoutUsingOpeningFunds() external {
         TestToken a = new TestToken(); TestToken b = new TestToken();
         (TestToken token0, TestToken token1) = address(a) < address(b) ? (a, b) : (b, a);

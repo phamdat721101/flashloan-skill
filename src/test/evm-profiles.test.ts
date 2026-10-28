@@ -14,7 +14,7 @@ import { loadConfig } from '../config.js';
 import { parseStateIdentity, SnapshotStore, digest } from '../liquidity/state.js';
 import { AttemptJournal } from '../liquidity/journal.js';
 import { loadScannerConfig } from '../scan/config.js';
-import { parseManifest, verifyRuntime } from '../evm/deployment.js';
+import { parseManifest, rootKey, verifyRuntime } from '../evm/deployment.js';
 import { enumerateSimpleProfitCycles, parseAcceptance } from '../evm/acceptance.js';
 import { receiptNativeCost } from '../evm-fees.js';
 import { checkExecutorAbis } from '../evm/abi-check.js';
@@ -138,4 +138,12 @@ test('Aero deployment is isolated and validates every generation and implementat
  assert.throws(()=>parseManifest({...m,contracts:[...m.contracts,'PortableMultiSplitFlashExecutor']}),/AERO_MANIFEST_ISOLATION/);
  const bad=structuredClone(m);delete bad.roots.find((r:any)=>r.role==='aero-pool').implementationCodeHash;assert.throws(()=>parseManifest(bad),/INVALID_ROOT_PIN/);
  assert.throws(()=>parseManifest({...m,roots:[...m.roots,m.roots[0]]}),/DUPLICATE_ROOT_ROLE/);
+});
+
+test('manifests pin several factories per role and Algebra roots with stable single-root labels',()=>{
+  const pin=(role:string,n:number)=>({role,address:`0x${n.toString(16).padStart(40,'0')}`,codeHash:`0x${'a'.repeat(64)}`,source:'https://example.org'});
+  const roots=[pin('v3-factory',1),pin('v3-factory',2),pin('algebra-factory',3),pin('v2-factory',4),pin('morpho',5)];
+  const m=parseManifest({schemaVersion:'1.0',chainId:42161,roots,contracts:['MultiVenueArbitrageExecutor'],exclusions:[]});
+  assert.deepEqual(m.roots.map(r=>rootKey(r,m.roots)),['v3-factory:0x0000000000000000000000000000000000000001','v3-factory:0x0000000000000000000000000000000000000002','algebra-factory','v2-factory','morpho']);
+  assert.throws(()=>parseManifest({schemaVersion:'1.0',chainId:42161,roots:[pin('v3-factory',1),pin('v3-factory',1)],contracts:['MultiVenueArbitrageExecutor'],exclusions:[]}),/DUPLICATE_ROOT_ROLE/);
 });

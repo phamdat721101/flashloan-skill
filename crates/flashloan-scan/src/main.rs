@@ -5,6 +5,7 @@ use std::{env, time::Duration};
 mod arb;
 mod audit;
 mod deploy;
+mod universe;
 
 sol! {
     #[sol(rpc)]
@@ -51,6 +52,10 @@ async fn main() {
         if let Err(e) = deploy::run_multi(&a[2..]).await { eprintln!("{{\"event\":\"deploy-multi\",\"status\":\"error\",\"error\":\"{e}\"}}"); std::process::exit(1); }
         return;
     }
+    if let Ok(path) = env::var("UNIVERSE_PATH") {
+        if let Err(e) = universe_signal(&path).await { eprintln!("{{\"event\":\"signal\",\"status\":\"error\",\"error\":\"{e}\"}}"); std::process::exit(1); }
+        return;
+    }
     let (Ok(rpc), Some(notional), Some(min_profit)) = (
         env::var("ARBITRUM_RPC_URL"),
         env::args().nth(1).and_then(|v| v.parse::<f64>().ok()),
@@ -90,6 +95,79 @@ async fn main() {
                     "minNetUsd":min_profit,"priceImpactModelled":false,"note":"upper bound; requires exact eth_call simulation before any send"}));
             }
         }
+        tokio::time::sleep(Duration::from_secs(2)).await;
+    }
+}
+
+/// First 32-byte words of a raw eth_call (F5: fork-specific slot0/globalState tails are never decoded).
+async fn words<P: Provider>(p: &P, to: Address, selector: [u8; 4], n: usize) -> Result<Vec<U256>, String> {
+    let tx = alloy::rpc::types::TransactionRequest::default().to(to).input(selector.to_vec().into());
+    let out = p.call(tx).await.map_err(|e| e.to_string())?;
+    if out.len() < 32 * n { return Err("SHORT_RETURN".into()); }
+    Ok((0..n).map(|i| U256::from_be_slice(&out[32 * i..32 * (i + 1)])).collect())
+}
+
+/// Dynamic per-pair spread signal over a verified `pool-universe/1`; read-only, never sends.
+async fn universe_signal(path: &str) -> Result<(), String> {
+    let (rpc, notional, min_profit) = match (env::var("ARBITRUM_RPC_URL"), env::args().nth(1).and_then(|v| v.parse::<f64>().ok()), env::args().nth(2).and_then(|v| v.parse::<f64>().ok())) {
+        (Ok(r), Some(n), Some(m)) => (r, n, m),
+        _ => return Err("usage: UNIVERSE_PATH=… ARBITRUM_RPC_URL=… flashloan-scan <notional_usd> <min_net_profit_usd>".into()),
+    };
+    let u = universe::load(path, 42161)?;
+    let max_pairs = env::var("MAX_PAIRS").ok().and_then(|v| v.parse::<usize>().ok()).unwrap_or(16).max(1);
+    let once = env::var("SIGNAL_ONCE").is_ok();
+    let p = ProviderBuilder::new().connect_http(rpc.parse().map_err(|_| "INVALID_RPC_URL")?);
+    if p.get_chain_id().await.map_err(|e| e.to_string())? != 42161 { return Err("CHAIN_MISMATCH".into()); }
+    let asset = |a: &str| u.assets.iter().find(|x| x.address == a);
+    let pools: std::collections::HashMap<&str, &universe::Pool> = u.pools.iter().map(|x| (x.pool_id.as_str(), x)).collect();
+    loop {
+        if universe::load(path, 42161).is_err() { return Err("UNIVERSE_EXPIRED".into()); }
+        let block = p.get_block_number().await.map_err(|e| e.to_string())?;
+        let gas_wei = p.get_gas_price().await.map_err(|e| e.to_string())? as f64;
+        let feed_usd = |feed: Option<String>| { let p = &p; async move {
+            let f = IFeed::new(universe::addr(&feed?).ok()?, p);
+            let (d, o) = (f.decimals().call().await.ok()?, f.latestRoundData().call().await.ok()?);
+            Some(f64::from(o.answer.into_raw()) / 10f64.powi(d as i32))
+        } };
+        let eth_usd = feed_usd(Some(format!("{ETH_USD_FEED:#x}"))).await.ok_or("ORACLE")?;
+        let results = futures_util::future::join_all(u.pairs.iter().take(max_pairs).map(|pair| { let p = &p; let pools = &pools; async move {
+            let (d0, d1) = (asset(&pair.token0).map(|a| a.decimals), asset(&pair.token1).map(|a| a.decimals));
+            let (Some(d0), Some(d1)) = (d0, d1) else { return (pair, Err("DECIMALS_MISSING".to_string())) };
+            let reads = futures_util::future::join_all(pair.pool_ids.iter().filter_map(|id| pools.get(id.as_str()).copied()).map(|pool| async move {
+                let to = universe::addr(&pool.address)?;
+                let price = match pool.adapter.as_str() {
+                    "UNISWAP_V2" => { let w = words(p, to, [0x09, 0x02, 0xf1, 0xac], 2).await?; universe::price_from_reserves(w[0], w[1], d0, d1) }
+                    "ALGEBRA" => universe::price_from_sqrt(words(p, to, [0xe7, 0x6c, 0x01, 0xe4], 1).await?[0], d0, d1),
+                    _ => universe::price_from_sqrt(words(p, to, [0x38, 0x50, 0xc7, 0xbd], 1).await?[0], d0, d1),
+                };
+                Ok::<_, String>((pool, price))
+            })).await;
+            let ok: Vec<_> = reads.into_iter().filter_map(Result::ok).filter(|(_, x)| x.is_finite() && *x > 0.0).collect();
+            let (f0, f1) = (feed_usd(asset(&pair.token0).and_then(|a| a.usd_feed.clone())).await, feed_usd(asset(&pair.token1).and_then(|a| a.usd_feed.clone())).await);
+            (pair, Ok((ok, f0.zip(f1).map(|(a, b)| a / b))))
+        } })).await;
+        for (pair, r) in results {
+            let line = match r {
+                Err(e) => serde_json::json!({"event":"signal","status":"error","error":e,"pair":[pair.token0,pair.token1]}),
+                Ok((quotes, _)) if quotes.len() < 2 => serde_json::json!({"event":"signal","status":"error","error":"FEWER_THAN_TWO_LIVE_POOLS","pair":[pair.token0,pair.token1]}),
+                Ok((quotes, oracle)) => {
+                    let lo = quotes.iter().min_by(|a, b| a.1.total_cmp(&b.1)).unwrap();
+                    let hi = quotes.iter().max_by(|a, b| a.1.total_cmp(&b.1)).unwrap();
+                    let spread = (hi.1 - lo.1) / lo.1;
+                    let fee_floor = (lo.0.fee_pips + hi.0.fee_pips) as f64 / 1e6;
+                    let gross = notional * (spread - fee_floor - FLASH_FEE);
+                    let gas_usd = gas_wei * GAS_UNITS / 1e18 * eth_usd;
+                    let net = gross - gas_usd;
+                    let dev = oracle.map(|o| ((hi.1 / o) - 1.0).abs());
+                    let status = if dev.is_some_and(|d| d > 0.02) { "blocked:dex_oracle_divergence" } else if net >= min_profit { "candidate" } else { "no_edge" };
+                    serde_json::json!({"event":"signal","status":status,"block":block,"pair":[pair.token0,pair.token1],"buyPool":lo.0.pool_id,"sellPool":hi.0.pool_id,
+                        "buyPrice":lo.1,"sellPrice":hi.1,"spreadBps":spread*1e4,"feeFloorBps":fee_floor*1e4,"grossUsd":gross,"gasUsd":gas_usd,"netUsd":net,"minNetUsd":min_profit,
+                        "oracleChecked":oracle.is_some(),"poolsLive":quotes.len(),"priceImpactModelled":false,"note":"upper bound; requires exact eth_call simulation before any send"})
+                }
+            };
+            println!("{line}");
+        }
+        if once { return Ok(()); }
         tokio::time::sleep(Duration::from_secs(2)).await;
     }
 }

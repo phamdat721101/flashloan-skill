@@ -170,6 +170,11 @@ contract MultiVenueArbitrageExecutor {
         _paySwapCallback(amount0Delta, amount1Delta);
     }
 
+    /// PancakeSwap V3 pools are Uniswap-V3 forks that name their callback differently; same pinned-pool authentication.
+    function pancakeV3SwapCallback(int256 amount0Delta, int256 amount1Delta, bytes calldata) external {
+        _paySwapCallback(amount0Delta, amount1Delta);
+    }
+
     function _paySwapCallback(int256 amount0Delta, int256 amount1Delta) private {
         if (phase != Phase.AwaitingV3Swap || msg.sender != expectedCallback) revert CallbackOnly();
         uint256 owed = amount0Delta > 0 ? uint256(amount0Delta) : amount1Delta > 0 ? uint256(amount1Delta) : 0;

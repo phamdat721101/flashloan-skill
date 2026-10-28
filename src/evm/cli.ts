@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { createPublicClient, http, keccak256, parseAbi } from 'viem';
 import { evmProfile } from '../evm-chains.js';
+import { atomicJson } from './storage.js';
 import { EvmDeployment, loadSigner, parseManifest, verifyRuntime, secureEndpoint, type DeploymentState, type ForgeArtifact } from './deployment.js';
 
 const args = process.argv.slice(2), command = args.shift();
@@ -12,7 +13,7 @@ function option(name: string): string | undefined {
   return args[index + 1];
 }
 async function main() {
-  if (!['deploy', 'deployment-status', 'profiles', 'acceptance', 'acceptance-reconcile', 'recover-lock', 'discover'].includes(command ?? '')) throw new Error('usage: evm profiles | deploy|deployment-status --manifest <json> [--env-file <local-file>] [--state <json>] | acceptance --config <json>');
+  if (!['deploy', 'deployment-status', 'profiles', 'acceptance', 'acceptance-reconcile', 'recover-lock', 'discover', 'universe', 'universe-probe'].includes(command ?? '')) throw new Error('usage: evm profiles | universe --inventory <mcp.json> --policy <policy.json> --out <path> [--block <n>] | deploy|deployment-status --manifest <json> [--env-file <local-file>] [--state <json>] | acceptance --config <json>');
   if (command === 'recover-lock') {
     const chainId=Number(option('--chain'));evmProfile(chainId);
     const file=option('--env-file');if(!file)throw new Error('EXPLICIT_SIGNER_ENV_FILE_REQUIRED');
@@ -23,6 +24,31 @@ async function main() {
   if (command === 'acceptance' || command === 'acceptance-reconcile') {
     const path = option('--config'); if (!path) throw new Error('ACCEPTANCE_CONFIG_REQUIRED');
     return (await import('./acceptance.js')).runAcceptance(path, option('--env-file'), command === 'acceptance-reconcile');
+  }
+  if (command === 'universe') {
+    const inventoryPath = option('--inventory'), policyPath = option('--policy'), out = option('--out'), block = option('--block');
+    if (!inventoryPath || !policyPath || !out || (block !== undefined && !/^\d+$/.test(block))) throw new Error('UNIVERSE_INPUT_REQUIRED');
+    const u = await import('./pool-universe.js');
+    const policy = u.parseAssetPolicy(JSON.parse(await readFile(policyPath,'utf8'))), profile = evmProfile(policy.chainId);
+    const client = createPublicClient({ transport: http(secureEndpoint(process.env[profile.rpcEnv] ?? profile.chain.rpcUrls.default.http[0]),{ retryCount:2 }) });
+    if (await client.getChainId() !== policy.chainId) throw new Error('CHAIN_MISMATCH');
+    const universe = u.validateUniverse(await u.buildPoolUniverse(u.parseInventory(JSON.parse(await readFile(inventoryPath,'utf8'))), policy, u.viemUniverseReader(client as never, block === undefined ? undefined : BigInt(block))));
+    await atomicJson(out, universe);
+    return { out, blockNumber: universe.identity.blockNumber, pairs: universe.pairs.length, pools: universe.pools.length, candidatePairs: universe.candidatePairs.length,
+      rejected: universe.rejected.reduce<Record<string, number>>((counts, r) => ({ ...counts, [r.reason]: (counts[r.reason] ?? 0) + 1 }), {}), topGaps: u.pairGaps(universe).slice(0, 5) };
+  }
+  if (command === 'universe-probe') {
+    const universePath = option('--universe') ?? process.env.UNIVERSE_PATH, executor = option('--executor') ?? process.env.MULTI_VENUE_EXECUTOR_ADDRESS, lender = option('--lender'), kind = Number(option('--lender-kind') ?? '2'), sizeUsd = Number(option('--size-usd') ?? '1000');
+    if (!universePath || !executor || !lender || ![1, 2].includes(kind) || !(sizeUsd > 0)) throw new Error('UNIVERSE_PROBE_INPUT_REQUIRED');
+    const u = await import('./pool-universe.js'), { priceUsdE8 } = await import('../evm-fees.js');
+    const raw = JSON.parse(await readFile(universePath, 'utf8')), profile = evmProfile(raw.chainId);
+    const universe = await u.loadPoolUniverse(universePath, raw.chainId);
+    const client = createPublicClient({ transport: http(secureEndpoint(process.env[profile.rpcEnv] ?? profile.chain.rpcUrls.default.http[0]),{ retryCount:2, timeout:120_000 }) });
+    if (await client.getChainId() !== universe.chainId) throw new Error('CHAIN_MISMATCH');
+    const block = await client.getBlockNumber(), amounts: Record<string, bigint> = {};
+    for (const asset of universe.assets.filter(a => a.usdFeed && a.flashLenders.length)) amounts[asset.address] = BigInt(Math.round(sizeUsd * 1e8)) * 10n ** BigInt(asset.decimals) / await priceUsdE8(client as never, asset.usdFeed!, block, 86400);
+    const probes = await u.probeUniverseRoutes(client as never, universe, executor.toLowerCase() as `0x${string}`, { kind: kind as 1 | 2, address: lender.toLowerCase() as `0x${string}` }, amounts);
+    return { blockNumber: block.toString(), sizeUsd, outcomes: probes.reduce<Record<string, number>>((c, p) => ({ ...c, [p.outcome]: (c[p.outcome] ?? 0) + 1 }), {}), probes };
   }
   const path = option('--manifest'); if (!path) throw new Error('MANIFEST_REQUIRED');
   const manifest = parseManifest(JSON.parse(await readFile(path,'utf8'))), profile = evmProfile(manifest.chainId);

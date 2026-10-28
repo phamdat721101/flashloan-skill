@@ -10,7 +10,8 @@ use alloy::{
     signers::local::PrivateKeySigner,
     sol,
 };
-use std::{env, time::Duration};
+use crate::universe;
+use std::{collections::HashMap, env, time::Duration};
 
 sol! {
     #[sol(rpc)]
@@ -36,26 +37,42 @@ const UNI_FEES: [u32; 3] = [100, 500, 3000];
 const MIN_NET_PROFIT_USD: f64 = 10.0;
 const SIZE_SAMPLES: usize = 12;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 struct Asset {
     token: Address,
-    symbol: &'static str,
+    symbol: String,
+    decimals: u8,
+    /// None only for the legacy USDT entry, which historically priced at $1; dynamic assets always carry a feed.
+    feed: Option<Address>,
 }
 
-const FLASH_ASSETS: [Asset; 3] = [
-    Asset {
-        token: WETH,
-        symbol: "WETH",
-    },
-    Asset {
-        token: USDC,
-        symbol: "USDC",
-    },
-    Asset {
-        token: USDT,
-        symbol: "USDT",
-    },
-];
+fn legacy_assets() -> Vec<Asset> {
+    vec![
+        Asset { token: WETH, symbol: "WETH".into(), decimals: 18, feed: Some(ETH_USD) },
+        Asset { token: USDC, symbol: "USDC".into(), decimals: 6, feed: Some(USDC_USD) },
+        Asset { token: USDT, symbol: "USDT".into(), decimals: 6, feed: None },
+    ]
+}
+
+/// Flash assets are universe assets with a USD feed and a flash lender; unknown assets are skipped, never assumed $1.
+fn universe_assets(u: &universe::Universe) -> Result<Vec<Asset>, Box<dyn std::error::Error>> {
+    let assets = u.assets.iter()
+        .filter(|a| a.usd_feed.is_some() && !a.flash_lenders.is_empty())
+        .map(|a| Ok(Asset { token: universe::addr(&a.address)?, symbol: a.symbol.clone().unwrap_or_else(|| a.address.clone()), decimals: a.decimals,
+            feed: Some(universe::addr(a.usd_feed.as_deref().unwrap_or_default())?) }))
+        .collect::<Result<Vec<_>, String>>()?;
+    if assets.is_empty() {
+        return Err("NO_PRICED_FLASH_ASSET_IN_UNIVERSE".into());
+    }
+    Ok(assets)
+}
+
+/// `executeDexPairArbitrage((address,uint256,address,uint8,uint8,uint24,uint256))`
+const DEX_PAIR_SELECTOR: [u8; 4] = [0x0b, 0xde, 0x7b, 0x85];
+
+fn has_selector(code: &[u8], selector: [u8; 4]) -> bool {
+    code.windows(5).any(|w| w[0] == 0x63 && w[1..] == selector)
+}
 
 fn envf(k: &str, d: f64) -> f64 {
     env::var(k).ok().and_then(|v| v.parse().ok()).unwrap_or(d)
@@ -114,15 +131,30 @@ pub async fn run(live: bool) -> Result<(), Box<dyn std::error::Error>> {
     let max_flash_usd = envf("MAX_FLASH_USD", 500_000.0);
     let min_flash_usd = envf("MIN_FLASH_USD", 1_000.0);
     let sizes = sizing_ladder(min_flash_usd, max_flash_usd)?;
-    let targets = discovered_targets()?;
+    // Dynamic mode (UNIVERSE_PATH): verified pools only, gated on an owner-verified executor venue map.
+    let dynamic = match env::var("UNIVERSE_PATH") {
+        Ok(path) => {
+            let u = universe::load(&path, CHAIN_ID)?;
+            let venues = universe::load_executor_venues(&env::var("ASSET_POLICY_PATH").map_err(|_| "ASSET_POLICY_PATH_REQUIRED")?)?;
+            Some((u, venues))
+        }
+        Err(_) => None,
+    };
+    let assets = match &dynamic { Some((u, _)) => universe_assets(u)?, None => legacy_assets() };
+    let target_filter = if dynamic.is_some() { discovered_targets().ok() } else { Some(discovered_targets()?) };
 
     let p = ProviderBuilder::new().connect_http(rpc.parse()?);
     let exec = IExec::new(exec_addr, &p);
     if p.get_chain_id().await? != CHAIN_ID {
         return Err("CHAIN_MISMATCH".into());
     }
-    if p.get_code_at(exec_addr).await?.is_empty() {
+    let code = p.get_code_at(exec_addr).await?;
+    if code.is_empty() {
         return Err("EXECUTOR_NOT_DEPLOYED".into());
+    }
+    // MultiVenue executors route by pool address (`evm universe-probe`); without this selector every probe would read as no_edge.
+    if !has_selector(&code, DEX_PAIR_SELECTOR) {
+        return Err("EXECUTOR_LACKS_DEX_PAIR_ENTRYPOINT".into());
     }
     let owner = exec.owner().call().await?;
 
@@ -158,29 +190,24 @@ pub async fn run(live: bool) -> Result<(), Box<dyn std::error::Error>> {
                 Ok(f64::from(r.answer.into_raw()) / 10f64.powi(d as i32))
             }
         };
-        let (eth_usd, usdc_usd) = match (price(ETH_USD).await, price(USDC_USD).await) {
-            (Ok(a), Ok(b)) => (a, b),
-            (a, b) => {
-                println!(
-                    "{}",
-                    serde_json::json!({"event":"arb","status":"blocked","code":"ORACLE","detail":format!("{:?}/{:?}", a.err().map(|e| e.to_string()), b.err().map(|e| e.to_string()))})
-                );
-                tokio::time::sleep(Duration::from_secs(4)).await;
-                continue;
-            }
-        };
+        let mut feeds: Vec<Address> = assets.iter().filter_map(|a| a.feed).chain([ETH_USD]).collect();
+        feeds.sort();
+        feeds.dedup();
+        let quotes = futures_util::future::join_all(feeds.iter().map(|f| price(*f))).await;
+        if quotes.iter().any(Result::is_err) {
+            let detail = quotes.iter().filter_map(|q| q.as_ref().err().map(|e| e.to_string())).collect::<Vec<_>>().join("/");
+            println!("{}", serde_json::json!({"event":"arb","status":"blocked","code":"ORACLE","detail":detail}));
+            tokio::time::sleep(Duration::from_secs(4)).await;
+            continue;
+        }
+        let usd: HashMap<Address, f64> = feeds.iter().copied().zip(quotes.into_iter().map(|q| q.unwrap_or_default())).collect();
+        let (eth_usd, usdc_usd) = (usd[&ETH_USD], usd.get(&USDC_USD).copied());
         let gas_price = p.get_gas_price().await? as f64;
 
-        let to_units = |token: Address, usd: f64| -> U256 {
-            if token == WETH {
-                let eth = usd / eth_usd;
-                U256::from((eth * 1e18).ceil() as u128)
-            } else if token == USDC {
-                let usdc = usd / usdc_usd;
-                U256::from((usdc * 1e6).ceil() as u128)
-            } else {
-                U256::from((usd * 1e6).ceil() as u128)
-            }
+        let to_units = |token: Address, amount_usd: f64| -> U256 {
+            assets.iter().find(|a| a.token == token)
+                .and_then(|a| universe::units(amount_usd, a.feed.map_or(1.0, |f| usd[&f]), a.decimals))
+                .unwrap_or(U256::ZERO)
         };
 
         let min_profit_units = |token: Address, min_usd: f64| -> U256 {
@@ -199,10 +226,18 @@ pub async fn run(live: bool) -> Result<(), Box<dyn std::error::Error>> {
         let mut hit = None;
         let probe = sizes[0];
 
-        // Multi-asset combo generator
         let mut all_combos = Vec::new();
-        for flash in &FLASH_ASSETS {
-            for &t in &targets {
+        for flash in &assets {
+            if let Some((u, venues)) = &dynamic {
+                for (t, b, sl, fee) in universe::dex_combos(u, &format!("{:#x}", flash.token), &venues.map) {
+                    let t = universe::addr(&t)?;
+                    if target_filter.as_ref().is_none_or(|f| f.contains(&t)) {
+                        all_combos.push((flash.token, flash.symbol.as_str(), t, b, sl, fee));
+                    }
+                }
+                continue;
+            }
+            for &t in target_filter.iter().flatten() {
                 if t == flash.token {
                     continue;
                 }
@@ -212,7 +247,7 @@ pub async fn run(live: bool) -> Result<(), Box<dyn std::error::Error>> {
                             continue;
                         }
                         for &fee in &UNI_FEES {
-                            all_combos.push((flash.token, flash.symbol, t, b, s, fee));
+                            all_combos.push((flash.token, flash.symbol.as_str(), t, b, s, fee));
                         }
                     }
                 }
@@ -415,7 +450,29 @@ pub async fn run(live: bool) -> Result<(), Box<dyn std::error::Error>> {
 
 #[cfg(test)]
 mod tests {
-    use super::{sizing_ladder, validate_min_net_profit_usd, MIN_NET_PROFIT_USD};
+    use super::{sizing_ladder, universe_assets, validate_min_net_profit_usd, MIN_NET_PROFIT_USD};
+
+    #[test]
+    fn detects_dex_pair_dispatch_selector_only_as_push4() {
+        use super::{has_selector, DEX_PAIR_SELECTOR};
+        assert!(has_selector(&[0x60, 0x00, 0x63, 0x0b, 0xde, 0x7b, 0x85, 0x14], DEX_PAIR_SELECTOR));
+        assert!(!has_selector(&[0x60, 0x0b, 0xde, 0x7b, 0x85], DEX_PAIR_SELECTOR), "bare bytes are not a dispatch entry");
+    }
+
+    #[test]
+    fn edge_04_skips_assets_without_feed_or_lender_and_never_defaults_to_one_dollar() {
+        let raw = r#"{"schemaVersion":"pool-universe/1","chainId":42161,"expiresAt":"2999-01-01T00:00:00Z","pools":[],"pairs":[],"assets":[
+          {"address":"0x82af49447d8a07e3bd95bd0d56f35241523fbab1","symbol":"WETH","decimals":18,"usdFeed":"0x639fe6ab55c921f74e7fac1ee960c0b6293ba612","flashLenders":[{"kind":"BALANCER_V2"}]},
+          {"address":"0x912ce59144191c1204e64559fe8253a0e49e6548","symbol":"ARB","decimals":18,"usdFeed":"0xb2a824043730fe05f3da2efafa1cbbe83fa548d6","flashLenders":[]},
+          {"address":"0x2f2a2543b76a4166549f7aab2e75bef0aefc5b0f","symbol":"WBTC","decimals":8,"usdFeed":null,"flashLenders":[{"kind":"BALANCER_V2"}]}]}"#;
+        let u = crate::universe::parse(raw, 42161, 0).unwrap();
+        let assets = universe_assets(&u).unwrap();
+        assert_eq!(assets.iter().map(|a| a.symbol.as_str()).collect::<Vec<_>>(), vec!["WETH"]);
+        assert!(assets.iter().all(|a| a.feed.is_some()));
+        let none = crate::universe::parse(&raw.replace("[{\"kind\":\"BALANCER_V2\"}]", "[]"), 42161, 0).unwrap();
+        assert_eq!(universe_assets(&none).unwrap_err().to_string(), "NO_PRICED_FLASH_ASSET_IN_UNIVERSE");
+        println!("universe_no_unpriced_flash_asset_proven");
+    }
 
     #[test]
     fn samples_a_bounded_dynamic_size_range_without_static_tiers() {

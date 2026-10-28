@@ -4,7 +4,10 @@ import { encodeFunctionData, keccak256, encodeAbiParameters, encodeEventTopics, 
 import { optimizeAeroSplit, evaluateAeroSchedule, type AeroSolverHost } from '../aero/solver.js';
 import { quotedSchedule } from '../aero/evm-host.js';
 import { aeroPriorityFee, aeroRoute, buildAeroSplitCalldata, encodeAeroCall, AERO_V2_EXECUTOR_ABI, AERO_V2_SELECTOR } from '../aero/execution.js';
-import { aeroCycles, aeroRouteCodec, aeroSubmissionUrl, parseAeroLiveConfig } from '../aero/live.js';
+import { aeroCycles, aeroRouteCodec, aeroSubmissionUrl, parseAeroLiveConfig, universeRegistry } from '../aero/live.js';
+import { mkdtemp, writeFile, readFile as readText } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { quoteAeroExactInput } from '../aero/math.js';
 import { sqrtRatioAtTick } from '../liquidity/clmm.js';
 import { MULTI_VENUE_ROUTE_CODEC } from '../liquidity/arbitrum-execution.js';
@@ -101,4 +104,35 @@ test('AERO_V2_EDGE_07 live policy: explicit submission URL, clamped bids, valida
   assert.equal(parseAeroLiveConfig(config).bounds.maxBlockLag,2);
   assert.throws(()=>parseAeroLiveConfig({...config,bounds:{...config.bounds,maxBlockLag:9}}),/INVALID_LIVE_CONFIG/);
   console.log('AERO_V2_EDGE_07');
+});
+
+test('EDGE-05 non-WETH borrow requires pinned valuation; WETH default config parses unchanged',async()=>{
+  const config=JSON.parse(await readText('config/aero-v2-live.json','utf8'));
+  assert.deepEqual(parseAeroLiveConfig(config),config);
+  const usdc='0x833589fcd6edb6e08f4c7c32d4f71b54bda02913';
+  assert.throws(()=>parseAeroLiveConfig({...config,borrowAsset:usdc}),/INVALID_LIVE_CONFIG/);
+  assert.throws(()=>parseAeroLiveConfig({...config,universePath:''}),/INVALID_LIVE_CONFIG/);
+  const valuation={nativeUsdFeed:'0x71041dddad3595f9ced3dccfbe3d1f4b0a16bb70',assetUsdFeed:'0x7e860098f58bbfc8648a4311b374b1d669a2bc6b',decimals:6,maxAgeSeconds:86400};
+  assert.equal(parseAeroLiveConfig({...config,borrowAsset:usdc,valuation}).borrowAsset,usdc);
+  console.log('aero_universe_fallback_and_valuation_gate_proven');
+});
+
+test('universe mode plans only executor-trusted pools and reports the rest for owner configuration',async()=>{
+  const weth='0x4200000000000000000000000000000000000006',usdc='0x833589fcd6edb6e08f4c7c32d4f71b54bda02913',cbbtc='0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf';
+  const pool=(n:number)=>`0x${n.toString(16).padStart(40,'0')}` as Address;
+  const universe={schemaVersion:'pool-universe/1',chainId:8453,network:'base',identity:{blockNumber:'1',blockHash:`0x${'ab'.repeat(32)}`,timestamp:0},
+    source:{inventoryDigest:'a'.repeat(64),observedAt:'2026-10-28T00:00:00.000Z',exhaustive:false,providers:[]},expiresAt:'2999-01-01T00:00:00.000Z',assets:[],pools:[],pairs:[],
+    candidatePairs:[{token0:weth,token1:usdc,liquidityUsdHint:'9'},{token0:usdc,token1:cbbtc,liquidityUsdHint:'8'},{token0:cbbtc,token1:weth,liquidityUsdHint:'7'}],rejected:[]};
+  const path=join(await mkdtemp(join(tmpdir(),'aero-universe-')),'u.json');await writeFile(path,JSON.stringify(universe));
+  const calls:unknown[][]=[];
+  const client={getChainId:async()=>8453,getBlockNumber:async()=>1n,readContract:async({functionName,args}:{functionName:string;args:unknown[]})=>{
+    calls.push(args);if(functionName!=='getPool'||args[2]!==false)return zeroAddress;
+    return args[0]===weth&&args[1]===usdc?pool(1):args[0]===cbbtc?pool(2):zeroAddress;
+  }} as never;
+  const trusted=[{poolId:`classic:${pool(1)}`,address:pool(1),factory:'0x420dd381b31aef6683db6b902084cb0ffece40da' as Address,generation:'classic' as const,sourceRevision:'x'}];
+  const {registry,untrusted}=await universeRegistry(client,path,weth,trusted);
+  assert.deepEqual(registry,trusted,'the reviewed registry entry is reused unchanged');
+  assert.ok(untrusted.includes(`classic:${pool(2)}`));
+  assert.ok(calls.every(a=>a[0]===weth||a[1]===weth),'only pairs containing the borrow asset are discovered');
+  await assert.rejects(universeRegistry(client,path,'0x0000000000000000000000000000000000000009',trusted),/UNIVERSE_NO_BORROW_PAIR/);
 });

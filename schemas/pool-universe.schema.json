@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "pool-universe/1",
+  "title": "Verified EVM pool universe",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "chainId", "network", "identity", "source", "expiresAt", "assets", "pools", "pairs", "candidatePairs", "rejected"],
+  "$defs": {
+    "address": { "type": "string", "pattern": "^0x[0-9a-f]{40}$" },
+    "uint": { "type": "string", "pattern": "^(0|[1-9][0-9]{0,77})$" },
+    "lender": { "type": "object", "additionalProperties": false, "required": ["kind", "address"], "properties": {
+      "kind": { "enum": ["BALANCER_V2", "AAVE_V3", "UNISWAP_V3_FLASH", "MORPHO", "UNISWAP_V4"] }, "address": { "$ref": "#/$defs/address" } } }
+  },
+  "properties": {
+    "schemaVersion": { "const": "pool-universe/1" },
+    "chainId": { "enum": [42161, 8453, 4663] },
+    "network": { "enum": ["arbitrum", "base", "robinhood"] },
+    "identity": { "type": "object", "additionalProperties": false, "required": ["blockNumber", "blockHash", "timestamp"], "properties": {
+      "blockNumber": { "$ref": "#/$defs/uint" }, "blockHash": { "type": "string", "pattern": "^0x[0-9a-f]{64}$" }, "timestamp": { "type": "integer", "minimum": 0 } } },
+    "source": { "type": "object", "additionalProperties": false, "required": ["inventoryDigest", "observedAt", "exhaustive", "providers"], "properties": {
+      "inventoryDigest": { "type": "string", "pattern": "^[a-f0-9]{64}$" }, "observedAt": { "type": "string", "maxLength": 40 },
+      "exhaustive": { "type": "boolean" }, "providers": { "type": "array", "maxItems": 16, "items": { "type": "string", "maxLength": 128 } } } },
+    "expiresAt": { "type": "string", "maxLength": 40 },
+    "assets": { "type": "array", "maxItems": 256, "items": { "type": "object", "additionalProperties": false, "required": ["address", "symbol", "decimals", "usdFeed", "flashLenders"], "properties": {
+      "address": { "$ref": "#/$defs/address" }, "symbol": { "type": ["string", "null"], "maxLength": 32 }, "decimals": { "type": "integer", "minimum": 0, "maximum": 36 },
+      "usdFeed": { "oneOf": [{ "$ref": "#/$defs/address" }, { "type": "null" }] }, "flashLenders": { "type": "array", "maxItems": 4, "items": { "$ref": "#/$defs/lender" } } } } },
+    "pools": { "type": "array", "maxItems": 1024, "items": { "type": "object", "additionalProperties": false,
+      "required": ["poolId", "address", "adapter", "venue", "factory", "token0", "token1", "feePips", "tickSpacing", "runtimeCodeHash", "verifiedState", "mcpPoolId", "liquidityUsdHint"],
+      "properties": {
+        "poolId": { "type": "string", "maxLength": 64 }, "address": { "$ref": "#/$defs/address" },
+        "adapter": { "enum": ["UNISWAP_V3", "ALGEBRA", "UNISWAP_V2"] }, "venue": { "type": "string", "pattern": "^[a-z0-9-]{1,32}$" },
+        "factory": { "$ref": "#/$defs/address" }, "token0": { "$ref": "#/$defs/address" }, "token1": { "$ref": "#/$defs/address" },
+        "feePips": { "type": "integer", "minimum": 0, "maximum": 1000000 }, "tickSpacing": { "type": ["integer", "null"] },
+        "runtimeCodeHash": { "type": "string", "pattern": "^0x[0-9a-f]{64}$" },
+        "verifiedState": { "type": "object", "additionalProperties": false, "required": ["blockNumber"], "properties": {
+          "blockNumber": { "$ref": "#/$defs/uint" }, "sqrtPriceX96": { "$ref": "#/$defs/uint" }, "liquidity": { "$ref": "#/$defs/uint" },
+          "reserve0": { "$ref": "#/$defs/uint" }, "reserve1": { "$ref": "#/$defs/uint" } } },
+        "mcpPoolId": { "type": "string", "maxLength": 128 }, "liquidityUsdHint": { "type": "string", "maxLength": 32 } } } },
+    "pairs": { "type": "array", "maxItems": 512, "items": { "type": "object", "additionalProperties": false, "required": ["token0", "token1", "poolIds"], "properties": {
+      "token0": { "$ref": "#/$defs/address" }, "token1": { "$ref": "#/$defs/address" }, "poolIds": { "type": "array", "minItems": 2, "maxItems": 32, "items": { "type": "string" } } } } },
+    "candidatePairs": { "type": "array", "maxItems": 512, "items": { "type": "object", "additionalProperties": false, "required": ["token0", "token1", "liquidityUsdHint"], "properties": {
+      "token0": { "$ref": "#/$defs/address" }, "token1": { "$ref": "#/$defs/address" }, "liquidityUsdHint": { "type": "string", "maxLength": 32 } } } },
+    "rejected": { "type": "array", "maxItems": 2048, "items": { "type": "object", "additionalProperties": false, "required": ["address", "reason"], "properties": {
+      "address": { "type": "string", "maxLength": 66 },
+      "reason": { "enum": ["NOT_ELIGIBLE", "WRONG_CHAIN", "NOT_EVM_CONTRACT", "NO_CODE", "UNSUPPORTED_ADAPTER", "FACTORY_UNKNOWN", "TOKEN_MISMATCH", "DECIMALS_UNREADABLE", "ZERO_LIQUIDITY", "DENYLISTED", "DUPLICATE", "PAIR_CAP", "SINGLE_POOL_PAIR"] } } } }
+  },
+  "$comment": "Discovery comes from the flashloan MCP (flashloan.inventory.v2); every pool here was re-verified on-chain at identity.blockNumber. verifiedState is for ranking only: consumers must re-read live state. price_usd/liquidity_usd from the provider are hints, never sizing inputs."
+}
