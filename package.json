@@ -55,7 +55,9 @@
     "aero:fork-e2e": "npm run build && node scripts/aero-fork-e2e.mjs",
     "aero:v2-local-e2e": "npm run build && node scripts/aero-v2-local-e2e.mjs",
     "evidence:test": "npm run build && node --test dist/test/flashloan-evidence*.test.js",
-    "evidence:local-e2e": "forge build --offline && npm run build && node scripts/flashloan-evidence-local-e2e.mjs"
+    "evidence:local-e2e": "forge build --offline && npm run build && node scripts/flashloan-evidence-local-e2e.mjs",
+    "gap:test": "npm run build && node --test dist/test/flashloan-evidence*.test.js dist/test/pool-universe.test.js",
+    "gap:local-e2e": "PRICE_GAP_E2E=1 npm run evidence:local-e2e"
   },
   "dependencies": {
     "@mysten/sui": "^2.0.0",

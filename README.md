@@ -23,6 +23,77 @@ For the liquid-pattern workflow, start with [capture, size and prepare](#use-a-l
 
 ## Latest upgrade and how to use it
 
+### 2026-10-28: price-gap engine v5.2 for agents
+
+The latest code adds dynamic borrow-asset/lender selection, owner-approved profit
+floors below $10, coverage-aware concentrated-liquidity sizing, mixed-quote cycles,
+and up to eight branches where the selected executor supports them. Exact fees,
+repayment, opening-balance custody, native simulation and receipt reconciliation
+remain required. Existing v5.0/v5.1 requests keep their prior policy semantics.
+
+Update the published implementation branch and reinstall the agent skill:
+
+```sh
+cd ~/.flashloan-agent/flashloan-skill
+git switch aero-v2-routing
+git pull --ff-only origin aero-v2-routing
+npm ci
+npm run build
+node dist/agent-cli.js install
+node --env-file=.env dist/cli.js validate-config
+```
+
+For agents, `evidence-gap-run` is the multi-funding research entrypoint:
+
+```sh
+# .env selects FLASHLOAN_EVIDENCE_HOST_FILE, a local non-executable funding snapshot.
+node --env-file=.env dist/liquidity/cli.js evidence-gap-run gap-request.json
+npm run gap:test
+npm run gap:local-e2e
+```
+
+Use `GapRunRequest` in `schemas/flashloan-evidence-v5.2.schema.json`: supply the
+nested 5.2 request, approved profile reference, allowed assets/lenders, explicit
+per-option caps, and finite attempt/deadline budgets. Every cap tightens the
+nested request ceiling. Results include the selected option, normalized net
+profit, per-option outcomes and child evidence manifests. A candidate result
+permits further verification; it does not grant execution authority. The full
+[implementation guide](docs/features/price-gap-engine.md) describes inputs,
+outputs, host adapters and remaining public-network acceptance gates.
+
+**Contract upgrade path:** the latest recorded Arbitrum MultiVenue v2 at
+`0x2502539753df1182f015378f32fbdef0ec9c9de2` is immutable and executes linear
+routes. The prepared [replacement manifest](config/arbitrum-price-gap.json)
+selects the existing `PortableMultiSplitFlashExecutor`, which inherits its linear
+entrypoints and adds `executeSplitArbitrage` for Morpho/Balancer loans with up to
+eight branches. Inherited Aave execution remains linear. This is a replacement
+deployment, not an in-place proxy upgrade. No replacement address is claimed
+until a confirmed deployment, matching runtime/owner, and trust-root readback
+are recorded. Keep the old address as rollback and preserve its funds.
+
+[Read-only preflight](docs/deployments/arbitrum-price-gap-preflight-20261028.json)
+at Arbitrum block `519054854` verified the current code/owner and all ten root
+pins. The replacement runtime is 19,995 bytes. RPC estimated deployment-only
+maximum cost at `106438200000000` wei; configuration costs are additional and
+all fees must be refreshed before broadcast. No transaction was sent.
+
+After choosing this Arbitrum target, the supported resumable deployment commands are:
+
+```sh
+node --env-file=.env dist/evm/cli.js deploy \
+  --manifest config/arbitrum-price-gap.json --env-file .env \
+  --state .nim/deployments/arbitrum-price-gap.json
+node --env-file=.env dist/evm/cli.js deployment-status \
+  --manifest config/arbitrum-price-gap.json \
+  --state .nim/deployments/arbitrum-price-gap.json
+```
+
+Bind new runtime hashes/selectors in the matching host only after readback and
+required fork/canary checks. Keep `FLASH_EXECUTOR_ADDRESS` on the DexPair executor;
+its ABI is different. Base Aero v2 already supports split routes and is a separate
+deployment target. Updating code or publishing this manifest does not change it.
+
+
 ### 2026-10-28 (later): Chainlink gas pricing replaces `NATIVE_TOKEN_USD`
 
 The orchestrator (`simulate`, `execute-auto`, `run`) no longer uses a hand-set ETH price. Gas is priced from **Chainlink ETH/USD at the block being valued**: the simulation block, then the receipt block. It is gated on the Arbitrum L2 sequencer being up. No contract changed. The latest deployed executors are still MultiVenue v2 [`0x2502…9de2`](https://arbiscan.io/address/0x2502539753df1182f015378f32fbdef0ec9c9de2) and DexPair `0x093e…d192` (table below).
@@ -978,3 +1049,32 @@ holdout improvement and paired shadow net benefit before predictive prioritizati
 `runL2Candidates` retains existing simulation, custody, fees and profit gates and
 rechecks reflection state before signing/submission. The CLI and MCP server never
 construct a signer. Local E2E proof does not admit a production strategy or adapter.
+
+### Price-gap engine (evidence 5.2)
+
+Version 5.2 enables owner-approved small-profit floors, exact serial CPMM seeds,
+coverage-aware CLMM sizing, mixed-quote cycles, and up to eight policy-bounded
+branches. Versions 5.0/5.1 retain their existing policy semantics. Enable singleton
+cycle edges with `npm run evm -- universe ... --cycles`.
+
+`npm run liquidity -- evidence-gap-run <request.json>` accepts the `GapRunRequest`
+definition in `schemas/flashloan-evidence-v5.2.schema.json`. Configure the existing
+`FLASHLOAN_EVIDENCE_HOST_FILE` with `schemaVersion: "gap-host/1.0"`,
+`kind: "funding-snapshot-file"`, `inventory`, and `options` entries containing
+`option`, `market`, and `profile`. This file adapter performs research only.
+Every option has an explicit principal cap; it cannot exceed the embedded request
+cap or change its approved profile. Costs and valuation belong to that option's
+asset. No implicit stablecoin price or fee is supplied.
+
+Embedding hosts use `runGapEvidence()` with explicit `funding`, `captureFunding`,
+`compileFunding`, and `simulateFunding` methods. The latter methods receive the
+selected option; its complete evidence is retained and bound into the execution
+context. Native admission and actual execution remain the existing executor path.
+`gapStreamWatchHost()` bridges verified source adapters to the existing watcher;
+transaction hints require canonical capture, and cursor gaps require resync.
+No unverified Flashblocks storage layout, sequencer format, hook or tax model is
+admitted automatically.
+
+Run `npm run gap:test` and `npm run gap:local-e2e`. The local E2E deploys synthetic
+liquidity to Anvil, simulates, signs, mines and reconciles a receipt. It does not
+establish public-market profitability. See [implementation specification](docs/features/price-gap-engine.md).

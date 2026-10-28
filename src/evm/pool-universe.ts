@@ -113,7 +113,7 @@ async function probe(reader: UniverseReader, address: Address, policy: AssetPoli
   return { ok: true, pool: { ...base, adapter: known.adapter, feePips: Number(fee), tickSpacing, verifiedState: { blockNumber, sqrtPriceX96: sqrt.toString(), liquidity: liquidity.toString() } } };
 }
 
-export async function buildPoolUniverse(inventory: Inventory, policy: AssetPolicy, reader: UniverseReader, now = Date.now()): Promise<PoolUniverse> {
+export async function buildPoolUniverse(inventory: Inventory, policy: AssetPolicy, reader: UniverseReader, now = Date.now(), options: { retainCycleEdges?: boolean } = {}): Promise<PoolUniverse> {
   const profile = evmProfile(policy.chainId);
   if (inventory.network !== profile.key) throw new Error('INVENTORY_CHAIN_MISMATCH');
   if (now - Date.parse(inventory.observed_at) > policy.maxInventoryAgeSeconds * 1000 || Date.parse(inventory.observed_at) > now + 60_000) throw new Error('INVENTORY_STALE');
@@ -152,9 +152,9 @@ export async function buildPoolUniverse(inventory: Inventory, policy: AssetPolic
   const hint = (list: UniversePool[]) => list.reduce((sum, p) => sum + (Number(p.liquidityUsdHint) || 0), 0);
   const ranked = [...grouped.values()].filter(list => list.length >= 2).sort((a, b) => hint(b) - hint(a));
   for (const list of ranked.slice(policy.maxPairs)) for (const pool of list) rejected.push({ address: pool.address, reason: 'PAIR_CAP' });
-  for (const list of grouped.values()) if (list.length < 2) rejected.push({ address: list[0].address, reason: 'SINGLE_POOL_PAIR' });
+  for (const list of grouped.values()) if (list.length < 2 && !options.retainCycleEdges) rejected.push({ address: list[0].address, reason: 'SINGLE_POOL_PAIR' });
   const pairs = ranked.slice(0, policy.maxPairs).map(list => ({ token0: list[0].token0, token1: list[0].token1, poolIds: list.map(p => p.poolId) }));
-  const used = new Set(pairs.flatMap(p => p.poolIds));
+  const used = new Set([...pairs.flatMap(p => p.poolIds), ...(options.retainCycleEdges ? [...grouped.values()].filter(list=>list.length===1).map(list=>list[0].poolId) : [])]);
   const candidatePairs = [...candidates.values()].filter(c => readable(c.token0) && readable(c.token1)).sort((a, b) => b.usd - a.usd)
     .map(c => ({ token0: c.token0, token1: c.token1, liquidityUsdHint: c.usd.toFixed(2) }));
   const assetSet = new Set<Address>([...kept.filter(p => used.has(p.poolId)).flatMap(p => [p.token0, p.token1]), ...candidatePairs.flatMap(c => [c.token0, c.token1])]);

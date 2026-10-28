@@ -49,3 +49,9 @@ docs/deployments/*
 !docs/deployments/arbitrum-one-multi-venue-executor-v2.json
 !docs/features/chainlink-native-price.md
 !docs/features/chainlink-native-price-map.md
+
+!docs/features/price-gap-engine.md
+!docs/features/price-gap-engine.spec.json
+!docs/features/price-gap-engine-map.md
+
+!docs/deployments/arbitrum-price-gap-preflight-20261028.json

@@ -118,3 +118,8 @@ test('consumers fail closed on expired or wrong-chain universes', async () => {
   await writeFile(path, JSON.stringify({ ...universe, pools: [{ address: 'x' }] }));
   await assert.rejects(loadPoolUniverse(path, 42161, NOW), /INVALID_POOL_UNIVERSE/);
 });
+
+ test('cycle mode retains verified singleton edges without changing the pair view',async()=>{
+ const u=await buildPoolUniverse(parseInventory(inventory([pool(P(1),[WETH,USDC])])),policy,reader({...base,[P(1)]:v3(UNI,WETH,USDC,sqrtX96(2000,18,6))}),NOW,{retainCycleEdges:true});
+ assert.equal(u.pools.length,1);assert.equal(u.pairs.length,0);assert.ok(!u.rejected.some(r=>r.reason==='SINGLE_POOL_PAIR'));validateUniverse(u);
+ });

@@ -8,7 +8,7 @@ export interface Identity { namespace: 'eip155' | 'sui'; networkId: string; heig
 export interface EvidenceRef { kind: 'discovery' | 'canonical-state' | 'counterfactual-model' | 'native-quote' | 'native-simulation' | 'receipt' | 'configuration'; contentHash: string; sourceId: string; locator: string; observedAtNs: string; expiresAtNs: string | null }
 export type Available<T> = { value: T; reason: null } | { value: null; reason: string };
 export type EvidenceClass = 'PARAMETRIC' | 'SNAPSHOT_MODEL' | 'NATIVE_SIM' | 'RECEIPT';
-export interface Header { schemaVersion: '5.0' | '5.1'; recordType: string; runId: string }
+export interface Header { schemaVersion: '5.0' | '5.1' | '5.2'; recordType: string; runId: string }
 export interface RunRequest extends Header {
   mode: 'research' | 'unsigned-simulation'; networkId: string | null; assetLocators: Array<Omit<Asset,'decimals'>>;
   borrowAsset: Omit<Asset,'decimals'> | null; riskProfileRef: EvidenceRef | null; principalCapRaw: string | null;
@@ -17,6 +17,7 @@ export interface RunRequest extends Header {
   executorMode: 'existing' | 'fixture'; rotationMode: 'report-only'; requestedMinDeploymentBps: number | null;
   requestedMinBranchWeightBps: number | null; requestedMinPrincipalUsd: Ratio | null; requestedMinBranchUsd: Ratio | null;
   inventoryMinLiquidityUsd: Ratio | null; roundId?: string; previousRoundRef?: string | null; watchPools?: string[];
+  fundingOptionRef?: EvidenceRef;
   triggerGridRaw?: string[]; recalledLessons?: Array<{lessonId: string; versionHash: string; status: string}>;
 }
 export interface WatchLimits {
@@ -67,11 +68,11 @@ export interface Report extends Header {
   triggerRef?: string | null; legAttributionRef?: string | null; integrityRef?: string | null; recallRef?: string | null;
 }
 let validator: Ajv2020 | undefined;
-const ids = ['urn:flashloan:contracts:5.0','urn:flashloan:contracts:5.1','urn:flashloan:contracts:5.1-additions'];
+const ids = ['urn:flashloan:contracts:5.0','urn:flashloan:contracts:5.1','urn:flashloan:contracts:5.1-additions','urn:flashloan:contracts:5.2'];
 function validators(): Ajv2020 {
   if (!validator) {
     const a = new Ajv2020({ strict: true, allErrors: true });
-    for (const file of ['flashloan-evidence-v5.schema.json','flashloan-evidence-v5.1.schema.json','flashloan-evidence-v5.1-additions.schema.json']) a.addSchema(JSON.parse(readFileSync(new URL(`../../schemas/${file}`, import.meta.url),'utf8')));
+    for (const file of ['flashloan-evidence-v5.schema.json','flashloan-evidence-v5.1.schema.json','flashloan-evidence-v5.1-additions.schema.json','flashloan-evidence-v5.2.schema.json']) a.addSchema(JSON.parse(readFileSync(new URL(`../../schemas/${file}`, import.meta.url),'utf8')));
     for (const id of ids) a.getSchema(id);
     validator = a;
   }
@@ -79,8 +80,8 @@ function validators(): Ajv2020 {
 }
 /** Validates without coercion/default insertion; callers never trust a cast before this boundary. */
 export class EvidenceValidationError extends Error { readonly code='SCHEMA_INVALID_ARTIFACT'; }
-export function validateRecord<T>(definition: string, value: unknown, version: '5.0' | '5.1' = '5.1'): T {
-  const a = validators(), id = version === '5.0' ? ids[0] : a.getSchema(`${ids[2]}#/$defs/${definition}`) ? ids[2] : ids[1];
+export function validateRecord<T>(definition: string, value: unknown, version: '5.0' | '5.1' | '5.2' = '5.1'): T {
+  const a = validators(), id = version === '5.2' ? ids[3] : version === '5.0' ? ids[0] : a.getSchema(`${ids[2]}#/$defs/${definition}`) ? ids[2] : ids[1];
   const check = a.getSchema(`${id}#/$defs/${definition}`);
   if (!check || !check(value)) throw new EvidenceValidationError(`SCHEMA_INVALID_ARTIFACT:${definition}:${JSON.stringify((check?.errors ?? []).slice(0,8))}`);
   return structuredClone(value) as T;

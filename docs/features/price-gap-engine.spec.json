@@ -1,0 +1,144 @@
+{
+  "spec_id": "SPEC-2026-102801",
+  "feature_name": "Five-pattern multi-pool arbitrage and dynamic funding",
+  "source_evidence": [
+    {
+      "source_uri": "src/evidence/economics.ts",
+      "entity_id": "compilePolicy",
+      "hash": "sha256:eb203c960f5b93545e566463935ada402d0fce2af522a989998be10a71674e1c"
+    },
+    {
+      "source_uri": "src/evidence/solver.ts",
+      "entity_id": "solvePoolGraph",
+      "hash": "sha256:abe7341001de10bebe001924eac115af0e78a89ba3c12338e6bc4b847260ed72"
+    },
+    {
+      "source_uri": "src/evidence/runtime.ts",
+      "entity_id": "runEvidence",
+      "hash": "sha256:3940943a4b7c206b1e5dc796b39d35f3730c344ea7cb65af7c191b46965fbc8a"
+    },
+    {
+      "source_uri": "src/evm/pool-universe.ts",
+      "entity_id": "buildPoolUniverse",
+      "hash": "sha256:594457db7d120c18cd02d32cbb8891489b533509986201abd6c1dd730165341a"
+    },
+    {
+      "source_uri": "src/liquidity/sizing.ts",
+      "entity_id": "sizeRoute",
+      "hash": "sha256:3aab9b39302b0ba61227ff921ccb8abcb9c0339ea1ce43513fe89c18a289249d"
+    },
+    {
+      "source_uri": "src/liquidity/clmm.ts",
+      "entity_id": "quoteV3ExactInput",
+      "hash": "sha256:39a885e137539406dcc6b9722785a92f6d89bce224974cdbe5a10e3b72c3d3ce"
+    },
+    {
+      "source_uri": "src/evidence/gap-runtime.ts",
+      "entity_id": "runGapEvidence",
+      "hash": "sha256:65ef5e5cd2b1a9faeb40553925a212151f16c2247f765b348174899d72b5029f"
+    },
+    {
+      "source_uri": "src/evidence/gap-stream.ts",
+      "entity_id": "gapStreamWatchHost",
+      "hash": "sha256:c4e0feb6caf3f453bb4212597997f24db624cca84bab2186b731a800633ffdc6"
+    },
+    {
+      "source_uri": "src/liquidity/price-gap.ts",
+      "entity_id": "allocateCpmm",
+      "hash": "sha256:184ddec2cc3ff6ec9a0db28f3363f2304fd665b2e4747d0dc3f36af1c7ff18f0"
+    }
+  ],
+  "dependencies": [
+    {
+      "package_or_module": "src/evidence/economics.ts",
+      "symbol": "compilePolicy",
+      "file_location": "src/evidence/economics.ts"
+    },
+    {
+      "package_or_module": "src/evidence/solver.ts",
+      "symbol": "solvePoolGraph",
+      "file_location": "src/evidence/solver.ts"
+    },
+    {
+      "package_or_module": "src/evidence/runtime.ts",
+      "symbol": "runEvidence",
+      "file_location": "src/evidence/runtime.ts"
+    },
+    {
+      "package_or_module": "src/evm/pool-universe.ts",
+      "symbol": "buildPoolUniverse",
+      "file_location": "src/evm/pool-universe.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/sizing.ts",
+      "symbol": "sizeRoute",
+      "file_location": "src/liquidity/sizing.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/clmm.ts",
+      "symbol": "quoteV3ExactInput",
+      "file_location": "src/liquidity/clmm.ts"
+    },
+    {
+      "package_or_module": "src/evidence/gap-runtime.ts",
+      "symbol": "runGapEvidence",
+      "file_location": "src/evidence/gap-runtime.ts"
+    },
+    {
+      "package_or_module": "src/evidence/gap-stream.ts",
+      "symbol": "gapStreamWatchHost",
+      "file_location": "src/evidence/gap-stream.ts"
+    },
+    {
+      "package_or_module": "src/liquidity/price-gap.ts",
+      "symbol": "allocateCpmm",
+      "file_location": "src/liquidity/price-gap.ts"
+    }
+  ],
+  "architecture": {
+    "pattern": "Extend existing evidence runtime with exact pattern seeds and bounded multi-funding orchestration",
+    "execution_flow": [
+      "trusted graph and funding capture",
+      "exact sizing and schedule replay",
+      "native capability and final cost admission",
+      "authorized dispatch and receipt reconciliation"
+    ],
+    "isolation_boundaries": "Discovery and solver output cannot authorize trades; native proof binds exact state, payload, owner policy and funding option. Specification checks cannot prove runtime execution."
+  },
+  "data_contracts": {
+    "inputs": {
+      "request": "GapRunRequest 5.2 with nested request, allowlists, per-option caps and execution budgets; schema $defs/GapRunRequest"
+    },
+    "outputs": {
+      "report": "GapRound: selected option, per-option search outcomes, child evidence manifests, omitted options; no execution authority"
+    },
+    "error_states": [
+      "INCONCLUSIVE",
+      "VALUATION_UNKNOWN",
+      "HANDOFF_REQUIRED",
+      "APPROVAL_REQUIRED",
+      "STATE_DESYNC",
+      "COST_UNKNOWN",
+      "SUBMISSION_UNKNOWN",
+      "PNL_UNKNOWN"
+    ]
+  },
+  "test_criteria": [
+    "T01: see docs/features/price-gap-engine.md verification matrix",
+    "T02: see docs/features/price-gap-engine.md verification matrix",
+    "T03: see docs/features/price-gap-engine.md verification matrix",
+    "T04: see docs/features/price-gap-engine.md verification matrix",
+    "T05: see docs/features/price-gap-engine.md verification matrix",
+    "T06: see docs/features/price-gap-engine.md verification matrix",
+    "T07: see docs/features/price-gap-engine.md verification matrix",
+    "T08: see docs/features/price-gap-engine.md verification matrix",
+    "T09: see docs/features/price-gap-engine.md verification matrix",
+    "T10: see docs/features/price-gap-engine.md verification matrix",
+    "T11: see docs/features/price-gap-engine.md verification matrix",
+    "T12: see docs/features/price-gap-engine.md verification matrix",
+    "T13: see docs/features/price-gap-engine.md verification matrix",
+    "T14: see docs/features/price-gap-engine.md verification matrix",
+    "T15: see docs/features/price-gap-engine.md verification matrix",
+    "T16: see docs/features/price-gap-engine.md verification matrix"
+  ]
+}

@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { ExecutionLock } from '../execution-lock.js';
 import { AttemptJournal } from '../liquidity/journal.js';
 import { parsePoolState, projectPool, type PoolStateEnvelope } from '../liquidity/projection.js';
-import { verifyLedger, verifyPlan, verifyNative } from './economics.js';
+import { verifyFundingMarket, verifyLedger, verifyPlan, verifyNative } from './economics.js';
 import { digest, parseStateIdentity, uint } from '../liquidity/state.js';
 import {solvePoolGraph,type CapturedMarket} from './solver.js';
 import type {RunRequest,Search} from './contracts.js';
@@ -32,7 +32,7 @@ export type Predicate = {kind:'RESULT_MUST_CHANGE_WITH_STATE';resultPointer:stri
 export interface RecalledLesson {lessonId:string;versionHash:string;status:'active'|'provisional'}
 export interface RecallApplication extends Header { mappingHash:string;memorySequence:number;recalled:Array<RecalledLesson&{checkIds:string[]}>;results:Array<{checkId:string;artifactPath:string;result:'PASS'|'VIOLATION'|'NOT_APPLICABLE';severity:'WARN'|'BLOCK';detail:string}>;uncheckedLessons:string[];blocked:boolean }
 export interface RoundManifest { schemaVersion:'5.1';context:IntegrityContext;artifacts:Array<ArtifactInput&{hash:string}>;integrity:Integrity;recall:RecallApplication;previousManifestHash?:string|null;hashing?:{content:string;plan:string;policy:string;payload:string} }
-const definitions:Record<string,string>={discovery:'Inventory','canonical-state':'StateBundle','counterfactual-model':'Plan','native-simulation':'NativeProof',policy:'Policy',plan:'Plan',ledger:'Ledger',report:'Report',solver:'SolverResult',readiness:'Readiness',pattern:'LiquidityPattern',band:'EntryBand',trigger:'TriggerObservation',survival:'TriggerSurvival',attribution:'LegAttribution',receipt:'Receipt','raw-pool':'RawEvidence','unsigned-payload':'RawEvidence','native-result':'RawEvidence','search-domain':'RawEvidence','stage-event':'StageEvent','native-receipt':'RawEvidence','execution-candidate':'ExecutionCandidate'};
+const definitions:Record<string,string>={'funding-option':'RawEvidence',discovery:'Inventory','canonical-state':'StateBundle','counterfactual-model':'Plan','native-simulation':'NativeProof',policy:'Policy',plan:'Plan',ledger:'Ledger',report:'Report',solver:'SolverResult',readiness:'Readiness',pattern:'LiquidityPattern',band:'EntryBand',trigger:'TriggerObservation',survival:'TriggerSurvival',attribution:'LegAttribution',receipt:'Receipt','raw-pool':'RawEvidence','unsigned-payload':'RawEvidence','native-result':'RawEvidence','search-domain':'RawEvidence','stage-event':'StageEvent','native-receipt':'RawEvidence','execution-candidate':'ExecutionCandidate'};
 const object=(v:unknown):Record<string,unknown>=>v!==null&&typeof v==='object'&&!Array.isArray(v)?v as Record<string,unknown>:{};
 export function evidenceBytes(value:unknown):Buffer {
   const visit=(v:unknown):unknown=>{
@@ -49,7 +49,7 @@ function validInput(a:ArtifactInput,runId:string):boolean {
   try {
     if(!definitions[a.kind]||definitions[a.kind]!==a.definition)return false;
     const h=object(a.value);if(h.runId!==runId&&!a.reuse)return false;
-    validateRecord(a.definition,a.value,h.schemaVersion==='5.0'?'5.0':'5.1');if(a.definition==='RawEvidence'&&(h.evidenceKind!==a.kind||typeof h.bytesHex!=='string'||createHash('sha256').update(Buffer.from(h.bytesHex.slice(2),'hex')).digest('hex')!==h.contentHash))return false;return true;
+    validateRecord(a.definition,a.value,h.schemaVersion==='5.2'?'5.2':h.schemaVersion==='5.0'?'5.0':'5.1');if(a.definition==='RawEvidence'&&(h.evidenceKind!==a.kind||typeof h.bytesHex!=='string'||createHash('sha256').update(Buffer.from(h.bytesHex.slice(2),'hex')).digest('hex')!==h.contentHash))return false;return true;
   }catch{return false;}
 }
 function canonicalPools(inputs:ArtifactInput[],ctx:IntegrityContext):PoolStateEnvelope[]|null {
@@ -68,6 +68,14 @@ function semanticFlags(inputs:ArtifactInput[],ctx:IntegrityContext,evidenceClass
   if(get('canonical-state')&&!pools)flags.add('LINEAGE_MISMATCH');
   try{
     if(policy&&(policy.runId!==ctx.runId||policy.policyHash!==ctx.policyHash||policy.policyHash!==digest(Object.fromEntries(Object.entries(policy).filter(([k])=>!['policyHash','runId'].includes(k))))))throw new Error('POLICY_HASH_MISMATCH');
+    const funding=object(get('funding-option'));
+    if(Object.keys(funding).length){
+      const option=validateRecord<import('./gap-runtime.js').FundingOption>('FundingOption',JSON.parse(Buffer.from(String(funding.bytesHex).slice(2),'hex').toString('utf8')),'5.2');
+      const domainRaw=object(get('search-domain')),domain=JSON.parse(Buffer.from(String(domainRaw.bytesHex).slice(2),'hex').toString('utf8')) as {request:RunRequest;market:CapturedMarket};
+      if(!policy)throw new Error('FUNDING_POLICY_MISSING');verifyFundingMarket(option,domain.market,BigInt(ctx.nowNs),uint(policy.maxStateAgeNs));
+      if(digest(option)!==domain.request.fundingOptionRef?.contentHash||digest(option)!==digest(domain.market.fundingOption))throw new Error('FUNDING_OPTION_MISMATCH');
+      if(plan&&plan.executionContextHash!==digest({namespace:domain.market.identity.namespace,network:domain.market.identity.networkId,caller:domain.request.caller,executor:domain.request.executor,executorMode:domain.request.executorMode,nativeValue:'0',fundingOptionHash:digest(option)}))throw new Error('FUNDING_CONTEXT_MISMATCH');
+    }
     if(plan){if(!policy||!pools||plan.stateDigest!==ctx.stateDigest||plan.planHash!==ctx.candidateHash)throw new Error('PLAN_JOIN_MISMATCH');verifyPlan(plan,policy);
       const mutated=new Map(pools.map(p=>[p.poolId,p]));let outputs=0n;
       for(const [b,branch]of plan.branches.entries()){let amount=branch.allocatedRaw;
@@ -149,7 +157,8 @@ export function inspectRound(inputs:ArtifactInput[],ctx:IntegrityContext,previou
   for(const a of inputs){const r=object(a.value),claimed=r.evidenceClass;if(typeof claimed==='string'&&rank[claimed as EvidenceClass]>rank[evidenceClass])flags.add('SELF_DECLARED_CLASS_MISMATCH');if(a.kind==='report'&&r.simulationRef&&!inputs.some(p=>p.kind==='native-simulation'))flags.add('MISSING_NATIVE_PAYLOAD');}
   for(const flag of semanticFlags(inputs,ctx,evidenceClass))flags.add(flag);
   const blocking=[...flags].some(f=>f!=='VALUE_UNCHANGED_ACROSS_STATES');
-  return validateRecord<Integrity>('ArtifactIntegrity',{schemaVersion:'5.1',recordType:'artifact-integrity',runId:ctx.runId,roundId:ctx.roundId,artifacts,stateInvariance:{comparedRunId:previous?.context.runId??null,stateDigestChanged:changed,economicResultChanged:comparable?current!==before:null,verdict:unchanged&&evidenceClass==='PARAMETRIC'?'PARAMETRIC_SUSPECT':comparable?'STATE_DEPENDENT':'NOT_COMPARABLE'},evidenceClass,flags:[...flags],verdict:blocking?'BLOCK':'PASS'});
+  const version=inputs.some(a=>object(a.value).schemaVersion==='5.2')?'5.2':'5.1';
+  return validateRecord<Integrity>('ArtifactIntegrity',{schemaVersion:version,recordType:'artifact-integrity',runId:ctx.runId,roundId:ctx.roundId,artifacts,stateInvariance:{comparedRunId:previous?.context.runId??null,stateDigestChanged:changed,economicResultChanged:comparable?current!==before:null,verdict:unchanged&&evidenceClass==='PARAMETRIC'?'PARAMETRIC_SUSPECT':comparable?'STATE_DEPENDENT':'NOT_COMPARABLE'},evidenceClass,flags:[...flags],verdict:blocking?'BLOCK':'PASS'},version);
 }
 function pointer(value:unknown,path:string):unknown {
   return path.slice(1).split('/').reduce<unknown>((v,k)=>object(v)[k.replace(/~1/g,'/').replace(/~0/g,'~')],value);

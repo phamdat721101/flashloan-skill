@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { digest, uint } from '../liquidity/state.js';
 import { parsePoolState, projectPool, type PoolStateEnvelope, type ProjectionResult } from '../liquidity/projection.js';
 import { attributeLegs } from '../liquidity/sizing.js';
-import { compilePolicy, buildLedger, verifyNative, verifyPlan, type ApprovedProfile } from './economics.js';
+import { compilePolicy, verifyFundingMarket, buildLedger, verifyNative, verifyPlan, type ApprovedProfile } from './economics.js';
 import { ArtifactStore, evidenceBytes, type ArtifactInput, type IntegrityContext, type LessonCheck, type RecalledLesson, type RoundManifest } from './integrity.js';
 import { fresh, recordHash, sameAsset, validateRecord, type Asset, type Cost, type EvidenceRef, type Identity, type NativeProof, type Plan, type Policy, type Ratio, type Report, type RunRequest, type Search, type StateBundle } from './contracts.js';
 import {solvePoolGraph,type CapturedMarket} from './solver.js';
@@ -18,26 +18,27 @@ export interface EvidenceHost {
   simulate?(request:RunRequest,plan:Plan,payload:CompiledPayload,market:CapturedMarket,signal:AbortSignal):Promise<{proof:NativeProof;rawResult:{bytesHex:string}}>;
   memory?(proposal:{runId:string;evidenceClass:string;status:'provisional';sources:string[];statement:string},signal:AbortSignal):Promise<void>;
 }
-export interface EvidenceOptions {store:ArtifactStore;host?:EvidenceHost;checks?:LessonCheck[];approvedOwnerRefs?:ReadonlySet<string>;previous?:RoundManifest;signal?:AbortSignal;nowNs?:()=>bigint;maxDurationMs:number}
+export interface EvidenceOptions {store:ArtifactStore;host?:EvidenceHost;checks?:LessonCheck[];approvedOwnerRefs?:ReadonlySet<string>;previous?:RoundManifest;signal?:AbortSignal;nowNs?:()=>bigint;maxDurationMs:number;solveBudget?:number}
 const kindRef=(kind:EvidenceRef['kind'],value:unknown,sourceId:string,observedAtNs:string,expiresAtNs:string|null):EvidenceRef=>({kind,contentHash:createHash('sha256').update(evidenceBytes(value)).digest('hex'),sourceId,locator:'content-addressed',observedAtNs,expiresAtNs});
 export const payloadHash=(bytesHex:string)=>{if(!/^0x(?:[a-f0-9]{2})+$/i.test(bytesHex))throw new Error('INVALID_PAYLOAD_BYTES');return createHash('sha256').update(Buffer.from(bytesHex.slice(2),'hex')).digest('hex');};
 export async function runEvidence(raw:unknown,options:EvidenceOptions):Promise<RoundManifest>{
-  const obj=raw as {schemaVersion?:unknown};const request=validateRecord<RunRequest>('RunRequest',raw,obj?.schemaVersion==='5.0'?'5.0':'5.1');
+  const obj=raw as {schemaVersion?:unknown};const request=validateRecord<RunRequest>('RunRequest',raw,obj?.schemaVersion==='5.2'?'5.2':obj?.schemaVersion==='5.0'?'5.0':'5.1');
   if(!Number.isSafeInteger(options.maxDurationMs)||options.maxDurationMs<1||options.maxDurationMs>3600000)throw new Error('INVALID_RUN_DEADLINE');
   const now=options.nowNs??(()=>BigInt(Date.now())*1000000n),controller=new AbortController(),abort=()=>controller.abort();options.signal?.addEventListener('abort',abort,{once:true});if(options.signal?.aborted)controller.abort();
+  const executionDeadline=performance.now()+options.maxDurationMs;
   const timer=setTimeout(abort,options.maxDurationMs),inputs:ArtifactInput[]=[],events:unknown[]=[];
   let policy:Policy|undefined,market:CapturedMarket|undefined,plan:Plan|undefined;
   const ctx:IntegrityContext={runId:request.runId,roundId:request.roundId??request.runId,stateDigest:null,policyHash:null,candidateHash:null,executionContextHash:null,payloadHash:null,executorCodeOrPackageHash:null,adapterRevision:null,nowNs:now().toString()};
   const report:Report={schemaVersion:request.schemaVersion,recordType:'round-report',runId:request.runId,outcome:'INCONCLUSIVE',policyHash:null,stateDigest:null,inventoryRefs:[],solverRef:null,simulationRef:null,ledgerRef:null,receiptRef:null,changedState:[],reasons:[]};
-  const put=(kind:string,definition:string,value:unknown)=>{validateRecord(definition,value,(value as {schemaVersion?:string}).schemaVersion==='5.0'?'5.0':'5.1');inputs.push({kind,definition,value});return createHash('sha256').update(evidenceBytes(value)).digest('hex');};
-  const rawEvidence=(kind:string,bytesHex:string)=>{const contentHash=payloadHash(bytesHex);put(kind,'RawEvidence',{schemaVersion:'5.1',recordType:'raw-evidence',runId:request.runId,evidenceKind:kind,bytesHex,contentHash});return contentHash;};
+  const put=(kind:string,definition:string,value:unknown)=>{validateRecord(definition,value,(value as {schemaVersion?:string}).schemaVersion==='5.2'?'5.2':(value as {schemaVersion?:string}).schemaVersion==='5.0'?'5.0':'5.1');inputs.push({kind,definition,value});return createHash('sha256').update(evidenceBytes(value)).digest('hex');};
+  const rawEvidence=(kind:string,bytesHex:string)=>{const contentHash=payloadHash(bytesHex);put(kind,'RawEvidence',{schemaVersion:request.schemaVersion==='5.2'?'5.2':'5.1',recordType:'raw-evidence',runId:request.runId,evidenceKind:kind,bytesHex,contentHash});return contentHash;};
   const step=async<T>(stage:string,operation:()=>Promise<T>):Promise<T>=>{
     if(controller.signal.aborted)throw new Error('RUN_CANCELLED');const started=performance.now();let cancel:(()=>void)|undefined;
     try{const value=await Promise.race([operation(),new Promise<never>((_,reject)=>{cancel=()=>reject(new Error('RUN_CANCELLED'));controller.signal.addEventListener('abort',cancel,{once:true});})]);events.push({stage,outcome:'accepted',atNs:now().toString(),durationMs:Math.floor(performance.now()-started)});return value;}catch(e){events.push({stage,outcome:'failed',atNs:now().toString(),durationMs:Math.floor(performance.now()-started)});throw e;}finally{if(cancel)controller.signal.removeEventListener('abort',cancel);}
   };
   try{
     const host=options.host;if(!host)throw new Error('HANDOFF_REQUIRED');
-    if(host.readiness&&request.schemaVersion==='5.1')put('readiness','Readiness',await step('readiness',()=>host.readiness!(request,controller.signal)));
+    if(host.readiness&&request.schemaVersion!=='5.0')put('readiness','Readiness',await step('readiness',()=>host.readiness!(request,controller.signal)));
     const approved=await step('policy',()=>host.profile(request,controller.signal));
     const inventory=await step('discovery',()=>host.inventory(request,controller.signal));
     for(const row of inventory)report.inventoryRefs.push(put('discovery','Inventory',row));
@@ -49,6 +50,7 @@ export async function runEvidence(raw:unknown,options:EvidenceOptions):Promise<R
     const decimals=new Map<string,number>();for(const pool of market.pools)for(const [token,value]of [[pool.token0,pool.decimals0],[pool.token1,pool.decimals1]] as const){if(decimals.has(token)&&decimals.get(token)!==value)throw new Error('ASSET_DECIMALS_MISMATCH');decimals.set(token,value);}
     if(!decimals.has(market.asset.assetId))throw new Error('BORROW_ASSET_MISMATCH');
     policy=compilePolicy(request,approved,market.asset,market.valuation,now());ctx.policyHash=policy.policyHash;report.policyHash=policy.policyHash;put('policy','Policy',policy);
+    if(request.fundingOptionRef){if(request.schemaVersion!=='5.2'||!market.fundingOption||digest(market.fundingOption)!==request.fundingOptionRef.contentHash)throw new Error('FUNDING_OPTION_MISMATCH');verifyFundingMarket(market.fundingOption,market,now(),uint(policy.maxStateAgeNs));rawEvidence('funding-option','0x'+evidenceBytes(market.fundingOption).toString('hex'));}
     if(market.networkCost.evidence.contentHash!==request.networkCostEvidenceRef?.contentHash)throw new Error('COST_EVIDENCE_MISMATCH');
     fresh({kind:'canonical-state',contentHash:digest(market.pools),sourceId:'host',locator:'state',observedAtNs:market.observedAtNs,expiresAtNs:null},now(),uint(policy.maxStateAgeNs));
     fresh(market.lender.evidence,now(),uint(policy.maxStateAgeNs));fresh(market.networkCost.evidence,now(),uint(policy.maxStateAgeNs));
@@ -60,7 +62,8 @@ export async function runEvidence(raw:unknown,options:EvidenceOptions):Promise<R
     if(!host.readiness)report.reasons.push('READINESS_HOST_UNAVAILABLE');
     const domainBytes='0x'+evidenceBytes({request,market}).toString('hex'),domainHash=rawEvidence('search-domain',domainBytes);
     const domainRef:EvidenceRef={kind:'configuration',contentHash:domainHash,sourceId:'exact-pool-graph',locator:'content-addressed',observedAtNs:now().toString(),expiresAtNs:null};
-    const solved=await step('solve',async()=>solvePoolGraph(request,policy!,market!,ctx.stateDigest!,domainRef));
+    const solved=await step('solve',async()=>solvePoolGraph(request,policy!,market!,ctx.stateDigest!,domainRef,options.solveBudget,request.schemaVersion==='5.2'?executionDeadline-performance.now():undefined));
+    if(request.schemaVersion==='5.2'&&(controller.signal.aborted||performance.now()>=executionDeadline))throw new Error('SOLVE_DEADLINE');
     plan=solved.plan??undefined;
     if(plan&&host.compile&&host.simulate&&request.caller&&request.executor){
       const payload=await step('payload',()=>host.compile!(request,plan!,market!,controller.signal));
@@ -85,12 +88,12 @@ export async function runEvidence(raw:unknown,options:EvidenceOptions):Promise<R
         report.ledgerRef=put('ledger','Ledger',ledger);report.outcome=BigInt(ledger.simulatedNetRaw)>uint(policy.minProfitRaw)?'SIMULATED_OPPORTUNITY':'INCONCLUSIVE';
       }else report.reasons.push('FIXTURE_NATIVE_RESEARCH_ONLY');
     }else report.outcome=solved.status==='CERTIFIED_NO_OPPORTUNITY'?'NO_OPPORTUNITY':'INCONCLUSIVE';
-    if(plan){ctx.candidateHash=plan.planHash;ctx.executionContextHash=plan.executionContextHash;if(!inputs.some(a=>a.kind==='plan'))put('plan','Plan',plan);if(request.schemaVersion==='5.1'){const quotes=solved.quotes;let cursor=0;const legs=plan.branches.flatMap(b=>b.poolPath.map(()=>({branchId:b.branchId,quote:quotes[cursor++]})));put('attribution','LegAttribution',attributeLegs({runId:request.runId,planHash:plan.planHash,stateDigest:plan.stateDigest,requestedRaw:policy.principalCapRaw,solvedRaw:plan.principalRaw,netRaw:plan.netProfitRaw.value!,legs},market.pools));}}
+    if(plan){ctx.candidateHash=plan.planHash;ctx.executionContextHash=plan.executionContextHash;if(!inputs.some(a=>a.kind==='plan'))put('plan','Plan',plan);if(request.schemaVersion!=='5.0'){const quotes=solved.quotes;let cursor=0;const legs=plan.branches.flatMap(b=>b.poolPath.map(()=>({branchId:b.branchId,quote:quotes[cursor++]})));put('attribution','LegAttribution',attributeLegs({runId:request.runId,planHash:plan.planHash,stateDigest:plan.stateDigest,requestedRaw:policy.principalCapRaw,solvedRaw:plan.principalRaw,netRaw:plan.netProfitRaw.value!,legs},market.pools));}}
     const solver={schemaVersion:request.schemaVersion,recordType:'solver-result',runId:request.runId,status:solved.status,stateDigest:ctx.stateDigest,policyHash:policy.policyHash,search:solved.search,planRef:plan?.planHash??null,reasonCodes:plan?[]:[solved.status]};report.solverRef=put('solver','SolverResult',solver);
     if(plan&&report.outcome!=='SIMULATED_OPPORTUNITY')report.reasons.push('NATIVE_PROOF_OR_CONTEXT_UNAVAILABLE');
   }catch(e){const typed=e as {code?:unknown};const code=typeof typed.code==='string'&&/^[A-Z_]+$/.test(typed.code)?typed.code:e instanceof Error&&/^[A-Z_]+$/.test(e.message)?e.message:'TOOL_ERROR';report.outcome=code==='HANDOFF_REQUIRED'?'TOOL_ERROR':code==='INPUT_BLOCKED'?'INPUT_BLOCKED':code==='POLICY_UNSUPPORTED'?'POLICY_UNSUPPORTED':'INCONCLUSIVE';report.reasons.push(code);}
   finally{ /* Keep the absolute deadline active through persistence and optional memory. */ }
-  for(const [index,value]of events.entries()){const event=value as {stage:string;outcome:string;atNs:string;durationMs:number};const allowed=['request','discovery','state','quote','solve','simulate','admit','submit','receipt','memory',...(request.schemaVersion==='5.1'?['readiness','pattern','watch','integrity','recall']:[])];put('stage-event','StageEvent',{schemaVersion:request.schemaVersion,recordType:'stage-event',runId:request.runId,eventId:`${request.runId}:${index}`,stage:allowed.includes(event.stage)?event.stage:'request',outcome:event.outcome,candidateHash:ctx.candidateHash,policyHash:ctx.policyHash,stateDigest:ctx.stateDigest,attemptNumber:index,code:event.outcome==='accepted'?'STAGE_COMPLETE':'STAGE_FAILED',retryable:false,receivedAtNs:event.atNs,durationMs:event.durationMs,evidence:[]});}
+  for(const [index,value]of events.entries()){const event=value as {stage:string;outcome:string;atNs:string;durationMs:number};const allowed=['request','discovery','state','quote','solve','simulate','admit','submit','receipt','memory',...(request.schemaVersion!=='5.0'?['readiness','pattern','watch','integrity','recall']:[])];put('stage-event','StageEvent',{schemaVersion:request.schemaVersion,recordType:'stage-event',runId:request.runId,eventId:`${request.runId}:${index}`,stage:allowed.includes(event.stage)?event.stage:'request',outcome:event.outcome,candidateHash:ctx.candidateHash,policyHash:ctx.policyHash,stateDigest:ctx.stateDigest,attemptNumber:index,code:event.outcome==='accepted'?'STAGE_COMPLETE':'STAGE_FAILED',retryable:false,receivedAtNs:event.atNs,durationMs:event.durationMs,evidence:[]});}
   put('report','Report',report);ctx.nowNs=now().toString();
   try{
     let manifest=await options.store.publish(inputs,ctx,{approvedOwnerRefs:options.approvedOwnerRefs,previous:options.previous,checks:options.checks?.map(c=>({...c,runId:request.runId})),recalled:(request.recalledLessons??[]).filter((l):l is RecalledLesson=>l.status==='active'||l.status==='provisional')});

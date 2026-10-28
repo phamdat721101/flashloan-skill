@@ -32,7 +32,7 @@ async function main() {
     const policy = u.parseAssetPolicy(JSON.parse(await readFile(policyPath,'utf8'))), profile = evmProfile(policy.chainId);
     const client = createPublicClient({ transport: http(secureEndpoint(process.env[profile.rpcEnv] ?? profile.chain.rpcUrls.default.http[0]),{ retryCount:2 }) });
     if (await client.getChainId() !== policy.chainId) throw new Error('CHAIN_MISMATCH');
-    const universe = u.validateUniverse(await u.buildPoolUniverse(u.parseInventory(JSON.parse(await readFile(inventoryPath,'utf8'))), policy, u.viemUniverseReader(client as never, block === undefined ? undefined : BigInt(block))));
+    const universe = u.validateUniverse(await u.buildPoolUniverse(u.parseInventory(JSON.parse(await readFile(inventoryPath,'utf8'))), policy, u.viemUniverseReader(client as never, block === undefined ? undefined : BigInt(block)), Date.now(), {retainCycleEdges: process.argv.includes('--cycles')}));
     await atomicJson(out, universe);
     return { out, blockNumber: universe.identity.blockNumber, pairs: universe.pairs.length, pools: universe.pools.length, candidatePairs: universe.candidatePairs.length,
       rejected: universe.rejected.reduce<Record<string, number>>((counts, r) => ({ ...counts, [r.reason]: (counts[r.reason] ?? 0) + 1 }), {}), topGaps: u.pairGaps(universe).slice(0, 5) };

@@ -7,6 +7,17 @@ import type {RunRequest} from './contracts.js';
 export async function readEvidenceJson(path:string):Promise<unknown>{const bytes=await readBoundedEvidenceFile(path,4*1024*1024);try{return JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(bytes));}catch{throw new Error('INVALID_EVIDENCE_JSON');}}
 export async function runEvidenceCli(command:string,args:string[]):Promise<void>{
   const [path,...rest]=args;if(!path)throw new Error('EVIDENCE_INPUT_REQUIRED');
+  if(command==='evidence-gap-run'){
+    if(rest.length)throw new Error('UNKNOWN_EVIDENCE_ARGUMENT');
+    const {runGapEvidence}=await import('./gap-runtime.js');
+    const configured=process.env.FLASHLOAN_EVIDENCE_HOST_FILE;if(!configured)throw new Error('HANDOFF_REQUIRED');
+    const c=await readEvidenceJson(configured) as {schemaVersion:string;kind:string;inventory:unknown[];options:Array<{option:import('./gap-runtime.js').FundingOption;market:CapturedMarket;profile:ApprovedProfile}>};
+    if(c.schemaVersion!=='gap-host/1.0'||c.kind!=='funding-snapshot-file'||Object.keys(c).some(k=>!['schemaVersion','kind','inventory','options'].includes(k))||!Array.isArray(c.options)||c.options.length>256||!Array.isArray(c.inventory))throw new Error('UNSUPPORTED_HOST_CONFIG');
+    const host:import('./gap-runtime.js').GapHost={funding:async()=>c.options.map(o=>o.option),captureFunding:async(_r,o)=>{const found=c.options.find(v=>v.option.optionId===o.optionId);if(!found)throw new Error('FUNDING_OPTION_MISSING');return structuredClone({market:found.market,profile:found.profile});},inventory:async()=>structuredClone(c.inventory),capture:async()=>{throw new Error('FUNDING_OPTION_REQUIRED');},profile:async()=>{throw new Error('FUNDING_OPTION_REQUIRED');}};
+    const request=await readEvidenceJson(path),controller=new AbortController(),stop=()=>controller.abort();process.once('SIGINT',stop);process.once('SIGTERM',stop);
+    try{const result=await runGapEvidence(request,{host,store:new ArtifactStore(process.env.FLASHLOAN_EVIDENCE_ROOT??'.nim/evidence'),signal:controller.signal,maxDurationMs:60000});console.log(JSON.stringify({...result,rounds:result.rounds.map(r=>({runId:r.context.runId,integrity:r.integrity.verdict}))}));}
+    finally{process.removeListener('SIGINT',stop);process.removeListener('SIGTERM',stop);}return;
+  }
   if(command==='evidence-run'){
     if(rest.length)throw new Error('UNKNOWN_EVIDENCE_ARGUMENT');
     const request=await readEvidenceJson(path);let host:EvidenceHost|undefined;

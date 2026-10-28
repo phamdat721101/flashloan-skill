@@ -22,18 +22,20 @@ export function compilePolicy(request: RunRequest, approved: ApprovedProfile, as
   const p=approved.body, version=request.schemaVersion;
   if (!request.borrowAsset || !sameAsset(request.borrowAsset,asset) || request.networkId !== asset.networkId || !request.riskProfileRef || request.riskProfileRef.contentHash !== digest(p) || approved.ref.contentHash !== request.riskProfileRef.contentHash || approved.ref.kind !== 'configuration' || !request.principalCapRaw || !request.networkCostEvidenceRef || !request.valuationEvidenceRef || request.valuationEvidenceRef.contentHash !== valuation.ref.contentHash) throw new Error('INPUT_BLOCKED');
   for (const ref of [approved.ref,valuation.ref,request.networkCostEvidenceRef]) fresh(ref,nowNs,uint(p.maxStateAgeNs));
-  positiveRatio(p.minProfitUsd);
-  const floor=larger({numerator:'10',denominator:'1'},larger(p.minProfitUsd,request.requestedMinProfitUsd ?? p.minProfitUsd));
+  if (version === '5.2') { validateRecord('Ratio',p.minProfitUsd); if (BigInt(p.minProfitUsd.numerator)<0n) throw new Error('INVALID_THRESHOLD'); } else positiveRatio(p.minProfitUsd);
+  if(request.requestedMinProfitUsd && BigInt(request.requestedMinProfitUsd.numerator)<0n) throw new Error('INVALID_THRESHOLD');
+  const requestedFloor=larger(p.minProfitUsd,request.requestedMinProfitUsd ?? p.minProfitUsd);
+  const floor=version==='5.2'?requestedFloor:larger({numerator:'10',denominator:'1'},requestedFloor);
   const usdMinimum=(value: Ratio | null) => {if(!value)return 0n;validateRecord('Ratio',value);if(BigInt(value.numerator)<0n)throw new Error('INVALID_THRESHOLD');const numerator=BigInt(value.numerator)*BigInt(valuation.price.denominator)*10n**BigInt(asset.decimals),denominator=BigInt(value.denominator)*BigInt(valuation.price.numerator);return (numerator+denominator-1n)/denominator;};
   const max=(a: bigint,b: bigint)=>a>b?a:b;
   const cap=uint(request.principalCapRaw)<uint(p.principalCapRaw)?uint(request.principalCapRaw):uint(p.principalCapRaw);
   const result: Policy={schemaVersion:version,recordType:'policy',runId:request.runId,profileRef:approved.ref,policyHash:'0'.repeat(64),mode:request.mode,principalCapRaw:cap.toString(),minimumPrincipalRaw:max(uint(p.minimumPrincipalRaw),usdMinimum(request.requestedMinPrincipalUsd)).toString(),minimumBranchRaw:max(uint(p.minimumBranchRaw),usdMinimum(request.requestedMinBranchUsd)).toString(),minProfitRaw:rawThreshold(floor,valuation.price,asset.decimals).toString(),profitComparison:'gt',maxPriceImpactBps:Math.min(p.maxPriceImpactBps,request.requestedPriceImpactBps??p.maxPriceImpactBps),minDeploymentBps:Math.max(p.minDeploymentBps,request.requestedMinDeploymentBps??0),minBranchWeightBps:Math.max(p.minBranchWeightBps,request.requestedMinBranchWeightBps??0),maxHopsPerBranch:p.maxHopsPerBranch,maxBranches:p.maxBranches,maxAttempts:p.maxAttempts,deadlineMs:p.deadlineMs,maxStateAgeNs:p.maxStateAgeNs,maxDailyLossRaw:p.maxDailyLossRaw,executionAuthorizationRef:null,borrowAsset:asset,maxTotalSwaps:p.maxTotalSwaps,valuationEvidenceRef:valuation.ref,networkCostEvidenceRef:request.networkCostEvidenceRef};
-  if(version==='5.1')for(const key of ['watchMode','maxTriggerToSimulationBlocks','bandTtlBlocks','bandRebuildTicks','bandMaxEvaluationsPerRow','bandMaxEvaluationsTotal','watchQueueCapacity','watchMaxSolves'] as const) if(p[key]!==undefined) Object.assign(result,{[key]:p[key]});
+  if(version!=='5.0')for(const key of ['watchMode','maxTriggerToSimulationBlocks','bandTtlBlocks','bandRebuildTicks','bandMaxEvaluationsPerRow','bandMaxEvaluationsTotal','watchQueueCapacity','watchMaxSolves'] as const) if(p[key]!==undefined) Object.assign(result,{[key]:p[key]});
   if(!cap || uint(result.minimumPrincipalRaw)>cap)throw new Error('POLICY_UNSUPPORTED');
   result.policyHash=digest(Object.fromEntries(Object.entries(result).filter(([k])=>!['policyHash','runId'].includes(k))));
   return validateRecord<Policy>('Policy',result,version);
 }
-export interface LedgerInputs { runId: string; schemaVersion:'5.0'|'5.1'; asset:Asset; principalRaw:string; deployedRaw:string; unusedPrincipalRaw:string; swapProceedsRaw:string; flashFeeRaw:string; networkCostRaw:string; otherExternalCostsRaw:string; operatorPrefundRaw:string; executorOpeningBalanceRaw:string; evidence:EvidenceRef[] }
+export interface LedgerInputs { runId: string; schemaVersion:'5.0'|'5.1'|'5.2'; asset:Asset; principalRaw:string; deployedRaw:string; unusedPrincipalRaw:string; swapProceedsRaw:string; flashFeeRaw:string; networkCostRaw:string; otherExternalCostsRaw:string; operatorPrefundRaw:string; executorOpeningBalanceRaw:string; evidence:EvidenceRef[] }
 export function buildLedger(input:LedgerInputs):Ledger {
   for(const [key,value]of Object.entries(input))if(key.endsWith('Raw'))uint(value);
   const n=(x:string)=>BigInt(x),terminal=n(input.swapProceedsRaw)+n(input.unusedPrincipalRaw),surplus=terminal-n(input.principalRaw)-n(input.flashFeeRaw);
@@ -68,4 +70,12 @@ export function verifyLedger(ledger:Ledger):void {
   validateRecord<Ledger>('Ledger',ledger,ledger.schemaVersion);
   const n=(key:keyof Ledger)=>BigInt(String(ledger[key]));
   if(n('principalRaw')!==n('deployedRaw')+n('unusedPrincipalRaw')||n('terminalBeforeDebtRaw')!==n('swapProceedsRaw')+n('unusedPrincipalRaw')||n('surplusAfterDebtRaw')!==n('terminalBeforeDebtRaw')-n('principalRaw')-n('flashFeeRaw')||n('simulatedNetRaw')!==n('surplusAfterDebtRaw')-n('networkCostRaw')-n('otherExternalCostsRaw'))throw new Error('ECONOMIC_INVARIANT_FAILED');
+}
+
+/** Shared funding semantics for orchestration, direct runtime and persisted evidence replay. */
+export function verifyFundingMarket(option:import('./gap-runtime.js').FundingOption,market:Pick<import('./solver.js').CapturedMarket,'identity'|'asset'|'lender'>,nowNs:bigint,maxAgeNs:bigint):void {
+  validateRecord('FundingOption',option,'5.2');
+  if(!sameAsset(option.asset,option.repaymentAsset)||option.asset.decimals!==option.repaymentAsset.decimals||!sameAsset(option.asset,market.asset)||option.asset.decimals!==market.asset.decimals||digest(option.identity)!==digest(market.identity)||option.identity.finality==='provisional'||option.identity.namespace!==option.asset.namespace||option.identity.networkId!==option.asset.networkId||option.capacityRaw!==market.lender.capacityRaw||option.feeNumerator!==market.lender.feeNumerator||option.feeDenominator!==market.lender.feeDenominator||!uint(option.capacityRaw)||!uint(option.feeDenominator)||digest(option.evidence)!==digest(market.lender.evidence)||option.executorCapabilityRef.kind!=='configuration')throw new Error('FUNDING_EVIDENCE_MISMATCH');
+  if(option.asset.namespace==='eip155'&&!/^0x[0-9a-fA-F]{40}$/.test(option.lenderAddress))throw new Error('FUNDING_EVIDENCE_MISMATCH');
+  fresh(option.evidence,nowNs,maxAgeNs);fresh(option.executorCapabilityRef,nowNs,maxAgeNs);
 }
