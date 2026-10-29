@@ -177,7 +177,8 @@ export async function buildPoolUniverse(inventory: Inventory, policy: AssetPolic
   };
 }
 
-export interface PairGap { token0: Address; token1: Address; buyPool: string; sellPool: string; gapBps: number; feeFloorBps: number }
+/** `screen` marks an infinitesimal necessary condition only: a gap ranks a pair, never evaluates a candidate (v6 P07). */
+export interface PairGap { token0: Address; token1: Address; buyPool: string; sellPool: string; gapBps: number; feeFloorBps: number; screen: 'INFINITESIMAL_NECESSARY' }
 /** Decimal- and orientation-correct price gaps (token1 per token0) between every pool pair of each verified pair. */
 export function pairGaps(universe: PoolUniverse, states: Record<string, UniversePool['verifiedState']> = {}): PairGap[] {
   const decimals = new Map(universe.assets.map(a => [a.address, a.decimals]));
@@ -196,7 +197,7 @@ export function pairGaps(universe: PoolUniverse, states: Record<string, Universe
       if (!a || !b) continue;
       const [cheap, rich] = a < b ? [list[i], list[j]] : [list[j], list[i]];
       gaps.push({ token0: pair.token0, token1: pair.token1, buyPool: cheap.poolId, sellPool: rich.poolId,
-        gapBps: Number(((a > b ? a - b : b - a) * 1_000_000n) / (a < b ? a : b)) / 100, feeFloorBps: (cheap.feePips + rich.feePips) / 100 });
+        gapBps: Number(((a > b ? a - b : b - a) * 1_000_000n) / (a < b ? a : b)) / 100, feeFloorBps: (cheap.feePips + rich.feePips) / 100, screen: 'INFINITESIMAL_NECESSARY' });
     }
   }
   return gaps.sort((x, y) => (y.gapBps - y.feeFloorBps) - (x.gapBps - x.feeFloorBps));
@@ -264,4 +265,20 @@ export async function probeUniverseRoutes(client: PublicClient, universe: PoolUn
     }
   }
   return probes;
+}
+
+/**
+ * Per-token inventory outcomes for candidate-ledger/1 (v6 §4.2 R5). A token kept in a verified pair has no
+ * outcome here; it must still reach an evaluated route. PAIR_CAP is a budget deferral, not a rejection.
+ */
+export function universeTokenOutcomes(inventory: Inventory, universe: PoolUniverse): Record<string, { outcome: 'REJECTED' | 'DEFERRED_BUDGET'; stage: 'inventory'; reason_code: RejectReason }> {
+  const kept = new Set(universe.pairs.flatMap(p => [p.token0, p.token1]).map(lower)), reasons = new Map(universe.rejected.map(r => [r.address, r.reason]));
+  const out: Record<string, { outcome: 'REJECTED' | 'DEFERRED_BUDGET'; stage: 'inventory'; reason_code: RejectReason }> = {};
+  for (const entry of inventory.pools) {
+    const reason = reasons.get(String(entry.reference?.address ?? entry.id).toLowerCase());
+    if (!reason) continue;
+    for (const token of (entry.asset_ids ?? []).map(lower)) if (!kept.has(token) && !out[token])
+      out[token] = { outcome: reason === 'PAIR_CAP' ? 'DEFERRED_BUDGET' : 'REJECTED', stage: 'inventory', reason_code: reason };
+  }
+  return out;
 }

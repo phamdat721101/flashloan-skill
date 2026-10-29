@@ -35,7 +35,7 @@ export interface LiquidityExecutionAdapter {
   /** Sign only final inputs. Callers must never mutate or log the returned bytes. */
   sign(candidate: RouteCandidate, resource: string, signal?: AbortSignal): Promise<{ transactionId: string; signedBytes: Uint8Array; resource: string; payloadDigest: string }>;
   submit(signedBytes: Uint8Array, signal?: AbortSignal): Promise<string>;
-  receipt(transactionId: string, signal?: AbortSignal): Promise<{ transactionId: string; source: string; executionStatus: 'success' | 'revert'; repaymentProven: boolean; profitTransferProven: boolean; profitCustodyProven?: boolean; gasCostInProfitAsset: string; profitAfterDebt: string } | null>;
+  receipt(transactionId: string, signal?: AbortSignal): Promise<{ transactionId: string; source: string; executionStatus: 'success' | 'revert'; repaymentProven: boolean; profitTransferProven: boolean; profitCustodyProven?: boolean; gasCostInProfitAsset: string; profitAfterDebt: string; executionEvidence?: { kind: string; reconciliation: 'RECONCILED' | 'UNKNOWN' | 'MISMATCH'; transaction: { tx_hash: string | null } } } | null>;
 }
 export interface RuntimePolicy { concurrency: number; maxCandidates: number; maxDailyLoss: string; minProfit: string; budgetAssets: Record<string, string>; mode: 'shadow' | 'auto'; stepTimeoutMs?: number }
 export interface LiquidityDecision { candidateDigest: string; status: 'rejected' | 'simulated' | 'reconciled' | 'halted'; code: string; attemptId?: string }
@@ -117,6 +117,9 @@ export class LiquidityRuntime {
         await this.journal.transition(attemptId, 'submitted', transactionId);
         const receipt = await this.step(timeout, signal => a.receipt(transactionId!, signal));
         if (!receipt || receipt.transactionId !== transactionId || !receipt.source || !['success', 'revert'].includes(receipt.executionStatus) || (receipt.executionStatus === 'success' && (!receipt.repaymentProven || !(receipt.profitTransferProven === true || receipt.profitCustodyProven === true)))) throw new Error('PNL_UNKNOWN');
+        // v6 all-asset reconciliation, when the host supplies it, must agree before any accounting is trusted.
+        const evidence = receipt.executionEvidence;
+        if (evidence && (evidence.kind !== 'RECEIPT_RECONCILED' || evidence.reconciliation !== 'RECONCILED' || evidence.transaction.tx_hash?.toLowerCase() !== transactionId.toLowerCase())) throw new Error('PNL_UNKNOWN');
         const gas = uint(receipt.gasCostInProfitAsset), profit = uint(receipt.profitAfterDebt);
         if (receipt.executionStatus === 'revert' && profit !== 0n) throw new Error('PNL_UNKNOWN');
         actualLoss = gas > profit ? gas - profit : 0n;

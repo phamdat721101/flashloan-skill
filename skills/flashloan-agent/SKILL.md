@@ -7,9 +7,13 @@ description: "Operate the installed Arbitrum & Sui flashloan runtime and liquidi
 
 Use the installed `flashloan-agent` package. It is self-contained: never read, import, or run code from `bd-team/scripts`. Build the Rust workspace with the pinned toolchain before using the live route engine.
 
-## Evidence-driven workflow (prompt version 4)
+## Evidence-driven workflow (prompt version 6)
 
-Use the stable prompt in `skills/flashloan-agent/prompt-v4.md`. Keep its prefix unchanged during a round and append dynamic inputs. Research and unsigned simulation do not authorize signing. The supported research entrypoint is `npm run liquidity -- evidence-run <request.json>`; absent an explicitly configured host, it emits `HANDOFF_REQUIRED`. `evidence-integrity <round-directory> [--previous <round-directory>]` is read-only.
+Use the stable prompt in `skills/flashloan-agent/prompt-v6.md` (pinned by SHA256 in `config/flashloan-versions.json`; a mismatch fails closed with `CAPABILITY_UNSUPPORTED`). Keep its prefix unchanged during a round and pass only a `flash-run-request/1` packet as dynamic input (`schemas/flashloan-v6.schema.json`, unknown keys rejected). Research and unsigned simulation do not authorize signing; `mode: execute` is a request, never authority, and no request can lower the owner floor. `prompt-v4.md` remains for 5.0/5.1 `evidence-run` requests. `evidence-integrity <round-directory> [--previous <round-directory>]` is read-only.
+
+### v6 round
+
+`node --env-file=.env dist/liquidity/cli.js evidence-gap-run <flash-run-request.json> [--movers <movers.json>]` with `FLASHLOAN_EVIDENCE_HOST_FILE` set to a `gap-host/1.0` file whose options share one owner-approved profile (`policy_ref.hash` = `sha256:` + digest of that profile). `--movers` takes hypermove `flashloan_get_token_movers` output (`flashloan.movers.v1`, bare or inside the public response). Output adds `candidates` counts, `coverage` and `ledgerPath`: a `candidate-ledger/1` where every requested token ends `EVALUATED` (a route containing it was actually quoted), `REJECTED`, `DEFERRED_BUDGET`, `INCOMPLETE_DATA` (e.g. `NOT_IN_CAPTURED_STATE`: capture its pools) or `UNSUPPORTED`. Price gaps only rank; overlapping or CLMM route subsets get bounded unequal-split refinement and never claim a global optimum. Live receipts reconcile only when the EVM adapter's `reconcileAccounts` is configured; `UNKNOWN` or `MISMATCH` halts the lane.
 
 Watch only included canonical swaps, then reacquire state and solve. Hypothetical entry bands rank observations; they are not proof or execution authority. Require exact costs, ledger conservation, native fidelity and pre-save integrity. Preserve incomplete searches and unavailable inputs. No principal floor, utilization target, fixed split weight or additional hop is mandatory.
 

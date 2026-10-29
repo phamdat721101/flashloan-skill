@@ -1,0 +1,13 @@
+{
+  "schema": "flashloan-versions/1",
+  "prompt": { "id": "skills/flashloan-agent/prompt-v6.md (source bd-team/prompt/flashloan-prompt-v6.md)", "sha256": "50400aae4be0f282fb7103bac3c8b23c18e3fbe00394a9b74e3fc43e18f5c1ee" },
+  "runtime": "5.2",
+  "schemas": { "flash-run-request": "1", "candidate-ledger": "1", "route-search-result": "1", "execution-evidence": "1", "evidence": "5.2" },
+  "mcp": {
+    "public_schema": "flashloan.public.v3",
+    "inventory": ["flashloan.inventory.v2", "flashloan.inventory.v3"],
+    "movers": ["flashloan.movers.v1", "flashloan.movers.v2"],
+    "envelope_version": 2,
+    "required_operations": ["flashloan_capabilities"]
+  }
+}

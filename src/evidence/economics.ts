@@ -79,3 +79,59 @@ export function verifyFundingMarket(option:import('./gap-runtime.js').FundingOpt
   if(option.asset.namespace==='eip155'&&!/^0x[0-9a-fA-F]{40}$/.test(option.lenderAddress))throw new Error('FUNDING_EVIDENCE_MISMATCH');
   fresh(option.evidence,nowNs,maxAgeNs);fresh(option.executorCapabilityRef,nowNs,maxAgeNs);
 }
+type ByAsset = Record<string,string>;
+interface V6Ref { kind:string; content_hash:string; captured_at:string; trace_id:string }
+export interface ReceiptV6 { tx_hash:string; block_hash:string; status:'success'|'revert'; finality:'latest'|'safe'|'finalized'; gas_used:string; effective_gas_price:string; l1_fee_raw:string|null }
+export interface ExecutionEvidence {
+  schema:'execution-evidence/1'; kind:'NATIVE_SIM'|'RECEIPT_RECONCILED'; fixture:boolean; chain_id:string; round_id:string; candidate_hash:string; policy_hash:string; block_hash:string;
+  executor:{address:string;runtime_hash:string;abi_hash:string}; accounts:Array<{role:'sender'|'executor'|'operator';address:string}>;
+  transaction:{sender:string;calldata_hash:string;nonce:string;tx_hash:string|null}; receipt:ReceiptV6|null;
+  balances:{opening_by_asset:ByAsset;closing_by_asset:ByAsset;prefund_by_asset:ByAsset}; repayment:{principal_raw:string;lender_fee_raw:string;proven:boolean};
+  costs:{gas_native_raw:string;l1_native_raw:string}; valuation_refs:V6Ref[]; reconciliation:'RECONCILED'|'UNKNOWN'|'MISMATCH';
+  net_by_asset:ByAsset; realized_net_raw:string|null; sim_drift_raw:string|null; reasons:string[]; native_result_ref:string|null;
+}
+const finalityRank={latest:0,safe:1,finalized:2} as const;
+/**
+ * Receipt reconciliation (v6 §5.3, review D2). Balance Δ is summed over the operator-controlled account set,
+ * so prefund moved inside the set cancels. RECONCILED requires Δ to equal the ledger rebuilt by `buildLedger`
+ * with actual swap proceeds and actual receipt gas, the rule integrity.ts enforces; gas is deducted once.
+ * Drift against the pre-send simulation is reported as sim_drift_raw and never halts by itself.
+ */
+export function reconcileReceipt(input:{
+  header:Omit<ExecutionEvidence,'schema'|'kind'|'fixture'|'balances'|'repayment'|'costs'|'valuation_refs'|'reconciliation'|'net_by_asset'|'realized_net_raw'|'sim_drift_raw'|'reasons'>;
+  fixture:boolean; borrowAssetKey:string; simulated:Ledger; actualSwapProceedsRaw:string|null; repaymentProven:boolean;
+  opening:Record<string,ByAsset>; closing:Record<string,ByAsset>; prefundByAsset:ByAsset;
+  /** Borrow-asset raw units per one raw unit of the keyed asset ('native' included). */
+  valuations:Record<string,{price:Ratio;ref:V6Ref}>; minFinality:ReceiptV6['finality'];
+}):ExecutionEvidence {
+  const {receipt}=input.header;
+  if(input.fixture||!receipt||input.header.transaction.tx_hash!==receipt.tx_hash)throw new Error('RECEIPT_EVIDENCE_INVALID');
+  const sum=(side:Record<string,ByAsset>)=>{const out:Record<string,bigint>={};for(const a of input.header.accounts)for(const [k,v] of Object.entries(side[a.address]??{}))out[k]=(out[k]??0n)+uint(v);return out;};
+  const open=sum(input.opening),close=sum(input.closing),keys=[...new Set([...Object.keys(open),...Object.keys(close)])].sort();
+  const delta:Record<string,bigint>=Object.fromEntries(keys.map(k=>[k,(close[k]??0n)-(open[k]??0n)]));
+  const gasNative=uint(receipt.gas_used)*uint(receipt.effective_gas_price),l1=receipt.l1_fee_raw===null?0n:uint(receipt.l1_fee_raw),totalGas=gasNative+l1;
+  const reasons:string[]=[];
+  const value=(key:string,amount:bigint):bigint|null=>{if(key===input.borrowAssetKey)return amount;const v=input.valuations[key];if(!v)return null;
+    const n=amount*BigInt(v.price.numerator),d=BigInt(v.price.denominator);return n>=0n?n/d:-((-n+d-1n)/d);}; // costs round against the operator
+  const gasInBorrow=value('native',-totalGas);
+  if(finalityRank[receipt.finality]<finalityRank[input.minFinality])reasons.push('RECEIPT_NOT_FINAL');
+  if(receipt.status==='success'&&(!input.repaymentProven||input.actualSwapProceedsRaw===null))reasons.push('REPAYMENT_NOT_PROVEN');
+  if(gasInBorrow===null)reasons.push('NATIVE_VALUATION_MISSING');
+  for(const k of keys)if(delta[k]!==0n&&k!=='native'&&k!==input.borrowAssetKey&&!input.valuations[k])reasons.push('ASSET_VALUATION_MISSING');
+  let reconciliation:ExecutionEvidence['reconciliation']=reasons.length?'UNKNOWN':'RECONCILED',realized:bigint|null=null,drift:bigint|null=null;
+  if(!reasons.length){
+    const s=input.simulated,proceeds=receipt.status==='revert'?null:uint(input.actualSwapProceedsRaw!);
+    const rebuilt=proceeds===null?null:buildLedger({runId:s.runId,schemaVersion:s.schemaVersion,asset:s.asset,principalRaw:s.principalRaw,deployedRaw:s.deployedRaw,unusedPrincipalRaw:s.unusedPrincipalRaw,swapProceedsRaw:proceeds.toString(),flashFeeRaw:s.flashFeeRaw,networkCostRaw:(-gasInBorrow!).toString(),otherExternalCostsRaw:s.otherExternalCostsRaw,operatorPrefundRaw:s.operatorPrefundRaw,executorOpeningBalanceRaw:s.executorOpeningBalanceRaw,evidence:s.evidence});
+    const expectedBorrow=rebuilt?BigInt(rebuilt.surplusAfterDebtRaw):0n,borrowDelta=delta[input.borrowAssetKey]??0n,nativeDelta=delta.native??0n;
+    if(borrowDelta!==expectedBorrow||nativeDelta!==-totalGas){reconciliation='MISMATCH';reasons.push('BALANCE_DELTA_MISMATCH');}
+    else{
+      realized=keys.reduce((n,k)=>n+value(k,delta[k])!,0n)-BigInt(s.otherExternalCostsRaw);
+      drift=realized-BigInt(s.simulatedNetRaw);
+    }
+  }
+  return validateRecord<ExecutionEvidence>('ExecutionEvidence',{schema:'execution-evidence/1',kind:'RECEIPT_RECONCILED',fixture:false,...input.header,
+    balances:{opening_by_asset:Object.fromEntries(Object.entries(open).map(([k,v])=>[k,v.toString()])),closing_by_asset:Object.fromEntries(Object.entries(close).map(([k,v])=>[k,v.toString()])),prefund_by_asset:input.prefundByAsset},
+    repayment:{principal_raw:input.simulated.principalRaw,lender_fee_raw:input.simulated.flashFeeRaw,proven:input.repaymentProven},
+    costs:{gas_native_raw:gasNative.toString(),l1_native_raw:l1.toString()},valuation_refs:Object.values(input.valuations).map(v=>v.ref),
+    reconciliation,net_by_asset:Object.fromEntries(keys.map(k=>[k,delta[k].toString()])),realized_net_raw:realized===null?null:realized.toString(),sim_drift_raw:drift===null?null:drift.toString(),reasons:[...new Set(reasons)]},'v6');
+}

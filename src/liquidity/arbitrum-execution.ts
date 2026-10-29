@@ -4,6 +4,7 @@ import { estimateEvmFees, nativeCostInAsset, receiptNativeCost, type GasValuatio
 import { DYNAMIC_V4_EXECUTOR_DEPLOYMENT, MULTI_VENUE_EXECUTOR_DEPLOYMENT } from '../contracts/flash-executor.js';
 import { MULTI_LENDER_ROUTE_ABI } from './arbitrum.js';
 import { digest, uint } from './state.js';
+import { buildLedger, reconcileReceipt, type ExecutionEvidence } from '../evidence/economics.js';
 import type { Admission, LiquidityExecutionAdapter, RouteCandidate, SimulationProof } from './runtime.js';
 
 const executorAbi = parseAbi([
@@ -15,6 +16,8 @@ export interface ArbitrumExecutionConfig {
   codePins: Record<string, Hex>; admission: Admission; confirmations: number; valuation?: GasValuation;
   /** Executor calldata/event codec; omitted means the multi-venue executor (unchanged behavior). */
   codec?: RouteCodec; priorityFeePerGas?: bigint;
+  /** v6 all-asset receipt reconciliation over sender + executor (+ extra operator accounts). Omitted: unchanged behavior. */
+  reconcileAccounts?: { extraAccounts?: Address[]; minFinality?: 'latest' | 'safe' | 'finalized' };
 }
 /** The executor-independent view of a flash route that the adapter's guards need. */
 export interface ExecutionRoute {
@@ -228,7 +231,32 @@ export class EvmLiquidityExecutionAdapter implements LiquidityExecutionAdapter {
       const { calldata, route } = this.route(signed.candidate);
       ({ proven, profit } = this.codec.prove(receipt.logs, this.config.executor, calldata, route));
     }
-    return { transactionId, source: `${this.profile.key}:${this.chainId}:${receipt.blockHash}`, executionStatus: receipt.status === 'success' ? 'success' as const : 'revert' as const, repaymentProven: proven, profitTransferProven: false, profitCustodyProven: proven, gasCostInProfitAsset: gas.toString(), profitAfterDebt: profit.toString() };
+    const executionEvidence = this.config.reconcileAccounts ? await this.reconcile(signed, receipt, nativeCost, proven, profit, receiptRoute.flashAsset, receiptRoute.flashAmount) : undefined;
+    return { transactionId, source: `${this.profile.key}:${this.chainId}:${receipt.blockHash}`, executionStatus: receipt.status === 'success' ? 'success' as const : 'revert' as const, repaymentProven: proven, profitTransferProven: false, profitCustodyProven: proven, gasCostInProfitAsset: gas.toString(), profitAfterDebt: profit.toString(), ...(executionEvidence ? { executionEvidence } : {}) };
+  }
+  /** Reads every controlled account's native and flash-asset balance at the parent and receipt blocks, then reconciles. */
+  private async reconcile(signed: { candidate: RouteCandidate; calldata: Hex }, receipt: { transactionHash: Hex; blockHash: Hex; blockNumber: bigint; status: string; gasUsed: bigint; effectiveGasPrice: bigint }, nativeCost: bigint, proven: boolean, profit: bigint, flashAsset: Address, principal: bigint): Promise<ExecutionEvidence> {
+    const options = this.config.reconcileAccounts!, chain = `eip155:${this.chainId}`, asset = flashAsset.toLowerCase(), assetKey = `${chain}/erc20:${asset}`;
+    const accounts = [{ role: 'sender' as const, address: this.account.address.toLowerCase() }, { role: 'executor' as const, address: this.config.executor.toLowerCase() }, ...(options.extraAccounts ?? []).map(a => ({ role: 'operator' as const, address: a.toLowerCase() }))];
+    const erc20 = parseAbi(['function balanceOf(address) view returns(uint256)', 'function decimals() view returns(uint8)']);
+    const read = async (blockNumber: bigint) => Object.fromEntries(await Promise.all(accounts.map(async a => [a.address, {
+      native: (await this.client.getBalance({ address: a.address as Address, blockNumber })).toString(),
+      [assetKey]: (await this.client.readContract({ address: flashAsset, abi: erc20, functionName: 'balanceOf', args: [a.address as Address], blockNumber })).toString() }])));
+    const [opening, closing, transaction, decimals, unitPrice] = await Promise.all([read(receipt.blockNumber - 1n), read(receipt.blockNumber), this.client.getTransaction({ hash: receipt.transactionHash }),
+      this.client.readContract({ address: flashAsset, abi: erc20, functionName: 'decimals', blockNumber: receipt.blockNumber }), this.assetCost(10n ** 18n, receipt.blockNumber, flashAsset)]);
+    const execution = receipt.gasUsed * receipt.effectiveGasPrice, l1 = nativeCost > execution ? nativeCost - execution : 0n, c = signed.candidate;
+    const ledgerAsset = { namespace: 'eip155' as const, networkId: String(this.chainId), assetId: asset, decimals: Number(decimals) };
+    // Pre-send expectation: the executor's enforced minimum profit and the approved gas budget (both conservative).
+    const simulated = buildLedger({ runId: `attempt-${digest(c).slice(0, 16)}`, schemaVersion: '5.2', asset: ledgerAsset, principalRaw: principal.toString(), deployedRaw: principal.toString(), unusedPrincipalRaw: '0', swapProceedsRaw: (principal + uint(c.minProfit)).toString(), flashFeeRaw: '0', networkCostRaw: c.maxGasCost, otherExternalCostsRaw: '0', operatorPrefundRaw: '0', executorOpeningBalanceRaw: '0', evidence: [] });
+    const now = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'), ref = { kind: 'gas-valuation', content_hash: `sha256:${digest({ unitPrice: unitPrice.toString(), block: receipt.blockNumber.toString() })}`, captured_at: now, trace_id: receipt.transactionHash };
+    return reconcileReceipt({
+      header: { chain_id: chain, round_id: simulated.runId, candidate_hash: `sha256:${digest(c)}`, policy_hash: `sha256:${digest({ minProfit: c.minProfit, maxGasCost: c.maxGasCost })}`, block_hash: receipt.blockHash.toLowerCase(),
+        executor: { address: this.config.executor.toLowerCase(), runtime_hash: this.config.executorCodeHash.toLowerCase(), abi_hash: `sha256:${digest(signed.calldata.slice(0, 10))}` }, accounts,
+        transaction: { sender: this.account.address.toLowerCase(), calldata_hash: keccak256(signed.calldata), nonce: String(transaction.nonce), tx_hash: receipt.transactionHash.toLowerCase() },
+        receipt: { tx_hash: receipt.transactionHash.toLowerCase(), block_hash: receipt.blockHash.toLowerCase(), status: receipt.status === 'success' ? 'success' : 'revert', finality: this.config.confirmations >= 2 ? 'safe' : 'latest', gas_used: receipt.gasUsed.toString(), effective_gas_price: receipt.effectiveGasPrice.toString(), l1_fee_raw: l1 ? l1.toString() : null },
+        native_result_ref: null },
+      fixture: false, borrowAssetKey: assetKey, simulated, actualSwapProceedsRaw: receipt.status === 'success' ? (principal + profit).toString() : null, repaymentProven: proven,
+      opening, closing, prefundByAsset: {}, valuations: { native: { price: { numerator: unitPrice.toString(), denominator: (10n ** 18n).toString() }, ref } }, minFinality: options.minFinality ?? 'latest' });
   }
 }
 

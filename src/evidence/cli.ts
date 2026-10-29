@@ -1,3 +1,4 @@
+import {digest} from '../liquidity/state.js';
 import {readFile,readdir,lstat} from 'node:fs/promises';
 import {resolve,dirname,basename,join} from 'node:path';
 import {ArtifactStore,inspectRound,loadRawArtifact,readBoundedEvidenceFile,type ArtifactInput,type IntegrityContext} from './integrity.js';
@@ -8,14 +9,26 @@ export async function readEvidenceJson(path:string):Promise<unknown>{const bytes
 export async function runEvidenceCli(command:string,args:string[]):Promise<void>{
   const [path,...rest]=args;if(!path)throw new Error('EVIDENCE_INPUT_REQUIRED');
   if(command==='evidence-gap-run'){
-    if(rest.length)throw new Error('UNKNOWN_EVIDENCE_ARGUMENT');
+    const request=await readEvidenceJson(path),v6=(request as {schema?:unknown})?.schema==='flash-run-request/1';
+    if(rest.length&&!(v6&&rest.length===2&&rest[0]==='--movers'))throw new Error('UNKNOWN_EVIDENCE_ARGUMENT');
     const {runGapEvidence}=await import('./gap-runtime.js');
     const configured=process.env.FLASHLOAN_EVIDENCE_HOST_FILE;if(!configured)throw new Error('HANDOFF_REQUIRED');
     const c=await readEvidenceJson(configured) as {schemaVersion:string;kind:string;inventory:unknown[];options:Array<{option:import('./gap-runtime.js').FundingOption;market:CapturedMarket;profile:ApprovedProfile}>};
     if(c.schemaVersion!=='gap-host/1.0'||c.kind!=='funding-snapshot-file'||Object.keys(c).some(k=>!['schemaVersion','kind','inventory','options'].includes(k))||!Array.isArray(c.options)||c.options.length>256||!Array.isArray(c.inventory))throw new Error('UNSUPPORTED_HOST_CONFIG');
     const host:import('./gap-runtime.js').GapHost={funding:async()=>c.options.map(o=>o.option),captureFunding:async(_r,o)=>{const found=c.options.find(v=>v.option.optionId===o.optionId);if(!found)throw new Error('FUNDING_OPTION_MISSING');return structuredClone({market:found.market,profile:found.profile});},inventory:async()=>structuredClone(c.inventory),capture:async()=>{throw new Error('FUNDING_OPTION_REQUIRED');},profile:async()=>{throw new Error('FUNDING_OPTION_REQUIRED');}};
-    const request=await readEvidenceJson(path),controller=new AbortController(),stop=()=>controller.abort();process.once('SIGINT',stop);process.once('SIGTERM',stop);
-    try{const result=await runGapEvidence(request,{host,store:new ArtifactStore(process.env.FLASHLOAN_EVIDENCE_ROOT??'.nim/evidence'),signal:controller.signal,maxDurationMs:60000});console.log(JSON.stringify({...result,rounds:result.rounds.map(r=>({runId:r.context.runId,integrity:r.integrity.verdict}))}));}
+    const controller=new AbortController(),stop=()=>controller.abort();process.once('SIGINT',stop);process.once('SIGTERM',stop);
+    const root=process.env.FLASHLOAN_EVIDENCE_ROOT??'.nim/evidence';
+    if(v6){try{
+      // v6: one approved profile for every option, version map + prompt hash checked before any capture.
+      const {runFlashRound}=await import('./gap-runtime.js'),{createHash}=await import('node:crypto'),{writeFile,mkdir}=await import('node:fs/promises');
+      const first=c.options[0];if(!first||c.options.some(o=>digest(o.profile)!==digest(first.profile)))throw new Error('UNSUPPORTED_HOST_CONFIG');
+      const prompt=await readFile('skills/flashloan-agent/prompt-v6.md'),movers=rest[1]?await readEvidenceJson(rest[1]):undefined;
+      const round=await runFlashRound(request,{host,store:new ArtifactStore(root),signal:controller.signal,maxDurationMs:60000,fundingOptions:c.options.map(o=>o.option),profile:first.profile,
+        refs:{valuation:first.market.valuation.ref,networkCost:first.market.networkCost.evidence},versions:await readEvidenceJson('config/flashloan-versions.json'),promptSha256:createHash('sha256').update(prompt).digest('hex'),movers});
+      const ledgerPath=join(root,`${encodeURIComponent(round.ledger.round_id)}.candidate-ledger.json`);await mkdir(root,{recursive:true});await writeFile(ledgerPath,JSON.stringify(round.ledger,null,2));
+      console.log(JSON.stringify({...round.gap,rounds:round.gap.rounds.map(r=>({runId:r.context.runId,integrity:r.integrity.verdict})),candidates:round.ledger.counts,coverage:round.ledger.source_state.coverage,ledgerPath}));
+    }finally{process.removeListener('SIGINT',stop);process.removeListener('SIGTERM',stop);}return;}
+    try{const result=await runGapEvidence(request,{host,store:new ArtifactStore(root),signal:controller.signal,maxDurationMs:60000});console.log(JSON.stringify({...result,rounds:result.rounds.map(r=>({runId:r.context.runId,integrity:r.integrity.verdict}))}));}
     finally{process.removeListener('SIGINT',stop);process.removeListener('SIGTERM',stop);}return;
   }
   if(command==='evidence-run'){

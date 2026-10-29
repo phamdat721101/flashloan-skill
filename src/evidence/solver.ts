@@ -1,4 +1,4 @@
-import {serialCpmmCurve,stationaryInput,allocateCpmm} from '../liquidity/price-gap.js';
+import {serialCpmmCurve,stationaryInput,allocateCpmm,searchAllocation} from '../liquidity/price-gap.js';
 import {digest,uint} from '../liquidity/state.js';
 import {parsePoolState,projectPool,type PoolStateEnvelope,type ProjectionResult} from '../liquidity/projection.js';
 import {verifyPlan} from './economics.js';
@@ -16,7 +16,9 @@ function routesFor(pools:PoolStateEnvelope[],borrow:string,hops:number,limit:num
     }
   };visit(borrow,[],new Set([borrow]));return {routes,complete};
 }
-export interface ExactPoolSolve {plan:Plan|null;search:Search;status:'CANDIDATE_FOUND'|'CERTIFIED_NO_OPPORTUNITY'|'INCONCLUSIVE';quotes:ProjectionResult[]}
+/** Per-route evaluation facts (v6 review D4). `evaluated` counts only schedules that passed dedupe and budget guards. */
+export interface RouteStat {routeId:string;poolPath:string[];tokenIds:string[];evaluated:number;rejectedByCode:Record<string,number>}
+export interface ExactPoolSolve {plan:Plan|null;search:Search;status:'CANDIDATE_FOUND'|'CERTIFIED_NO_OPPORTUNITY'|'INCONCLUSIVE';quotes:ProjectionResult[];routeStats:RouteStat[]}
 /** Bounded closed-cycle and two-branch allocation search, with one ordered state for shared pools. */
 export function solvePoolGraph(request:RunRequest,policy:Policy,market:CapturedMarket,stateDigest:string,domainRef:EvidenceRef,solveBudget?:number,solveDeadlineMs?:number):ExactPoolSolve {
   if(market.networkCost.amountRaw.value===null||market.networkCost.basis==='research-assumption'||market.networkCost.includedInSwapOutput||!sameAsset(market.networkCost.asset,policy.borrowAsset))throw new Error('MISSING_COST_EVIDENCE');
@@ -34,11 +36,16 @@ export function solvePoolGraph(request:RunRequest,policy:Policy,market:CapturedM
   const count=(maximum-minimum)/quantum+1n,amountLimit=Math.min(maxAttempts,count>BigInt(maxAttempts)?maxAttempts:Number(count));
   const attempts:Array<{amount:string;routes:string[][];net:string|null}>=[],rejections:Record<string,number>={},unique=new Set<string>();
   let best:{amount:bigint;outputs:bigint;fee:bigint;net:bigint;allocations:Array<{route:typeof graph.routes[number];amount:bigint}>;quotes:ProjectionResult[]}|undefined;
-  let attempted=0,accepted=0;const schedules=new Set<string>();
-  const evaluate=(amount:bigint,allocations:Array<{route:typeof graph.routes[number];amount:bigint}>)=>{
-    if(attempted>=maxAttempts||performance.now()>=deadline)return;
-    if(request.schemaVersion==='5.2'){const key=digest({amount:amount.toString(),allocations:allocations.map(b=>({route:b.route,amount:b.amount.toString()}))});if(schedules.has(key))return;schedules.add(key);}
+  let attempted=0,accepted=0;const schedules=new Map<string,bigint|null>();
+  const routeIndex=new Map(graph.routes.map((r,i)=>[r,i]));
+  const routeStats:RouteStat[]=graph.routes.map(r=>({routeId:digest(r.map(l=>l.poolId)),poolPath:r.map(l=>l.poolId),tokenIds:[...r.map(l=>l.tokenIn),borrow],evaluated:0,rejectedByCode:{}}));
+  /** Returns net (null on reject, budget or deadline); a repeated 5.2 schedule returns its cached net without counting. */
+  const evaluate=(amount:bigint,allocations:Array<{route:typeof graph.routes[number];amount:bigint}>):bigint|null=>{
+    if(attempted>=maxAttempts||performance.now()>=deadline)return null;
+    let key:string|undefined;
+    if(request.schemaVersion==='5.2'){key=digest({amount:amount.toString(),allocations:allocations.map(b=>({route:b.route,amount:b.amount.toString()}))});if(schedules.has(key))return schedules.get(key)!;schedules.set(key,null);}
     attempted++;unique.add(amount.toString());
+    for(const b of allocations)routeStats[routeIndex.get(b.route)!].evaluated++;
     const mutated=new Map([...byId].map(([id,p])=>[id,structuredClone(p)]));let outputs=0n;const quotes:ProjectionResult[]=[];
     try{
       if(allocations.reduce((n,b)=>n+b.route.length,0)>policy.maxTotalSwaps||allocations.some(b=>b.amount<uint(policy.minimumBranchRaw)||b.amount*10000n<amount*BigInt(policy.minBranchWeightBps)))throw new Error('BRANCH_POLICY_REJECTED');
@@ -52,7 +59,9 @@ export function solvePoolGraph(request:RunRequest,policy:Policy,market:CapturedM
       const fee=(amount*uint(market.lender.feeNumerator)+uint(market.lender.feeDenominator)-1n)/uint(market.lender.feeDenominator),net=outputs-amount-fee-uint(market.networkCost.amountRaw.value!);
       accepted++;attempts.push({amount:amount.toString(),routes:allocations.map(b=>b.route.map(l=>l.poolId)),net:net.toString()});
       if(net>uint(policy.minProfitRaw)&&(!best||net>best.net||net===best.net&&amount<best.amount))best={amount,outputs,fee,net,allocations,quotes};
-    }catch(e){const code=e instanceof Error&&/^[A-Z_]+$/.test(e.message)?e.message:'QUOTE_REJECTED';rejections[code]=(rejections[code]??0)+1;attempts.push({amount:amount.toString(),routes:allocations.map(b=>b.route.map(l=>l.poolId)),net:null});}
+      if(key)schedules.set(key,net);return net;
+    }catch(e){const code=e instanceof Error&&/^[A-Z_]+$/.test(e.message)?e.message:'QUOTE_REJECTED';rejections[code]=(rejections[code]??0)+1;attempts.push({amount:amount.toString(),routes:allocations.map(b=>b.route.map(l=>l.poolId)),net:null});
+      for(const b of allocations){const r=routeStats[routeIndex.get(b.route)!].rejectedByCode;r[code]=(r[code]??0)+1;}return null;}
   };
   if(request.schemaVersion==='5.2') {
     // Fair per-route seeding: marginal CPMM roots or quote-driven CLMM bracketing.
@@ -98,13 +107,24 @@ export function solvePoolGraph(request:RunRequest,policy:Policy,market:CapturedM
     };visit(0,[]);
     const totals=new Set<bigint>([minimum,maximum,...(best?[best.amount]:[])]);
     for(const subset of subsets){if(performance.now()>=deadline)break;const selected=subset.map(i=>curves[i]);if(selected.every(c=>c!==null)){const sum=selected.reduce((q,c)=>q+stationaryInput(c!,uint(market.lender.feeNumerator),uint(market.lender.feeDenominator)),0n);totals.add((sum<minimum?minimum:sum>maximum?maximum:sum)/quantum*quantum);}}
-    for(const total of totals)for(const subset of subsets){if(attempted>=maxAttempts||performance.now()>=deadline)break;
+    // v6 two-stage budget (review D5): when any subset needs refinement (shared pools or a non-CPMM leg),
+    // the coarse equal-split pass may use at most 40% of the remaining budget; the rest refines the top 3.
+    const disjointOf=(subset:number[])=>new Set(subset.flatMap(i=>graph.routes[i].map(l=>l.poolId))).size===subset.reduce((n,i)=>n+graph.routes[i].length,0);
+    const refinable=subsets.filter(subset=>!(disjointOf(subset)&&subset.every(i=>curves[i]!==null)));
+    const coarseLimit=refinable.length?attempted+Math.floor((maxAttempts-attempted)*2/5):maxAttempts;
+    const incumbents:Array<{subset:number[];total:bigint;net:bigint}>=[];
+    for(const total of totals)for(const subset of subsets){if(attempted>=coarseLimit||performance.now()>=deadline)break;
       if(total<quantum*BigInt(subset.length))continue;
-      const disjoint=new Set(subset.flatMap(i=>graph.routes[i].map(l=>l.poolId))).size===subset.reduce((n,i)=>n+graph.routes[i].length,0);
       const cs=subset.map(i=>curves[i]);let allocation:bigint[];
-      if(disjoint&&cs.every(c=>c!==null))allocation=allocateCpmm(cs.map(c=>c!),total,quantum,deadline);
+      if(disjointOf(subset)&&cs.every(c=>c!==null))allocation=allocateCpmm(cs.map(c=>c!),total,quantum,deadline);
       else {allocation=subset.map(()=>total/BigInt(subset.length)/quantum*quantum);allocation[0]+=total-allocation.reduce((a,b)=>a+b,0n);}
-      evaluate(total,subset.map((i,j)=>({route:graph.routes[i],amount:allocation[j]})).filter(b=>b.amount>0n));
+      const net=evaluate(total,subset.map((i,j)=>({route:graph.routes[i],amount:allocation[j]})).filter(b=>b.amount>0n));
+      if(net!==null&&refinable.includes(subset))incumbents.push({subset,total,net});
+    }
+    incumbents.sort((a,b)=>a.net===b.net?0:a.net>b.net?-1:1);
+    for(const {subset,total} of incumbents.slice(0,3)){if(attempted>=maxAttempts||performance.now()>=deadline)break;
+      searchAllocation({k:subset.length,total,quantum,overlap:!disjointOf(subset),deadline,remaining:()=>maxAttempts-attempted,
+        evaluate:(order,amounts)=>evaluate(total,order.filter(j=>amounts[j]>0n).map(j=>({route:graph.routes[subset[j]],amount:amounts[j]})))});
     }
   }
   for(let i=0;i<amountLimit;i++){
@@ -120,8 +140,8 @@ export function solvePoolGraph(request:RunRequest,policy:Policy,market:CapturedM
   const complete=graph.complete&&graph.routes.length>0&&policy.maxBranches===1&&count*BigInt(graph.routes.length)===BigInt(attempted)&&rejected===0;
   const domain:Search={attempted,accepted,rejected,uniqueAmounts:unique.size,retries:0,maxAttempts:maxAttempts,elapsedMs:Math.floor(performance.now()-start),deadlineMs:policy.deadlineMs,domainMinimumRaw:minimum.toString(),domainMaximumRaw:maximum.toString(),quantumRaw:quantum.toString(),evaluatedDomainHash:digest(attempts),coverageComplete:complete,termination:complete?'domain-certified':performance.now()>=deadline?'time-budget':'attempt-budget',optimality:complete?'domain-certified':'best-found',rejections:Object.entries(rejections).map(([code,count])=>({code,count})),inflight:0,domainEvidenceRef:domainRef,certificateRef:null,gridPointCount:null};
   validateRecord('Search',domain);
-  if(!best)return {plan:null,search:domain,status:complete?'CERTIFIED_NO_OPPORTUNITY':'INCONCLUSIVE',quotes:[]};
+  if(!best)return {plan:null,search:domain,status:complete?'CERTIFIED_NO_OPPORTUNITY':'INCONCLUSIVE',quotes:[],routeStats};
   const asset=(id:string):Asset=>{const p=pools.find(p=>p.token0===id||p.token1===id)!;return {namespace:market.identity.namespace,networkId:market.identity.networkId,assetId:id,decimals:p.token0===id?p.decimals0:p.decimals1};};
   const plan:Plan={schemaVersion:request.schemaVersion,recordType:'route-plan',runId:request.runId,planHash:'0'.repeat(64),stateDigest,policyHash:policy.policyHash,borrowAsset:policy.borrowAsset,principalRaw:best.amount.toString(),unusedPrincipalRaw:'0',branches:best.allocations.map((b,index)=>({branchId:`branch-${index}`,allocatedRaw:b.amount.toString(),weightBps:Number(b.amount*10000n/best!.amount),tokenPath:[asset(b.route[0].tokenIn),...b.route.map(l=>{const p=byId.get(l.poolId)!;return asset(l.tokenIn===p.token0?p.token1:p.token0);})],poolPath:b.route.map(l=>l.poolId),hopCount:b.route.length,stateMutationOrder:b.route.map(l=>l.poolId)})),outputAfterEmbeddedFeesRaw:best.outputs.toString(),flashFeeRaw:best.fee.toString(),costs:[market.networkCost],netProfitRaw:{value:best.net.toString(),reason:null},search:domain,evidence:[domainRef,market.lender.evidence,...(request.fundingOptionRef?[request.fundingOptionRef]:[])],executionContextHash:digest({namespace:market.identity.namespace,network:market.identity.networkId,caller:request.caller,executor:request.executor,executorMode:request.executorMode,nativeValue:'0',...(request.schemaVersion==='5.2'&&request.fundingOptionRef?{fundingOptionHash:request.fundingOptionRef.contentHash}:{})}),unsignedPayloadRef:null};
-  plan.planHash=recordHash(plan,'planHash');verifyPlan(plan,policy);return {plan,search:domain,status:'CANDIDATE_FOUND',quotes:best.quotes};
+  plan.planHash=recordHash(plan,'planHash');verifyPlan(plan,policy);return {plan,search:domain,status:'CANDIDATE_FOUND',quotes:best.quotes,routeStats};
 }

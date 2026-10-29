@@ -1,0 +1,321 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:flashloan:contracts:v6",
+  "title": "Flashloan engine v6 contracts",
+  "$defs": {
+    "Uint": { "type": "string", "pattern": "^(0|[1-9][0-9]{0,77})$" },
+    "Int": { "type": "string", "pattern": "^(0|-?[1-9][0-9]{0,77})$" },
+    "Hash": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "Hex32": { "type": "string", "pattern": "^0x[0-9a-f]{64}$" },
+    "Address": { "type": "string", "pattern": "^0x[0-9a-f]{40}$" },
+    "ChainId": { "type": "string", "pattern": "^eip155:[1-9][0-9]{0,18}$" },
+    "AssetId": { "type": "string", "pattern": "^eip155:[1-9][0-9]{0,18}/erc20:0x[0-9a-f]{40}$" },
+    "Ts": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9:.]+Z$" },
+    "Id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9._:-]+$" },
+    "Code": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]{1,63}$" },
+    "EvidenceRef": {
+      "type": "object", "additionalProperties": false,
+      "required": ["kind", "content_hash", "captured_at", "trace_id"],
+      "properties": {
+        "kind": { "$ref": "#/$defs/Id" },
+        "content_hash": { "$ref": "#/$defs/Hash" },
+        "captured_at": { "$ref": "#/$defs/Ts" },
+        "trace_id": { "$ref": "#/$defs/Id" }
+      }
+    },
+    "Counts": {
+      "type": "object", "additionalProperties": { "type": "integer", "minimum": 0 },
+      "propertyNames": { "$ref": "#/$defs/Code" }
+    },
+    "FlashRunRequest": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema", "round_id", "network", "mode", "selection", "policy_ref", "limits", "snapshot_ref", "execution_authorization_ref"],
+      "properties": {
+        "schema": { "const": "flash-run-request/1" },
+        "round_id": { "$ref": "#/$defs/Id" },
+        "network": { "$ref": "#/$defs/ChainId" },
+        "mode": { "enum": ["research", "simulate", "execute"] },
+        "selection": {
+          "type": "object", "additionalProperties": false,
+          "required": ["movers", "explicit_assets", "anchor_assets", "min_reported_liquidity_usd", "max_candidates"],
+          "properties": {
+            "movers": { "type": "boolean" },
+            "explicit_assets": { "type": "array", "maxItems": 30, "uniqueItems": true, "items": { "$ref": "#/$defs/AssetId" } },
+            "anchor_assets": {
+              "type": "array", "minItems": 1, "maxItems": 4,
+              "items": {
+                "type": "object", "additionalProperties": false, "required": ["asset_id", "role"],
+                "properties": { "asset_id": { "$ref": "#/$defs/AssetId" }, "role": { "enum": ["funding", "settlement"] } }
+              }
+            },
+            "min_reported_liquidity_usd": { "$ref": "#/$defs/Uint" },
+            "max_candidates": { "type": "integer", "minimum": 1, "maximum": 30 }
+          }
+        },
+        "policy_ref": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object", "additionalProperties": false, "required": ["id", "version", "hash"],
+              "properties": { "id": { "$ref": "#/$defs/Id" }, "version": { "$ref": "#/$defs/Id" }, "hash": { "$ref": "#/$defs/Hash" } }
+            }
+          ]
+        },
+        "limits": {
+          "type": "object", "additionalProperties": false, "required": ["max_rpc_calls", "max_evaluations", "deadline_ms"],
+          "properties": {
+            "max_rpc_calls": { "type": "integer", "minimum": 1, "maximum": 10000 },
+            "max_evaluations": { "type": "integer", "minimum": 1, "maximum": 100000 },
+            "deadline_ms": { "type": "integer", "minimum": 1, "maximum": 3600000 }
+          }
+        },
+        "snapshot_ref": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/Hash" }] },
+        "execution_authorization_ref": { "type": "null" }
+      }
+    },
+    "CandidateItem": {
+      "type": "object", "additionalProperties": false,
+      "required": ["asset_id", "role", "sources", "first_seen", "reported_metrics", "outcome", "stage", "reason_code", "next_dependency", "route_ids", "evidence_refs"],
+      "properties": {
+        "asset_id": { "$ref": "#/$defs/AssetId" },
+        "role": { "enum": ["target", "funding", "settlement"] },
+        "sources": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "enum": ["movers", "explicit", "anchor"] } },
+        "first_seen": { "$ref": "#/$defs/Ts" },
+        "reported_metrics": {
+          "type": "object", "additionalProperties": false,
+          "properties": {
+            "change_24h_pct": { "type": "string", "pattern": "^-?[0-9]{1,9}(\\.[0-9]{1,9})?$" },
+            "liquidity_usd": { "type": "string", "pattern": "^[0-9]{1,18}(\\.[0-9]{1,9})?$" }
+          }
+        },
+        "outcome": { "enum": ["EVALUATED", "REJECTED", "DEFERRED_BUDGET", "INCOMPLETE_DATA", "UNSUPPORTED"] },
+        "stage": { "enum": ["discovery", "identity", "inventory", "snapshot", "route_build", "quote", "solve"] },
+        "reason_code": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/Code" }] },
+        "next_dependency": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/Id" }] },
+        "route_ids": { "type": "array", "maxItems": 64, "uniqueItems": true, "items": { "$ref": "#/$defs/Id" } },
+        "evidence_refs": { "type": "array", "maxItems": 32, "items": { "$ref": "#/$defs/EvidenceRef" } }
+      }
+    },
+    "CandidateLedger": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema", "round_id", "chain_id", "source_state", "items", "counts"],
+      "properties": {
+        "schema": { "const": "candidate-ledger/1" },
+        "round_id": { "$ref": "#/$defs/Id" },
+        "chain_id": { "$ref": "#/$defs/ChainId" },
+        "source_state": {
+          "type": "object", "additionalProperties": false, "required": ["as_of", "coverage", "providers", "source_refs"],
+          "properties": {
+            "as_of": { "$ref": "#/$defs/Ts" },
+            "coverage": { "enum": ["FULL", "BOUNDED", "EMPTY_PROVIDER"] },
+            "providers": { "type": "array", "maxItems": 8, "items": { "$ref": "#/$defs/Id" } },
+            "source_refs": { "type": "array", "maxItems": 32, "items": { "$ref": "#/$defs/EvidenceRef" } }
+          }
+        },
+        "items": { "type": "array", "maxItems": 64, "items": { "$ref": "#/$defs/CandidateItem" } },
+        "counts": {
+          "type": "object", "additionalProperties": false,
+          "required": ["requested", "evaluated", "rejected", "deferred", "incomplete", "unsupported"],
+          "properties": {
+            "requested": { "type": "integer", "minimum": 0 }, "evaluated": { "type": "integer", "minimum": 0 },
+            "rejected": { "type": "integer", "minimum": 0 }, "deferred": { "type": "integer", "minimum": 0 },
+            "incomplete": { "type": "integer", "minimum": 0 }, "unsupported": { "type": "integer", "minimum": 0 }
+          }
+        }
+      }
+    },
+    "Hop": {
+      "type": "object", "additionalProperties": false, "required": ["pool", "adapter", "asset_in", "asset_out", "fee_pips"],
+      "properties": {
+        "pool": { "$ref": "#/$defs/Id" }, "adapter": { "$ref": "#/$defs/Id" },
+        "asset_in": { "$ref": "#/$defs/AssetId" }, "asset_out": { "$ref": "#/$defs/AssetId" },
+        "fee_pips": { "type": "integer", "minimum": 0, "maximum": 1000000 }
+      }
+    },
+    "RouteStat": {
+      "type": "object", "additionalProperties": false, "required": ["id", "token_ids", "hops", "evaluations", "rejected_by_reason"],
+      "properties": {
+        "id": { "$ref": "#/$defs/Id" },
+        "token_ids": { "type": "array", "minItems": 2, "maxItems": 7, "items": { "$ref": "#/$defs/AssetId" } },
+        "hops": { "type": "array", "minItems": 2, "maxItems": 6, "items": { "$ref": "#/$defs/Hop" } },
+        "evaluations": { "type": "integer", "minimum": 0 },
+        "rejected_by_reason": { "$ref": "#/$defs/Counts" }
+      }
+    },
+    "Branch": {
+      "type": "object", "additionalProperties": false, "required": ["route_id", "order", "amount_raw", "weight_bps"],
+      "properties": {
+        "route_id": { "$ref": "#/$defs/Id" }, "order": { "type": "integer", "minimum": 0, "maximum": 7 },
+        "amount_raw": { "$ref": "#/$defs/Uint" }, "weight_bps": { "type": "integer", "minimum": 0, "maximum": 10000 }
+      }
+    },
+    "RouteSearchResult": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema", "round_id", "state", "funding", "policy_hash", "routes", "search", "best"],
+      "properties": {
+        "schema": { "const": "route-search-result/1" },
+        "round_id": { "$ref": "#/$defs/Id" },
+        "state": {
+          "type": "object", "additionalProperties": false,
+          "required": ["chain_id", "block_number", "block_hash", "finality", "captured_at", "expires_at", "snapshot_hash", "registry_hash", "tick_coverage"],
+          "properties": {
+            "chain_id": { "$ref": "#/$defs/ChainId" }, "block_number": { "$ref": "#/$defs/Uint" },
+            "block_hash": { "$ref": "#/$defs/Hex32" }, "finality": { "enum": ["latest", "safe", "finalized"] },
+            "captured_at": { "$ref": "#/$defs/Ts" }, "expires_at": { "$ref": "#/$defs/Ts" },
+            "snapshot_hash": { "$ref": "#/$defs/Hash" }, "registry_hash": { "$ref": "#/$defs/Hash" },
+            "tick_coverage": {
+              "type": "array", "maxItems": 64,
+              "items": {
+                "type": "object", "additionalProperties": false, "required": ["pool", "word_min", "word_max"],
+                "properties": { "pool": { "$ref": "#/$defs/Id" }, "word_min": { "type": "integer" }, "word_max": { "type": "integer" } }
+              }
+            }
+          }
+        },
+        "funding": {
+          "type": "object", "additionalProperties": false,
+          "required": ["asset", "decimals", "lender", "capacity_raw", "fee_num", "fee_den"],
+          "properties": {
+            "asset": { "$ref": "#/$defs/AssetId" }, "decimals": { "type": "integer", "minimum": 0, "maximum": 36 },
+            "lender": { "$ref": "#/$defs/Address" }, "capacity_raw": { "$ref": "#/$defs/Uint" },
+            "fee_num": { "$ref": "#/$defs/Uint" }, "fee_den": { "type": "string", "pattern": "^[1-9][0-9]{0,77}$" }
+          }
+        },
+        "policy_hash": { "$ref": "#/$defs/Hash" },
+        "routes": { "type": "array", "maxItems": 64, "items": { "$ref": "#/$defs/RouteStat" } },
+        "search": {
+          "type": "object", "additionalProperties": false,
+          "required": ["result", "termination", "attempted", "accepted", "rejected_by_reason", "principal_domain_raw", "allocation_seeds_bps", "explored_hash", "orders_tried", "global_optimum_proven"],
+          "properties": {
+            "result": { "enum": ["FEASIBLE", "NO_OPPORTUNITY", "INCONCLUSIVE", "INPUT_BLOCKED", "COVERAGE_BLOCKED", "POLICY_UNSUPPORTED", "TOOL_ERROR"] },
+            "termination": { "enum": ["GRID_COMPLETE", "EVALUATION_BUDGET", "TIME_BUDGET", "CANCELLED"] },
+            "attempted": { "type": "integer", "minimum": 0 }, "accepted": { "type": "integer", "minimum": 0 },
+            "rejected_by_reason": { "$ref": "#/$defs/Counts" },
+            "principal_domain_raw": { "type": "array", "minItems": 2, "maxItems": 2, "items": { "$ref": "#/$defs/Uint" } },
+            "allocation_seeds_bps": { "type": "array", "maxItems": 64, "items": { "type": "array", "minItems": 1, "maxItems": 8, "items": { "type": "integer", "minimum": 0, "maximum": 10000 } } },
+            "explored_hash": { "$ref": "#/$defs/Hash" },
+            "orders_tried": { "type": "integer", "minimum": 0 },
+            "global_optimum_proven": { "const": false }
+          }
+        },
+        "best": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object", "additionalProperties": false,
+              "required": ["principal_raw", "unused_raw", "branches", "terminal_raw", "lender_fee_raw", "network_cost_raw", "other_cost_raw", "net_raw", "cost_evidence_refs", "simulation_ref", "diagnostic"],
+              "properties": {
+                "principal_raw": { "$ref": "#/$defs/Uint" }, "unused_raw": { "$ref": "#/$defs/Uint" },
+                "branches": { "type": "array", "minItems": 1, "maxItems": 8, "items": { "$ref": "#/$defs/Branch" } },
+                "terminal_raw": { "$ref": "#/$defs/Uint" }, "lender_fee_raw": { "$ref": "#/$defs/Uint" },
+                "network_cost_raw": { "$ref": "#/$defs/Uint" }, "other_cost_raw": { "$ref": "#/$defs/Uint" },
+                "net_raw": { "$ref": "#/$defs/Int" },
+                "cost_evidence_refs": { "type": "array", "maxItems": 16, "items": { "$ref": "#/$defs/EvidenceRef" } },
+                "simulation_ref": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/Hash" }] },
+                "diagnostic": { "type": "boolean" }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "ByAsset": {
+      "type": "object", "maxProperties": 32,
+      "propertyNames": { "type": "string", "pattern": "^(native|eip155:[1-9][0-9]{0,18}/erc20:0x[0-9a-f]{40})$" },
+      "additionalProperties": { "$ref": "#/$defs/Int" }
+    },
+    "ExecutionEvidence": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema", "kind", "fixture", "chain_id", "round_id", "candidate_hash", "policy_hash", "block_hash", "executor", "accounts", "transaction", "receipt", "balances", "repayment", "costs", "valuation_refs", "reconciliation", "net_by_asset", "realized_net_raw", "sim_drift_raw", "reasons", "native_result_ref"],
+      "properties": {
+        "schema": { "const": "execution-evidence/1" },
+        "kind": { "enum": ["NATIVE_SIM", "RECEIPT_RECONCILED"] },
+        "fixture": { "type": "boolean" },
+        "chain_id": { "$ref": "#/$defs/ChainId" }, "round_id": { "$ref": "#/$defs/Id" },
+        "candidate_hash": { "$ref": "#/$defs/Hash" }, "policy_hash": { "$ref": "#/$defs/Hash" },
+        "block_hash": { "$ref": "#/$defs/Hex32" },
+        "executor": {
+          "type": "object", "additionalProperties": false, "required": ["address", "runtime_hash", "abi_hash"],
+          "properties": { "address": { "$ref": "#/$defs/Address" }, "runtime_hash": { "$ref": "#/$defs/Hex32" }, "abi_hash": { "$ref": "#/$defs/Hash" } }
+        },
+        "accounts": {
+          "type": "array", "minItems": 1, "maxItems": 8,
+          "items": {
+            "type": "object", "additionalProperties": false, "required": ["role", "address"],
+            "properties": { "role": { "enum": ["sender", "executor", "operator"] }, "address": { "$ref": "#/$defs/Address" } }
+          }
+        },
+        "transaction": {
+          "type": "object", "additionalProperties": false, "required": ["sender", "calldata_hash", "nonce", "tx_hash"],
+          "properties": {
+            "sender": { "$ref": "#/$defs/Address" }, "calldata_hash": { "$ref": "#/$defs/Hex32" },
+            "nonce": { "$ref": "#/$defs/Uint" }, "tx_hash": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/Hex32" }] }
+          }
+        },
+        "receipt": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object", "additionalProperties": false,
+              "required": ["tx_hash", "block_hash", "status", "finality", "gas_used", "effective_gas_price", "l1_fee_raw"],
+              "properties": {
+                "tx_hash": { "$ref": "#/$defs/Hex32" }, "block_hash": { "$ref": "#/$defs/Hex32" },
+                "status": { "enum": ["success", "revert"] }, "finality": { "enum": ["latest", "safe", "finalized"] },
+                "gas_used": { "$ref": "#/$defs/Uint" }, "effective_gas_price": { "$ref": "#/$defs/Uint" },
+                "l1_fee_raw": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/Uint" }] }
+              }
+            }
+          ]
+        },
+        "balances": {
+          "type": "object", "additionalProperties": false, "required": ["opening_by_asset", "closing_by_asset", "prefund_by_asset"],
+          "properties": {
+            "opening_by_asset": { "$ref": "#/$defs/ByAsset" }, "closing_by_asset": { "$ref": "#/$defs/ByAsset" },
+            "prefund_by_asset": { "$ref": "#/$defs/ByAsset" }
+          }
+        },
+        "repayment": {
+          "type": "object", "additionalProperties": false, "required": ["principal_raw", "lender_fee_raw", "proven"],
+          "properties": { "principal_raw": { "$ref": "#/$defs/Uint" }, "lender_fee_raw": { "$ref": "#/$defs/Uint" }, "proven": { "type": "boolean" } }
+        },
+        "costs": {
+          "type": "object", "additionalProperties": false, "required": ["gas_native_raw", "l1_native_raw"],
+          "properties": { "gas_native_raw": { "$ref": "#/$defs/Uint" }, "l1_native_raw": { "$ref": "#/$defs/Uint" } }
+        },
+        "valuation_refs": { "type": "array", "maxItems": 32, "items": { "$ref": "#/$defs/EvidenceRef" } },
+        "reconciliation": { "enum": ["RECONCILED", "UNKNOWN", "MISMATCH"] },
+        "net_by_asset": { "$ref": "#/$defs/ByAsset" },
+        "realized_net_raw": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/Int" }] },
+        "sim_drift_raw": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/Int" }] },
+        "reasons": { "type": "array", "maxItems": 16, "items": { "$ref": "#/$defs/Code" } },
+        "native_result_ref": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/Hash" }] }
+      }
+    },
+    "FlashloanVersions": {
+      "type": "object", "additionalProperties": false, "required": ["schema", "prompt", "runtime", "schemas", "mcp"],
+      "properties": {
+        "schema": { "const": "flashloan-versions/1" },
+        "prompt": {
+          "type": "object", "additionalProperties": false, "required": ["id", "sha256"],
+          "properties": { "id": { "type": "string", "minLength": 1, "maxLength": 128 }, "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" } }
+        },
+        "runtime": { "enum": ["5.2"] },
+        "schemas": {
+          "type": "object", "additionalProperties": { "type": "string", "pattern": "^[0-9.]{1,8}$" },
+          "propertyNames": { "type": "string", "pattern": "^[a-z][a-z0-9-]{1,40}$" }
+        },
+        "mcp": {
+          "type": "object", "additionalProperties": false,
+          "required": ["public_schema", "inventory", "movers", "envelope_version", "required_operations"],
+          "properties": {
+            "public_schema": { "type": "string", "pattern": "^flashloan\\.public\\.v[0-9]+$" },
+            "inventory": { "type": "array", "minItems": 1, "items": { "type": "string", "pattern": "^flashloan\\.inventory\\.v[0-9]+$" } },
+            "movers": { "type": "array", "minItems": 1, "items": { "type": "string", "pattern": "^flashloan\\.movers\\.v[0-9]+$" } },
+            "envelope_version": { "type": "integer", "minimum": 1 },
+            "required_operations": { "type": "array", "items": { "type": "string", "pattern": "^[a-z_]{3,64}$" } }
+          }
+        }
+      }
+    }
+  }
+}

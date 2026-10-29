@@ -18,7 +18,9 @@ export interface EvidenceHost {
   simulate?(request:RunRequest,plan:Plan,payload:CompiledPayload,market:CapturedMarket,signal:AbortSignal):Promise<{proof:NativeProof;rawResult:{bytesHex:string}}>;
   memory?(proposal:{runId:string;evidenceClass:string;status:'provisional';sources:string[];statement:string},signal:AbortSignal):Promise<void>;
 }
-export interface EvidenceOptions {store:ArtifactStore;host?:EvidenceHost;checks?:LessonCheck[];approvedOwnerRefs?:ReadonlySet<string>;previous?:RoundManifest;signal?:AbortSignal;nowNs?:()=>bigint;maxDurationMs:number;solveBudget?:number}
+export interface EvidenceOptions {store:ArtifactStore;host?:EvidenceHost;checks?:LessonCheck[];approvedOwnerRefs?:ReadonlySet<string>;previous?:RoundManifest;signal?:AbortSignal;nowNs?:()=>bigint;maxDurationMs:number;solveBudget?:number;
+  /** v6: receives per-route evaluation facts and captured pool tokens; v5.2 artifacts are unchanged. */
+  onRouteStats?:(stats:import('./solver.js').RouteStat[],capturedTokens:string[])=>void}
 const kindRef=(kind:EvidenceRef['kind'],value:unknown,sourceId:string,observedAtNs:string,expiresAtNs:string|null):EvidenceRef=>({kind,contentHash:createHash('sha256').update(evidenceBytes(value)).digest('hex'),sourceId,locator:'content-addressed',observedAtNs,expiresAtNs});
 export const payloadHash=(bytesHex:string)=>{if(!/^0x(?:[a-f0-9]{2})+$/i.test(bytesHex))throw new Error('INVALID_PAYLOAD_BYTES');return createHash('sha256').update(Buffer.from(bytesHex.slice(2),'hex')).digest('hex');};
 export async function runEvidence(raw:unknown,options:EvidenceOptions):Promise<RoundManifest>{
@@ -63,6 +65,7 @@ export async function runEvidence(raw:unknown,options:EvidenceOptions):Promise<R
     const domainBytes='0x'+evidenceBytes({request,market}).toString('hex'),domainHash=rawEvidence('search-domain',domainBytes);
     const domainRef:EvidenceRef={kind:'configuration',contentHash:domainHash,sourceId:'exact-pool-graph',locator:'content-addressed',observedAtNs:now().toString(),expiresAtNs:null};
     const solved=await step('solve',async()=>solvePoolGraph(request,policy!,market!,ctx.stateDigest!,domainRef,options.solveBudget,request.schemaVersion==='5.2'?executionDeadline-performance.now():undefined));
+    options.onRouteStats?.(solved.routeStats,market!.pools.flatMap(p=>[p.token0,p.token1]));
     if(request.schemaVersion==='5.2'&&(controller.signal.aborted||performance.now()>=executionDeadline))throw new Error('SOLVE_DEADLINE');
     plan=solved.plan??undefined;
     if(plan&&host.compile&&host.simulate&&request.caller&&request.executor){

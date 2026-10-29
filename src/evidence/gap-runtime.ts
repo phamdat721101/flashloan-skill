@@ -3,6 +3,7 @@ import {sameAsset,validateRecord,type Asset,type EvidenceRef,type Identity,type 
 import {runEvidence,type EvidenceHost,type EvidenceOptions,type CapturedMarket} from './runtime.js';
 import {verifyFundingMarket,type ApprovedProfile} from './economics.js';
 import type {RoundManifest} from './integrity.js';
+import {mergeLocalOutcomes,validateCandidateLedger,readMovers,fromRouteStats,type CandidateLedger,type LocalCandidate,type EvaluatedRoute} from './candidate-ledger.js';
 export interface FundingOption {
   optionId:string;lenderId:string;lenderAddress:string;callbackMode:string;asset:Asset;repaymentAsset:Asset;
   identity:Identity;capacityRaw:string;feeNumerator:string;feeDenominator:string;
@@ -83,4 +84,63 @@ export async function runGapEvidence(raw:unknown,options:EvidenceOptions&{host:G
     result.status=result.selectedOptionId?'CANDIDATE_FOUND':result.omittedOptions===0&&selected.length>0&&result.attempts.length===selected.length&&result.attempts.every(a=>a.status==='NO_OPPORTUNITY')?'CERTIFIED_NO_OPPORTUNITY':'INCONCLUSIVE';
     return result;
   }finally{clearTimeout(timer);controller.abort();options.signal?.removeEventListener('abort',abort);}
+}
+export interface FlashRunRequest {
+  schema:'flash-run-request/1';round_id:string;network:string;mode:'research'|'simulate'|'execute';
+  selection:{movers:boolean;explicit_assets:string[];anchor_assets:Array<{asset_id:string;role:'funding'|'settlement'}>;min_reported_liquidity_usd:string;max_candidates:number};
+  policy_ref:{id:string;version:string;hash:string}|null;limits:{max_rpc_calls:number;max_evaluations:number;deadline_ms:number};
+  snapshot_ref:string|null;execution_authorization_ref:null;
+}
+/**
+ * Maps flash-run-request/1 onto the existing 5.2 RunRequest (v6 §3.1). It adds no policy path: the
+ * principal cap comes from the approved profile and `compilePolicy` remains the only resolver.
+ * `execute` requests unsigned simulation only; authority is never derived from a request.
+ */
+export function toRunRequest(raw:unknown,profile:ApprovedProfile,refs:{valuation:EvidenceRef;networkCost:EvidenceRef}):RunRequest{
+  const req=validateRecord<FlashRunRequest>('FlashRunRequest',raw,'v6');
+  if(!req.policy_ref||req.policy_ref.hash!==`sha256:${digest(profile.body)}`||profile.ref.contentHash!==digest(profile.body))throw new Error('INPUT_BLOCKED');
+  const funding=req.selection.anchor_assets.find(a=>a.role==='funding');if(!funding)throw new Error('INPUT_BLOCKED');
+  const networkId=req.network.split(':')[1],locator=(id:string)=>{const [chain,asset]=id.split('/');if(chain!==req.network)throw new Error('INPUT_BLOCKED');return {namespace:'eip155' as const,networkId,assetId:asset.split(':')[1]};};
+  const assets=[...new Map([...req.selection.anchor_assets.map(a=>a.asset_id),...req.selection.explicit_assets].map(id=>[id,locator(id)])).values()];
+  return validateRecord<RunRequest>('RunRequest',{schemaVersion:'5.2',recordType:'run-request',runId:req.round_id,mode:req.mode==='research'?'research':'unsigned-simulation',networkId,
+    assetLocators:assets,borrowAsset:locator(funding.asset_id),riskProfileRef:profile.ref,principalCapRaw:profile.body.principalCapRaw,requestedMinProfitUsd:null,requestedPriceImpactBps:null,
+    networkCostEvidenceRef:refs.networkCost,valuationEvidenceRef:refs.valuation,watchDurationMs:0,caller:null,executor:null,executorMode:'existing',rotationMode:'report-only',
+    requestedMinDeploymentBps:null,requestedMinBranchWeightBps:null,requestedMinPrincipalUsd:null,requestedMinBranchUsd:null,inventoryMinLiquidityUsd:null},'5.2');
+}
+export interface FlashloanVersions {schema:'flashloan-versions/1';prompt:{id:string;sha256:string};runtime:'5.2';schemas:Record<string,string>;mcp:{public_schema:string;inventory:string[];movers:string[];envelope_version:number;required_operations:string[]}}
+/** Fails closed (v6 §3.5) on any observed mismatch. MCP fields are checked only when that surface was observed. */
+export function checkCapabilities(raw:unknown,observed:{promptSha256:string;publicSchema?:string;inventory?:string;movers?:string;envelopeVersion?:number;operations?:string[]}):FlashloanVersions{
+  const v=validateRecord<FlashloanVersions>('FlashloanVersions',raw,'v6'),m=v.mcp;
+  if(v.prompt.sha256!==observed.promptSha256||observed.publicSchema!==undefined&&m.public_schema!==observed.publicSchema||observed.inventory!==undefined&&!m.inventory.includes(observed.inventory)||observed.movers!==undefined&&!m.movers.includes(observed.movers)||observed.envelopeVersion!==undefined&&m.envelope_version!==observed.envelopeVersion||observed.operations!==undefined&&m.required_operations.some(o=>!observed.operations!.includes(o)))throw new Error('CAPABILITY_UNSUPPORTED');
+  return v;
+}
+
+export interface FlashRound {gap:GapRound;ledger:CandidateLedger;versions:FlashloanVersions;request:RunRequest}
+/**
+ * v6 round over the existing 5.2 funding runtime. Maps flash-run-request/1 through `toRunRequest`, runs
+ * `runGapEvidence` unchanged, then builds and strictly validates candidate-ledger/1 from movers, explicit
+ * assets, captured pool tokens and per-route evaluation counts. Research and unsigned simulation only.
+ */
+export async function runFlashRound(raw:unknown,options:EvidenceOptions&{host:GapHost;fundingOptions:FundingOption[];profile:ApprovedProfile;
+  refs:{valuation:EvidenceRef;networkCost:EvidenceRef};versions:unknown;promptSha256:string;movers?:unknown}):Promise<FlashRound>{
+  const request=toRunRequest(raw,options.profile,options.refs),v6=validateRecord<FlashRunRequest>('FlashRunRequest',raw,'v6'),chainId=Number(request.networkId);
+  const movers=v6.selection.movers&&options.movers!==undefined?readMovers(options.movers,chainId):null;
+  const versions=checkCapabilities(options.versions,{promptSha256:options.promptSha256,...(movers?{movers:movers.schema}:{})});
+  const funding=v6.selection.anchor_assets.filter(a=>a.role==='funding').map(a=>a.asset_id.split(':').at(-1)!);
+  const options5=options.fundingOptions.filter(o=>funding.includes(o.asset.assetId.toLowerCase()));
+  if(!options5.length)throw new Error('INPUT_BLOCKED');
+  const gapRequest:GapRunRequest={schemaVersion:'5.2',recordType:'gap-run-request',runId:request.runId,request,
+    allowedAssets:[...new Map(options5.map(o=>[digest(o.asset),o.asset])).values()],allowedLenderIds:[...new Set(options5.map(o=>o.lenderId))],
+    principalCapsRaw:Object.fromEntries(options5.map(o=>[o.optionId,options.profile.body.principalCapRaw])),
+    maxFundingOptions:Math.min(options5.length,256),maxAttemptsTotal:v6.limits.max_evaluations,deadlineMs:v6.limits.deadline_ms};
+  const byRoute=new Map<string,EvaluatedRoute>(),captured=new Set<string>();
+  const addRoutes=(list:EvaluatedRoute[])=>{for(const r of list){const prior=byRoute.get(r.id);byRoute.set(r.id,prior?{...prior,evaluations:prior.evaluations+r.evaluations}:r);}};
+  const gap=await runGapEvidence(gapRequest,{...options,onRouteStats:(stats,tokens)=>{addRoutes(fromRouteStats(stats));for(const t of tokens)captured.add(t.toLowerCase());options.onRouteStats?.(stats,tokens);}});
+  const routes=[...byRoute.values()],asOf=new Date().toISOString().replace(/\.\d{3}Z$/,'Z');
+  const explicit:LocalCandidate[]=v6.selection.explicit_assets.map(asset_id=>({asset_id,role:'target',sources:['explicit'],first_seen:asOf}));
+  const evidence=[{kind:'gap-round',content_hash:`sha256:${digest(gap.attempts)}`,captured_at:asOf,trace_id:request.runId}];
+  const ledger=mergeLocalOutcomes({roundId:v6.round_id,chainId:v6.network,asOf:movers?.asOf??asOf,coverage:movers?movers.coverage:v6.selection.movers?'EMPTY_PROVIDER':'BOUNDED',
+    providers:movers?['dexscreener']:[],sourceRefs:movers?[{kind:'movers',content_hash:`sha256:${digest(options.movers)}`,captured_at:movers.asOf,trace_id:request.runId}]:[],
+    candidates:[...(movers?.candidates??[]),...explicit],maxCandidates:v6.selection.max_candidates,inventoryOutcomes:{},routes,evidence,capturedTokens:[...captured]});
+  return {gap,ledger:validateCandidateLedger(ledger,routes,v6.selection.explicit_assets),versions,request};
 }
