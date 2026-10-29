@@ -23,6 +23,66 @@ For the liquid-pattern workflow, start with [capture, size and prepare](#use-a-l
 
 ## Latest upgrade and how to use it
 
+### 2026-10-29: v7 integration (v4 pool identity, single policy, native-v4 executor)
+
+This release fixes the Robinhood MCP → local-skill blockers. Before it, all 23 discovered
+Uniswap v4 pools were rejected before any RPC read, native ETH legs could not be quoted
+or settled, and the acceptance lane ran its own hardcoded policy. Everything below
+is behind a gate that defaults **off**. Existing commands, schemas and outputs
+are byte-identical until you enable it.
+
+| Area | What changed |
+| --- | --- |
+| Pool identity | v4 pools resolve to `PoolManager + poolId + PoolKey` from canonical `Initialize` logs. Each target gets exactly one disposition (resolved, unresolved key, reorg, uninitialized, hook/dynamic-fee unsupported, budget-deferred). |
+| Policy | `compilePolicy` remains the only policy owner. Caller limits in `flash-intent/1` can only tighten the approved profile. A missing profile gives `INPUT_BLOCKED`, while research continues. |
+| Costs | Route fee evidence is the cost; the gas budget only bounds the reservation. Native→repayment conversion rounds up. Net must be strictly greater than the floor. |
+| Executor | New `NativeV4FlashExecutor` (`evm-native-v4/1`): unwrap → native v4 swaps → rewrap; flash debt stays ERC20. Settlement uses `sync(address(0))`, and forced ETH is reported, never profit. **Built and tested; not deployed.** |
+| Codecs | The calldata codec follows the deployed capability (MultiVenue / portable split / native). An unsupported split or native route is refused, never downgraded. |
+| Admission | Proofs are re-hashed from their bytes and bound to manifest, capability, payload, policy and state. Producers come from a hash-pinned list, and fixtures never admit. |
+| Provenance | Executor artifacts are stored by content hash. `deployment-status --executor-manifest` verifies the live code against the stored artifact; a rebuilt `out/` file is only a diagnostic. |
+| Reporting | `flash-round-result/1` has 13 statuses mapped to legacy outcomes. An unknown receipt halts without realized profit. |
+
+Contract and docs: [implementation spec](docs/features/flashloan-v7-integration.md),
+[System Map](docs/features/flashloan-v7-integration-map.md),
+[ledger](docs/features/flashloan-v7-integration.spec.json), shared schema
+`schemas/flashloan-integration-v1.schema.json` (sha256 `1de7fced…aaaf`), and agent
+prompt [v7](skills/flashloan-agent/prompt-v7.md).
+
+Update and verify:
+
+```sh
+cd ~/.flashloan-agent/flashloan-skill
+git switch main
+git pull --ff-only origin main
+npm ci && forge build && npm run build
+node dist/agent-cli.js install          # also bundles the v7 schema, examples and version manifests
+node --test dist/test/flashloan-v7-integration.test.js dist/test/flashloan-v7-runtime.test.js
+forge test --match-path test/NativeV4FlashExecutor.t.sol
+npm run evm:abi-check
+```
+
+Run a read-only identity, policy and ledger round. It never loads signer secrets:
+
+```sh
+# 1. Owner: set features.integrationV7=true in config/flashloan-integration-versions.json.
+#    Until then the command returns VERSION_UNSUPPORTED.
+# 2. Provide a reviewed v4 manager mapping (v4-manager-mapping/1) and, for sizing, an approved profile file.
+node --env-file=.env dist/evm/cli.js integration-run \
+  --intent schemas/examples/flashloan-integration-v1/intent-valid.json \
+  --inventory mcp-inventory.json --mapping config/v4-managers.json [--profile profile.json]
+```
+
+The result lists every target and the exact next dependency for each blocked one.
+
+**Still required before any native trade:**
+- A no-broadcast fork test on a pinned Robinhood block.
+- A separately authorized deployment of `NativeV4FlashExecutor`.
+- An owner-added trusted producer in `config/admission-producers.json`, which ships empty.
+- A fresh unsigned simulation on that deployment.
+
+None of these has happened. The latest **deployed** contract is unchanged: the
+Arbitrum `PortableMultiSplitFlashExecutor` below.
+
 ### 2026-10-28: price-gap engine v5.2 for agents
 
 The latest code adds dynamic borrow-asset/lender selection, owner-approved profit
@@ -547,8 +607,12 @@ package or pool identifiers.
 Select an address by ABI, not by deployment recency. These records do not
 authorize sending or establish liquidity-pattern production admission.
 
+`NativeV4FlashExecutor` (v7, capability `evm-native-v4/1`) has no recorded address:
+it is implemented and tested locally but not deployed on any chain.
+
 | Network / contract | Recorded address | Scope |
 | --- | --- | --- |
+| Arbitrum One / PortableMultiSplitFlashExecutor (latest, 2026-10-28) | [`0x1df55df59413e823d2bbd926ee76c9a3fd63c478`](https://arbiscan.io/address/0x1df55df59413e823d2bbd926ee76c9a3fd63c478) | `executeSplitArbitrage` (≤8 branches) plus inherited `executeLenderArbitrage`; ten roots pinned; hooks disabled; L1-finalized; `not-admitted`. [Record](docs/deployments/arbitrum-price-gap-executor-20261028.json) |
 | Arbitrum One / MultiVenue executor v2 (universe routing) | [`0x2502539753df1182f015378f32fbdef0ec9c9de2`](https://arbiscan.io/address/0x2502539753df1182f015378f32fbdef0ec9c9de2) | Pool-address legs; Uniswap/Sushi/PancakeSwap/Camelot roots; Morpho, Balancer, Aave lenders; L1-finalized; trading admission required |
 | Arbitrum One / DexPair executor | `0x093e98a6e2e278426adc7161b61bb2132e0ad192` | `executeDexPairArbitrage` (router venues 0 Camelot, 1 Uniswap V3, 2 PancakeSwap V3); `FLASH_EXECUTOR_ADDRESS` target |
 | Arbitrum One / previous liquidity executor | [`0xba4681b7cae1a67c703f43f1476b25fef2635b0a`](https://arbiscan.io/address/0xba4681b7cae1a67c703f43f1476b25fef2635b0a) | Corrected multi-lender/multi-venue ABI without the PancakeSwap V3 callback; trading admission required |
