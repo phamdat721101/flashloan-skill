@@ -321,7 +321,8 @@ test('v7 SK-09 status mapping is exhaustive; unknown receipt halts without reali
 test('v7 SK-10 gate off and release drift return VERSION_UNSUPPORTED; installed bundle carries no secrets',async()=>{
   const read=(p:string)=>readFileSync(new URL(`../../${p}`,import.meta.url));
   const release={baseVersionsBytes:read('config/flashloan-versions.json'),promptBytes:read('skills/flashloan-agent/prompt-v7.md'),contractBytes:read('schemas/flashloan-integration-v1.schema.json'),producersBytes:read('config/admission-producers.json')};
-  const versions=JSON.parse(read('config/flashloan-integration-versions.json').toString());
+  // Gate state is pinned here, not read from the operator's live config, so enabling v7 locally never flips this assertion.
+  const versions={...JSON.parse(read('config/flashloan-integration-versions.json').toString()),features:{integrationV7:false}};
   assert.throws(()=>checkIntegrationVersions(versions,release),/integrationV7 gate is off/);
   const on={...versions,features:{integrationV7:true}};
   assert.equal(checkIntegrationVersions(on,release).features.integrationV7,true);
@@ -335,7 +336,7 @@ test('v7 SK-10 gate off and release drift return VERSION_UNSUPPORTED; installed 
 test('v7 integration round: gate off is VERSION_UNSUPPORTED; gate on yields a complete ledger and a validated result',async()=>{
   const read=(p:string)=>readFileSync(new URL(`../../${p}`,import.meta.url));
   const release={baseVersionsBytes:read('config/flashloan-versions.json'),promptBytes:read('skills/flashloan-agent/prompt-v7.md'),contractBytes:read('schemas/flashloan-integration-v1.schema.json'),producersBytes:read('config/admission-producers.json')};
-  const versions=JSON.parse(read('config/flashloan-integration-versions.json').toString());
+  const versions={...JSON.parse(read('config/flashloan-integration-versions.json').toString()),features:{integrationV7:false}};
   const p1=key('0x0000000000000000000000000000000000000000',WETH),p5=key(WETH,TOKEN);
   const inv={schema_version:'flashloan.inventory.v3',network:'robinhood',observed_at:TS,pools:[
     {id:deriveV4PoolId(p1),reference:{kind:'v4_pool',chainId:4663,provider:'hypermove'},asset_ids:['0x0000000000000000000000000000000000000000',WETH],protocol:'uniswap-v4',liquidity_usd:'1',liquidity_eligible:true},

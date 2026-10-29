@@ -1,0 +1,42 @@
+{
+  "schemaVersion": "1.0",
+  "chainId": 4663,
+  "source": {
+    "test": "test/NativeV4FlashExecutorFork.t.sol",
+    "contract": "contracts/NativeV4FlashExecutor.sol",
+    "forkUrl": "https://robinhood.api.pocket.network (archive)",
+    "forkBlock": "100930897",
+    "command": "EVM_FORK_REQUIRED=true forge test --match-path test/NativeV4FlashExecutorFork.t.sol --fork-url <archive> --fork-block-number 100930897 -vvv"
+  },
+  "verifiedAt": "2026-10-29T13:23:32Z",
+  "broadcast": false,
+  "logSha256": "3fe3760eeacb497bb8b67e04aee3977ddbe93b723f791a985c12ce5c12783a47",
+  "traceSha256": "8931fbd9b7d8b82c27ad320f876375785bad51340b1a98a60893f6c7fc956735",
+  "tests": [
+    {
+      "name": "test_FLASHLOAN_V7_RH_EDGE_03_realBorrowUnwrapWrapExactRepay",
+      "status": "PASS",
+      "criteria": [
+        "real Morpho WETH borrow 1e18 + exact repayment",
+        "real WETH unwrap/rewrap",
+        "pre-existing 0.5 ETH never converted to surplus"
+      ]
+    },
+    {
+      "name": "test_FLASHLOAN_V7_RH_EDGE_03_realNativeSwapsRejectUnfundedProfit",
+      "status": "PASS",
+      "criteria": [
+        "real native v4 swaps on pool 0xbeb948495e25b4b84bc9bbade3eca6699b624f5da8cee56376a49cde17cc7cfd: 1e14 wei -> 1833.212980799403912129 TOKEN -> 98013081442201 wei",
+        "loss-making round reverts Unprofitable after both swaps; lender balance unchanged"
+      ]
+    },
+    {
+      "name": "test_FLASHLOAN_V7_RH_EDGE_03_hookedKeyRejectedBeforeBorrow",
+      "status": "PASS",
+      "criteria": [
+        "hooked PoolKey rejected with HooksDisabled before any borrow"
+      ]
+    }
+  ],
+  "scope": "Real Morpho lender, real WETH wrapper, real canonical v4 PoolManager native settlement and the profit guard. Does not establish a profitable route or live receipt. Deepest native hookless pool in the capture has ~$1,051 reported liquidity and a 0.9% fee; the 2-swap round trip lost 1.99%."
+}

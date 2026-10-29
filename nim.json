@@ -96,6 +96,17 @@
             "npm run evm:test",
             "nim-skill search compile --title \"Base and Robinhood flashloan implementation\" --spec docs/features/evm-flashloan.spec.json"
           ]
+        },
+        "robinhood-native-v4": {
+          "contract": ".nim/deliver/robinhood-native-v4-contract.json",
+          "configFiles": [
+            "config/robinhood-mainnet.json"
+          ],
+          "commands": [
+            "npm run build",
+            "npm run evm:abi-check",
+            "forge test --match-path test/NativeV4FlashExecutor.t.sol"
+          ]
         }
       }
     }
