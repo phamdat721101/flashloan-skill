@@ -1,0 +1,92 @@
+{
+  "schema": "resolved-pool/1",
+  "chainId": "eip155:4663",
+  "protocol": "uniswap-v4",
+  "provider": "hypermove",
+  "providerPoolId": "0x5fb36fcf81a62ac30e44924e98284b317a1fbfdd7b223b788319c663baebc930",
+  "manager": "0x2222222222222222222222222222222222222222",
+  "managerCodeHash": "0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "poolId": "0x5fb36fcf81a62ac30e44924e98284b317a1fbfdd7b223b788319c663baebc930",
+  "key": {
+    "currency0": "0x0000000000000000000000000000000000000000",
+    "currency1": "0x0bd7d308f8e1639fab988df18a8011f41eacad73",
+    "fee": 3000,
+    "tickSpacing": 60,
+    "hooks": "0x0000000000000000000000000000000000000000"
+  },
+  "asset0": {
+    "assetId": "eip155:4663/erc20:0x0000000000000000000000000000000000000000",
+    "chainId": "eip155:4663",
+    "kind": "erc20",
+    "address": "0x0000000000000000000000000000000000000000",
+    "decimals": 18,
+    "metadataRef": {
+      "kind": "configuration",
+      "contentHash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "issuedAt": "2026-10-29T00:00:00Z",
+      "expiresAt": null,
+      "traceId": "v7-fixture",
+      "locator": "fixture://configuration"
+    }
+  },
+  "asset1": {
+    "assetId": "eip155:4663/erc20:0x0bd7d308f8e1639fab988df18a8011f41eacad73",
+    "chainId": "eip155:4663",
+    "kind": "erc20",
+    "address": "0x0bd7d308f8e1639fab988df18a8011f41eacad73",
+    "decimals": 18,
+    "metadataRef": {
+      "kind": "configuration",
+      "contentHash": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+      "issuedAt": "2026-10-29T00:00:00Z",
+      "expiresAt": null,
+      "traceId": "v7-fixture",
+      "locator": "fixture://configuration"
+    }
+  },
+  "state": {
+    "chainId": "eip155:4663",
+    "blockNumber": "1000",
+    "blockHash": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "parentHash": "0x9999999999999999999999999999999999999999999999999999999999999999",
+    "observedAt": "2026-10-29T00:00:00Z",
+    "finality": "finalized",
+    "stateDigest": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+  },
+  "initializationRef": {
+    "kind": "canonical-state",
+    "contentHash": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+    "issuedAt": "2026-10-29T00:00:00Z",
+    "expiresAt": null,
+    "traceId": "v7-fixture",
+    "locator": "fixture://canonical-state"
+  },
+  "mappingRef": {
+    "kind": "configuration",
+    "contentHash": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+    "issuedAt": "2026-10-29T00:00:00Z",
+    "expiresAt": null,
+    "traceId": "v7-fixture",
+    "locator": "fixture://configuration"
+  },
+  "support": {
+    "read": true,
+    "quote": true,
+    "prepare": false,
+    "simulate": false,
+    "execute": false,
+    "reasonCodes": [
+      "UNSUPPORTED_NATIVE_CURRENCY"
+    ]
+  },
+  "sourceRefs": [
+    {
+      "kind": "source",
+      "contentHash": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+      "issuedAt": "2026-10-29T00:00:00Z",
+      "expiresAt": null,
+      "traceId": "v7-fixture",
+      "locator": "fixture://source"
+    }
+  ]
+}

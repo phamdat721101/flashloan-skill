@@ -1,0 +1,231 @@
+{
+  "schema": "flashloan-integration-vectors/1",
+  "contractSchemaSha256": "sha256:1de7fced7a55bccf7fc5c45ab41934087344054961238a48484598944256aaaf",
+  "uint": [
+    {
+      "value": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
+      "schemaValid": true,
+      "semanticValid": true
+    },
+    {
+      "value": "115792089237316195423570985008687907853269984665640564039457584007913129639936",
+      "schemaValid": true,
+      "semanticValid": false,
+      "reason": "INTEGER_OUT_OF_RANGE"
+    },
+    {
+      "value": "-0",
+      "def": "Int",
+      "schemaValid": false
+    },
+    {
+      "value": "-1",
+      "schemaValid": false
+    },
+    {
+      "value": 5,
+      "schemaValid": false,
+      "reason": "JSON number for Uint"
+    },
+    {
+      "value": "01",
+      "schemaValid": false
+    }
+  ],
+  "ratio": [
+    {
+      "num": "1",
+      "den": "0",
+      "valid": false,
+      "reason": "ZERO_DENOMINATOR"
+    },
+    {
+      "num": "0",
+      "den": "1",
+      "valid": false,
+      "reason": "NONPOSITIVE_PRICE"
+    }
+  ],
+  "nativeToRepayment": {
+    "nativeRaw": "123456789012345",
+    "nativeUsdUpper": {
+      "num": "350123",
+      "den": "100"
+    },
+    "repaymentUsdLower": {
+      "num": "999",
+      "den": "1000"
+    },
+    "nativeDecimals": 18,
+    "repaymentDecimals": 6,
+    "floor": "432683",
+    "remainderNonzero": true,
+    "expectedUpperRaw": "432684"
+  },
+  "threshold": {
+    "minNetProfitRaw": "1000",
+    "cases": [
+      {
+        "netLowerBoundRaw": "999",
+        "localExclusiveQualifies": false,
+        "mcpInclusiveMinProfit": "1001",
+        "mcpInclusiveQualifies": false
+      },
+      {
+        "netLowerBoundRaw": "1000",
+        "localExclusiveQualifies": false,
+        "mcpInclusiveMinProfit": "1001",
+        "mcpInclusiveQualifies": false
+      },
+      {
+        "netLowerBoundRaw": "1001",
+        "localExclusiveQualifies": true,
+        "mcpInclusiveMinProfit": "1001",
+        "mcpInclusiveQualifies": true
+      }
+    ]
+  },
+  "contractMinSurplus": {
+    "minNetProfitRaw": "1000",
+    "networkCostUpperRaw": "250",
+    "otherCostUpperRaw": "50",
+    "lenderFeeRaw": "9",
+    "expected": "1301",
+    "note": "lender fee is in debt, not added"
+  },
+  "accounting": {
+    "principalRaw": "1000000",
+    "deployedRaw": "900000",
+    "unusedPrincipalRaw": "100000",
+    "swapProceedsRaw": "902500",
+    "lenderFeeRaw": "0",
+    "openingBalanceRaw": "5000",
+    "terminalBeforeDebtRaw": "1002500",
+    "surplusAfterDebtRaw": "2500",
+    "networkCostUpperRaw": "250",
+    "otherCostUpperRaw": "50",
+    "netLowerBoundRaw": "2200",
+    "note": "opening balance excluded from proceeds"
+  },
+  "hash": {
+    "canonicalParityWithLegacyDigest": {
+      "value": {
+        "schema": "effective-execution-policy/1",
+        "chainId": "eip155:4663",
+        "minNetProfitRaw": "1000",
+        "maxRoutes": 2,
+        "allowedCapabilities": [
+          "erc20-v3/1",
+          "evm-native-v4/1"
+        ]
+      },
+      "legacyDigestHex": "62c187af9afed89cf33f019f951e7acce0ba65b5e42e08149b1a8b41879408cc"
+    },
+    "domain": [
+      {
+        "domain": "flash/effective-policy/1",
+        "value": {
+          "schema": "effective-execution-policy/1",
+          "chainId": "eip155:4663",
+          "minNetProfitRaw": "1000",
+          "maxRoutes": 2,
+          "allowedCapabilities": [
+            "erc20-v3/1",
+            "evm-native-v4/1"
+          ]
+        },
+        "expected": "sha256:b44e50d945f502c4a51f19586d7ee99d9b81391050eca05a9c4c8d880234ff93"
+      },
+      {
+        "domain": "flash/effective-policy/1",
+        "value": {
+          "allowedCapabilities": [
+            "erc20-v3/1",
+            "evm-native-v4/1"
+          ],
+          "maxRoutes": 2,
+          "minNetProfitRaw": "1000",
+          "chainId": "eip155:4663",
+          "schema": "effective-execution-policy/1"
+        },
+        "expected": "sha256:b44e50d945f502c4a51f19586d7ee99d9b81391050eca05a9c4c8d880234ff93",
+        "note": "key order irrelevant"
+      },
+      {
+        "domain": "flash/effective-policy/1",
+        "value": {
+          "schema": "effective-execution-policy/1",
+          "chainId": "eip155:4663",
+          "minNetProfitRaw": "1000",
+          "maxRoutes": 2,
+          "allowedCapabilities": [
+            "evm-native-v4/1",
+            "erc20-v3/1"
+          ]
+        },
+        "expected": "sha256:7c90b9e4e9f37c65f7e743f19a402f50ddc8ad296e020a115673e40c47d9ab1f",
+        "differsFromFirst": true,
+        "note": "array order significant"
+      },
+      {
+        "domain": "flash/route-cost/1",
+        "value": {
+          "schema": "effective-execution-policy/1",
+          "chainId": "eip155:4663",
+          "minNetProfitRaw": "1000",
+          "maxRoutes": 2,
+          "allowedCapabilities": [
+            "erc20-v3/1",
+            "evm-native-v4/1"
+          ]
+        },
+        "expected": "sha256:0c8887b62779baef233501eea55eff65f76d890aafee9694ba9b1cbd2ce9f71d",
+        "note": "domain separation"
+      }
+    ],
+    "reject": [
+      {
+        "value": {
+          "n": 9007199254740992
+        },
+        "reason": "UNSAFE_NUMBER"
+      },
+      {
+        "value": {
+          "s": "\ud800"
+        },
+        "reason": "INVALID_UNICODE"
+      },
+      {
+        "value": {
+          "x": 1.5
+        },
+        "reason": "UNSAFE_NUMBER"
+      }
+    ]
+  },
+  "v4PoolId": [
+    {
+      "key": {
+        "currency0": "0x0000000000000000000000000000000000000000",
+        "currency1": "0x0bd7d308f8e1639fab988df18a8011f41eacad73",
+        "fee": 3000,
+        "tickSpacing": 60,
+        "hooks": "0x0000000000000000000000000000000000000000"
+      },
+      "poolId": "0x5fb36fcf81a62ac30e44924e98284b317a1fbfdd7b223b788319c663baebc930",
+      "note": "native ETH currency0=zero; never an ERC20 asset"
+    },
+    {
+      "key": {
+        "currency0": "0x0bd7d308f8e1639fab988df18a8011f41eacad73",
+        "currency1": "0x1111111111111111111111111111111111111111",
+        "fee": 8388608,
+        "tickSpacing": 60,
+        "hooks": "0x00000000000000000000000000000000000000c0"
+      },
+      "poolId": "0x1752943a8434a12b9d465ff0b188e5c58441aa0bee3a8ca2bf553831db166228",
+      "note": "hooked + dynamic fee: identifier derivable, adapter support separate"
+    }
+  ]
+}

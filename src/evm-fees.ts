@@ -56,7 +56,15 @@ export async function nativeCostInAsset(client: PublicClient, cost: bigint, bloc
     priceUsdE8(client, valuation.assetUsdFeed, blockNumber, valuation.maxAgeSeconds)
   ]);
   if (asset < 99000000n || asset > 101000000n) throw new Error('STABLECOIN_DEPEG');
-  const numerator = cost * native * 10n ** BigInt(valuation.decimals), denominator = 10n ** 18n * asset;
+  return nativeToRepaymentUpper(cost, { numerator: native.toString(), denominator: '100000000' }, { numerator: asset.toString(), denominator: '100000000' }, 18, valuation.decimals);
+}
+/** Conservative cost in the repayment asset: native price upper bound over repayment price lower bound, rounded up on any remainder. */
+export function nativeToRepaymentUpper(nativeRaw: bigint, nativeUsdUpper: { numerator: string; denominator: string }, repaymentUsdLower: { numerator: string; denominator: string }, nativeDecimals: number, repaymentDecimals: number): bigint {
+  const [nN, nD, rN, rD] = [nativeUsdUpper.numerator, nativeUsdUpper.denominator, repaymentUsdLower.numerator, repaymentUsdLower.denominator].map(v => BigInt(v));
+  if (nD === 0n || rD === 0n) throw new Error('ZERO_DENOMINATOR');
+  if (nN <= 0n || rN <= 0n) throw new Error('NONPOSITIVE_PRICE');
+  if (nativeRaw < 0n || ![nativeDecimals, repaymentDecimals].every(d => Number.isInteger(d) && d >= 0 && d <= 36)) throw new Error('INVALID_NATIVE_COST');
+  const numerator = nativeRaw * nN * rD * 10n ** BigInt(repaymentDecimals), denominator = nD * rN * 10n ** BigInt(nativeDecimals);
   return (numerator + denominator - 1n) / denominator;
 }
 /** priorityFeePerGas, when given, replaces the estimated tip while keeping the estimated base headroom. */

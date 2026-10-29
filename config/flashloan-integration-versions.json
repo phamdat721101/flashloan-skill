@@ -1,0 +1,28 @@
+{
+  "schema": "flashloan-integration-versions/1",
+  "baseVersions": {
+    "path": "config/flashloan-versions.json",
+    "sha256": "08aa952c0493aecf5f553f9ad79743de527133b145a4395e8bb4f219dcd30d97"
+  },
+  "prompt": {
+    "id": "skills/flashloan-agent/prompt-v7.md",
+    "sha256": "2567050aa890ac0e9959ae735d489dbaa93425ba313e715e4297c5394b3a70e1"
+  },
+  "contract": {
+    "id": "urn:flashloan-integration:1",
+    "path": "schemas/flashloan-integration-v1.schema.json",
+    "sha256": "1de7fced7a55bccf7fc5c45ab41934087344054961238a48484598944256aaaf"
+  },
+  "codecs": {
+    "erc20-multivenue/1": "multi-venue-route/1",
+    "erc20-portable-split/1": "portable-split-route/1",
+    "evm-native-v4/1": "native-v4-route/1"
+  },
+  "admissionProducers": {
+    "path": "config/admission-producers.json",
+    "sha256": "1312abcd3766c71257b73114166925aa243dee84eb6dd0850a26b1651a3eeca1"
+  },
+  "features": {
+    "integrationV7": false
+  }
+}

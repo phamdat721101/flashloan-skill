@@ -25,7 +25,7 @@ export interface InventoryPool {
   liquidity_usd: string; liquidity_eligible: boolean;
 }
 export interface Inventory {
-  schema_version: 'flashloan.inventory.v2'; network: string; observed_at: string; pools: InventoryPool[];
+  schema_version: 'flashloan.inventory.v2' | 'flashloan.inventory.v3'; network: string; observed_at: string; pools: InventoryPool[];
   coverage?: Array<{ source: string; exhaustive: boolean }>;
 }
 export interface UniversePool {
@@ -60,10 +60,11 @@ const ABI = parseAbi([
 const ADDRESS = /^0x[0-9a-f]{40}$/;
 const lower = (value: string) => value.toLowerCase() as Address;
 
-export function parseInventory(input: unknown): Inventory {
+/** inventory.v3 is accepted only when the v7 integration gate passes it explicitly; default parsing is unchanged. */
+export function parseInventory(input: unknown, accepted: readonly string[] = ['flashloan.inventory.v2']): Inventory {
   const envelope = input as { data?: unknown; ok?: boolean } | null;
   const data = (envelope && typeof envelope === 'object' && 'data' in envelope ? envelope.data : input) as Partial<Inventory> | null;
-  if (!data || data.schema_version !== 'flashloan.inventory.v2' || typeof data.network !== 'string' || !Array.isArray(data.pools)
+  if (!data || !accepted.includes(String(data.schema_version)) || typeof data.network !== 'string' || !Array.isArray(data.pools)
     || typeof data.observed_at !== 'string' || Number.isNaN(Date.parse(data.observed_at)) || data.pools.length > 2048) throw new Error('INVALID_INVENTORY');
   return data as Inventory;
 }

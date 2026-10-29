@@ -37,3 +37,45 @@ export function projectSheetSections(records:{row:RoundRow;pattern?:unknown;band
   validateEvidenceRecord('RoundRow',records.row);
   return [['0b Evidence class',{evidenceClass:records.row.evidence_class,integrityRef:records.row.integrityRef}],['6c Pattern and band',{pattern:records.pattern??null,band:records.band??null}],['6d Hop decision',records.attribution??null],['6e Approval study references',{status:'DESCRIPTIVE_ONLY',references:[]}],['9 Recall applied',records.recall??null]].map(([title,value])=>`## ${title}\n\nRecord hash: ${createEvidenceDigest(value)}\n\n\`\`\`json\n${JSON.stringify(value,null,2)}\n\`\`\``).join('\n\n')+'\n';
 }
+
+/** v7 SK-09: flash-round-result/1 statuses -> legacy Report.outcome. null means no legacy row: model-only, unknown submission and halts never project. */
+export const RESULT_STATUS_MAP = {
+  DISCOVERY_ONLY: 'INCONCLUSIVE', COVERAGE_BLOCKED: 'COVERAGE_BLOCKED', INPUT_BLOCKED: 'INPUT_BLOCKED', POLICY_UNSUPPORTED: 'POLICY_UNSUPPORTED', VERSION_UNSUPPORTED: 'TOOL_ERROR',
+  INCONCLUSIVE: 'INCONCLUSIVE', NO_OPPORTUNITY_WITHIN_DOMAIN: 'NO_OPPORTUNITY', MODEL_OPPORTUNITY: null, SIMULATED_OPPORTUNITY: 'SIMULATED_OPPORTUNITY', SUBMITTED_UNKNOWN: null,
+  RECEIPT_RECONCILED: 'RECONCILED', HALTED: null, TOOL_ERROR: 'TOOL_ERROR'
+} as const;
+export type RoundStatus = keyof typeof RESULT_STATUS_MAP;
+export const toLegacyOutcome = (status: RoundStatus) => RESULT_STATUS_MAP[status];
+
+type Evidence = { kind: 'NATIVE_SIM' | 'RECEIPT_RECONCILED'; success: boolean; fixture: boolean; fidelity: string; overrideRefs: unknown[] } | null;
+export interface RoundFacts {
+  versionSupported: boolean; inputBlockers: string[]; policyUnsupported: string[]; submitted: boolean; pnlState: 'KNOWN' | 'UNKNOWN' | 'HALTED';
+  evidence: Evidence; planQualified: boolean; search: { attempted: number; complete: boolean; termination: string; domainHash: string | null };
+  ledger: { items: Array<{ outcome: string }> }; toolError?: string;
+}
+/** Deterministic, evidence-class-first status. A partial grid, tick exhaustion or empty discovery is never a certified negative. */
+export function deriveRoundStatus(f: RoundFacts): RoundStatus {
+  if (f.toolError) return 'TOOL_ERROR';
+  if (!f.versionSupported) return 'VERSION_UNSUPPORTED';
+  if (f.submitted) {
+    if (f.evidence?.kind === 'RECEIPT_RECONCILED' && f.pnlState === 'KNOWN') return 'RECEIPT_RECONCILED';
+    return f.pnlState === 'HALTED' ? 'HALTED' : 'SUBMITTED_UNKNOWN';
+  }
+  if (f.pnlState !== 'KNOWN' && f.evidence?.kind === 'RECEIPT_RECONCILED') return 'HALTED';
+  const e = f.evidence;
+  if (f.planQualified && e?.kind === 'NATIVE_SIM' && e.success && !e.fixture && e.fidelity === 'existing-native' && e.overrideRefs.length === 0) return 'SIMULATED_OPPORTUNITY';
+  if (f.planQualified) return 'MODEL_OPPORTUNITY';
+  if (f.policyUnsupported.length) return 'POLICY_UNSUPPORTED';
+  const outcomes = f.ledger.items.map(i => i.outcome);
+  if (f.inputBlockers.length && !outcomes.includes('EVALUATED')) return outcomes.length && outcomes.every(o => o === 'DISCOVERED' || o === 'RESOLVED') ? 'DISCOVERY_ONLY' : 'INPUT_BLOCKED';
+  if (!outcomes.includes('EVALUATED')) return outcomes.some(o => ['UNSUPPORTED', 'INCOMPLETE_DATA', 'DEFERRED_BUDGET'].includes(o)) ? 'COVERAGE_BLOCKED' : 'DISCOVERY_ONLY';
+  return f.search.complete && f.search.termination === 'domain-certified' && f.search.domainHash ? 'NO_OPPORTUNITY_WITHIN_DOMAIN' : 'INCONCLUSIVE';
+}
+/** Assembles and validates flash-round-result/1; validation rejects any status the attached evidence cannot support. */
+export async function buildRoundResult(input: { roundId: string; chainId: string; ledger: unknown; readiness: unknown; plan: unknown | null; executionEvidence: unknown | null;
+  reasonCodes: string[]; nextDependencies: string[]; search: RoundFacts['search']; artifactRefs: unknown[] }, facts: RoundFacts) {
+  const { validateIntegration } = await import('./evidence/integration.js');
+  const status = deriveRoundStatus(facts);
+  return validateIntegration<{ status: RoundStatus } & Record<string, unknown>>('Result', { schema: 'flash-round-result/1', roundId: input.roundId, chainId: input.chainId, status, ledger: input.ledger,
+    readiness: input.readiness, plan: input.plan, executionEvidence: input.executionEvidence, reasonCodes: input.reasonCodes, nextDependencies: input.nextDependencies, search: input.search, artifactRefs: input.artifactRefs });
+}

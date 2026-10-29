@@ -1,0 +1,522 @@
+{
+  "schema": "feature-ledger/1",
+  "featureId": "flashloan-skill-v7-integration",
+  "status": "Implementing",
+  "source": {
+    "path": "docs/flashloan-prompt-v7-skill-remediation-spec-2026-10-29.md",
+    "note": "gitignored source; schema block extracted byte-exact",
+    "baseRevision": "306ca6e65323392ec3e41e14e23ff7487af29b48"
+  },
+  "contract": {
+    "id": "urn:flashloan-integration:1",
+    "path": "schemas/flashloan-integration-v1.schema.json",
+    "sha256": "1de7fced7a55bccf7fc5c45ab41934087344054961238a48484598944256aaaf",
+    "bytes": 54516,
+    "vectors": "schemas/examples/flashloan-integration-v1/vectors.json"
+  },
+  "gate": {
+    "manifest": "config/flashloan-versions.json",
+    "key": "features.integrationV7",
+    "default": false
+  },
+  "errata": [
+    {
+      "id": "E1",
+      "finding": "Timestamp uses format date-time; repo has no ajv-formats and strict Ajv throws unknown format",
+      "resolution": "Loader registers date-time as RFC3339 UTC regex; no new dependency"
+    },
+    {
+      "id": "E2",
+      "finding": "6 strictTypes violations (Asset if/then/else assetId; CandidateResultV2 snapshot/researchPlan/researchPlans allOf)",
+      "resolution": "Own Ajv instance with strictTypes:false; bytes unchanged because HyperMove pins the SHA; fix in a coordinated v1.1"
+    },
+    {
+      "id": "E3",
+      "finding": "reasonCode/reasonCodes are free strings; no closed registry",
+      "resolution": "Closed REASON_CODES registry in src/evidence/integration.ts enforced by the semantic validator"
+    },
+    {
+      "id": "E4",
+      "finding": "Uint regex admits 2^256 (78 digits)",
+      "resolution": "Semantic validator reuses uint() from src/liquidity/state.ts (INTEGER_OUT_OF_RANGE)"
+    },
+    {
+      "id": "E5",
+      "finding": "Legacy digest() accepts unsafe integers, floats and lone surrogates",
+      "resolution": "domainHash adds the guards; digest() unchanged for legacy hashes"
+    },
+    {
+      "id": "E6",
+      "finding": "v6 FlashloanVersions schema is closed (additionalProperties:false) and vendor-pinned, so v7 keys cannot be added to config/flashloan-versions.json",
+      "resolution": "Sibling config/flashloan-integration-versions.json binds the base manifest, prompt v7, contract and admission-producer list by sha256; gate features.integrationV7 defaults false"
+    }
+  ],
+  "resultStatusMap": {
+    "DISCOVERY_ONLY": "INCONCLUSIVE",
+    "COVERAGE_BLOCKED": "COVERAGE_BLOCKED",
+    "INPUT_BLOCKED": "INPUT_BLOCKED",
+    "POLICY_UNSUPPORTED": "POLICY_UNSUPPORTED",
+    "VERSION_UNSUPPORTED": "TOOL_ERROR",
+    "INCONCLUSIVE": "INCONCLUSIVE",
+    "NO_OPPORTUNITY_WITHIN_DOMAIN": "NO_OPPORTUNITY",
+    "MODEL_OPPORTUNITY": null,
+    "SIMULATED_OPPORTUNITY": "SIMULATED_OPPORTUNITY",
+    "SUBMITTED_UNKNOWN": null,
+    "RECEIPT_RECONCILED": "RECONCILED",
+    "HALTED": null,
+    "TOOL_ERROR": "TOOL_ERROR"
+  },
+  "items": [
+    {
+      "id": "SK-00",
+      "title": "Contract loader, semantic validators, domainHash",
+      "dependsOn": [],
+      "new": [
+        "src/evidence/integration.ts"
+      ],
+      "modify": [],
+      "functions": [
+        "validateIntegration(def, value)",
+        "domainHash(domain, value)",
+        "REASON_CODES"
+      ],
+      "tests": [
+        "FLASHLOAN_V7_EDGE_00",
+        "FLASHLOAN_V7_EDGE_02",
+        "FLASHLOAN_V7_EDGE_03"
+      ],
+      "matrix": [
+        "S-E04"
+      ],
+      "lanes": [
+        "A"
+      ],
+      "status": "IMPLEMENTED_LANE_A",
+      "implementedIn": [
+        "src/evidence/integration.ts"
+      ],
+      "runtimeTests": "src/test/flashloan-v7-runtime.test.ts"
+    },
+    {
+      "id": "SK-01",
+      "title": "Canonical v4 inventory bridge",
+      "dependsOn": [
+        "SK-00"
+      ],
+      "new": [
+        "src/evm/v4-resolution.ts"
+      ],
+      "modify": [
+        "src/evm/pool-universe.ts",
+        "src/evm/discovery.ts"
+      ],
+      "functions": [
+        "resolveV4Pools(request, reader, counters) -> PoolResolutionReport",
+        "toAnalyticsConfig(ResolvedPool) -> AnalyticsPoolConfig",
+        "readV4Initialize(reader, manager, ids, range, counters)"
+      ],
+      "tests": [
+        "FLASHLOAN_V7_EDGE_01",
+        "v7 SK-01 resolves 23-pool captured inventory with one disposition each",
+        "v7 SK-01 reorged Initialize log invalidates cached key",
+        "v7 SK-01 batched snapshots pinned to one blockHash"
+      ],
+      "matrix": [
+        "S-E01",
+        "S-E02"
+      ],
+      "lanes": [
+        "A",
+        "B"
+      ],
+      "status": "IMPLEMENTED_LANE_A",
+      "implementedIn": [
+        "src/evm/v4-resolution.ts",
+        "src/evm/discovery.ts (shared readV4Initialize/v4PoolStateSlot)",
+        "src/evm/pool-universe.ts (opt-in inventory.v3)"
+      ],
+      "runtimeTests": "src/test/flashloan-v7-runtime.test.ts"
+    },
+    {
+      "id": "SK-02",
+      "title": "Typed intent and single policy compiler",
+      "dependsOn": [
+        "SK-00"
+      ],
+      "new": [
+        "src/evidence/intent.ts"
+      ],
+      "modify": [
+        "src/evidence/economics.ts",
+        "src/evm/cli.ts"
+      ],
+      "functions": [
+        "adaptIntent(intent, refs) -> {request, constraints} | INPUT_BLOCKED",
+        "compilePolicy(..., nowNs, requestedConstraints?)",
+        "toEffectivePolicy(policy, profileRef, asset) -> Policy"
+      ],
+      "tests": [
+        "v7 SK-02 absent constraints keep compilePolicy output byte-identical",
+        "v7 SK-02 constraints only tighten",
+        "v7 SK-02 null profileRef yields INPUT_BLOCKED for sizing"
+      ],
+      "matrix": [
+        "S-E04",
+        "S-E11"
+      ],
+      "lanes": [
+        "A"
+      ],
+      "status": "IMPLEMENTED_LANE_A",
+      "implementedIn": [
+        "src/evidence/intent.ts",
+        "src/evidence/economics.ts (compilePolicy requestedConstraints)",
+        "src/evm/cli.ts (integration-run)"
+      ],
+      "runtimeTests": "src/test/flashloan-v7-runtime.test.ts"
+    },
+    {
+      "id": "SK-03",
+      "title": "Immutable deployment artifact provenance",
+      "dependsOn": [
+        "SK-00"
+      ],
+      "new": [],
+      "modify": [
+        "src/evm/deployment.ts",
+        "src/evm/cli.ts",
+        "schemas/evm-deployment-manifest.schema.json",
+        ".gitignore (!docs/deployments/artifacts/)"
+      ],
+      "functions": [
+        "storeArtifact(bytes) -> sha256 path",
+        "buildExecutorManifest(entry, artifact, compiler) -> ExecutorManifest",
+        "verifyRuntime(code, artifact, immutables: Record<name,value>)"
+      ],
+      "tests": [
+        "v7 SK-03 historical artifact passes and one-byte mutation rejects",
+        "v7 SK-03 current out/ build cannot overwrite stored manifest"
+      ],
+      "matrix": [
+        "S-E03"
+      ],
+      "lanes": [
+        "A",
+        "B"
+      ],
+      "status": "IMPLEMENTED_LANE_A",
+      "implementedIn": [
+        "src/evm/deployment.ts (storeArtifact, buildExecutorManifest, verifyExecutorManifest, verifyRuntime extras)",
+        "src/evm/cli.ts (deployment-status --executor-manifest)"
+      ],
+      "runtimeTests": "src/test/flashloan-v7-runtime.test.ts"
+    },
+    {
+      "id": "SK-04",
+      "title": "Gas evidence, reservation and ledger",
+      "dependsOn": [
+        "SK-02"
+      ],
+      "new": [],
+      "modify": [
+        "src/evidence/economics.ts",
+        "src/evm-fees.ts"
+      ],
+      "functions": [
+        "buildRouteCost(estimateEvmFees result, conversion, budget, policy, state, feeRef) -> Cost",
+        "nativeToRepaymentUpper(raw, nativeUpper, repaymentLower, decimals) in evm-fees.ts; nativeCostInAsset delegates",
+        "contractMinSurplus(policy, cost)",
+        "verifyPlanV7(plan, policy, cost)"
+      ],
+      "tests": [
+        "FLASHLOAN_V7_EDGE_02",
+        "v7 SK-04 reservation never becomes modeled cost"
+      ],
+      "matrix": [
+        "S-E04",
+        "S-E10"
+      ],
+      "lanes": [
+        "A"
+      ],
+      "status": "IMPLEMENTED_LANE_A",
+      "implementedIn": [
+        "src/evm-fees.ts (nativeToRepaymentUpper)",
+        "src/evidence/economics.ts (buildRouteCost, contractMinSurplus, verifyPlanV7)"
+      ],
+      "runtimeTests": "src/test/flashloan-v7-runtime.test.ts"
+    },
+    {
+      "id": "SK-05",
+      "title": "Native-v4 executor capability",
+      "dependsOn": [
+        "SK-03"
+      ],
+      "new": [
+        "contracts/core/FlashCallbackCore.sol",
+        "contracts/NativeV4FlashExecutor.sol",
+        "test/NativeV4FlashExecutor.t.sol"
+      ],
+      "modify": [
+        "src/evm/deployment.ts",
+        "src/evm/abi-check.ts"
+      ],
+      "functions": [
+        "executeNativeArbitrage(NativeRoute)",
+        "_settleNative: sync(address(0)) then settle{value}",
+        "receive(): only manager/WETH in permitted phase"
+      ],
+      "tests": [
+        "test_nativeCycleUnwrapSwapWrapRepays",
+        "test_priorErc20SyncResetBeforeNativeSettle",
+        "test_forcedEthDuringCallbackNotCountedAsProfit",
+        "test_receiveReentrancyReverts",
+        "CallbackAuthParity (MultiVenue, PortableSplit, NativeV4)"
+      ],
+      "matrix": [
+        "S-E02",
+        "S-E05",
+        "S-E06"
+      ],
+      "lanes": [
+        "A",
+        "B"
+      ],
+      "status": "IMPLEMENTED_LANE_A",
+      "implementedIn": [
+        "contracts/core/FlashCallbackCore.sol",
+        "contracts/NativeV4FlashExecutor.sol",
+        "test/NativeV4FlashExecutor.t.sol",
+        "src/evm/deployment.ts (constructor args, -native-v4 ledger lane)",
+        "src/evm/abi-check.ts"
+      ],
+      "runtimeTests": "test/NativeV4FlashExecutor.t.sol (forge test --match-path)"
+    },
+    {
+      "id": "SK-06",
+      "title": "Single and split execution codec selection",
+      "dependsOn": [
+        "SK-04",
+        "SK-05"
+      ],
+      "new": [],
+      "modify": [
+        "src/liquidity/arbitrum-execution.ts",
+        "src/contracts/flash-executor.ts"
+      ],
+      "functions": [
+        "selectRouteCodec(manifest.capabilities, mode) -> RouteCodec | POLICY_UNSUPPORTED",
+        "PORTABLE_SPLIT_ROUTE_CODEC",
+        "NATIVE_V4_ROUTE_CODEC"
+      ],
+      "tests": [
+        "v7 SK-06 split request on single-only deployment returns POLICY_UNSUPPORTED",
+        "v7 SK-06 shared-pool ordered replay equals exact execution"
+      ],
+      "matrix": [
+        "S-E05"
+      ],
+      "lanes": [
+        "A"
+      ],
+      "status": "IMPLEMENTED_LANE_A",
+      "implementedIn": [
+        "src/liquidity/arbitrum-execution.ts (selectRouteCodec, PORTABLE_SPLIT_ROUTE_CODEC, NATIVE_V4_ROUTE_CODEC, nativeRouteCalldata, portableSplitCalldata)",
+        "src/contracts/flash-executor.ts (NATIVE_V4_ROUTE_ABI)"
+      ],
+      "runtimeTests": "src/test/flashloan-v7-runtime.test.ts"
+    },
+    {
+      "id": "SK-07",
+      "title": "Admission, authority and recovery",
+      "dependsOn": [
+        "SK-03",
+        "SK-06"
+      ],
+      "new": [],
+      "modify": [
+        "src/evm/acceptance.ts",
+        "src/liquidity/runtime.ts"
+      ],
+      "functions": [
+        "loadAdmissionEvidence(path, chainId, executor, capability)",
+        "verifyAdmissionBundle(bundle, manifest, plan, policy, state, trustedProducers)"
+      ],
+      "tests": [
+        "v7 SK-07 edited/replayed/wrong-chain proof never signs"
+      ],
+      "matrix": [
+        "S-E07"
+      ],
+      "lanes": [
+        "A"
+      ],
+      "status": "IMPLEMENTED_LANE_A",
+      "implementedIn": [
+        "src/evm/acceptance.ts (loadAdmissionEvidence capability, verifyAdmissionBundle)",
+        "config/admission-producers.json"
+      ],
+      "runtimeTests": "src/test/flashloan-v7-runtime.test.ts"
+    },
+    {
+      "id": "SK-08",
+      "title": "Readiness, freshness and transport",
+      "dependsOn": [
+        "SK-07"
+      ],
+      "new": [],
+      "modify": [
+        "src/evm/budget.ts"
+      ],
+      "functions": [
+        "toReadiness(assessReadiness(...), intent) -> Readiness"
+      ],
+      "tests": [
+        "FLASHLOAN_V7_EDGE_04",
+        "v7 SK-08 new block after simulation invalidates candidate",
+        "v7 SK-08 cancel during final verification RPC sends zero"
+      ],
+      "matrix": [
+        "S-E08",
+        "S-E09"
+      ],
+      "lanes": [
+        "A"
+      ],
+      "status": "IMPLEMENTED_LANE_A",
+      "implementedIn": [
+        "src/liquidity/runtime.ts (cancel before sign/submit)",
+        "src/evm/budget.ts (toReadiness)"
+      ],
+      "runtimeTests": "src/test/flashloan-v7-runtime.test.ts"
+    },
+    {
+      "id": "SK-09",
+      "title": "Receipt truth and bounded reporting",
+      "dependsOn": [
+        "SK-08"
+      ],
+      "new": [],
+      "modify": [
+        "src/evidence/economics.ts",
+        "src/execution-outcome.ts",
+        "src/evidence/candidate-ledger.ts"
+      ],
+      "functions": [
+        "buildRoundResult(...) -> Result",
+        "toLegacyOutcome(status)",
+        "reconcileReceipt -> ExecutionEvidence v2 adapter"
+      ],
+      "tests": [
+        "FLASHLOAN_V7_EDGE_05",
+        "v7 SK-09 unknown receipt halts without realized net"
+      ],
+      "matrix": [
+        "S-E09",
+        "S-E10"
+      ],
+      "lanes": [
+        "A",
+        "B"
+      ],
+      "status": "IMPLEMENTED_LANE_A",
+      "implementedIn": [
+        "src/execution-outcome.ts (RESULT_STATUS_MAP, deriveRoundStatus, buildRoundResult)",
+        "src/evidence/economics.ts (toExecutionEvidenceV2)"
+      ],
+      "runtimeTests": "src/test/flashloan-v7-runtime.test.ts"
+    },
+    {
+      "id": "SK-10",
+      "title": "Installation, versions, rollout, observability",
+      "dependsOn": [
+        "SK-09"
+      ],
+      "new": [
+        "skills/flashloan-agent/prompt-v7.md"
+      ],
+      "modify": [
+        "config/flashloan-versions.json",
+        "src/agent-cli.ts",
+        "package.json",
+        "src/evidence/gap-runtime.ts"
+      ],
+      "functions": [
+        "install(): copy skills + schemas + versions",
+        "checkCapabilities: integration-v1 sha + gate"
+      ],
+      "tests": [
+        "v7 SK-10 gate off output byte-identical to baseline",
+        "v7 SK-10 installed schema sha mismatch returns VERSION_UNSUPPORTED"
+      ],
+      "matrix": [
+        "S-E11",
+        "S-E12"
+      ],
+      "lanes": [
+        "A"
+      ],
+      "status": "IMPLEMENTED_LANE_A",
+      "implementedIn": [
+        "config/flashloan-integration-versions.json",
+        "skills/flashloan-agent/prompt-v7.md",
+        "src/agent-cli.ts",
+        "package.json",
+        "src/evidence/gap-runtime.ts (runIntegrationRound)"
+      ],
+      "runtimeTests": "src/test/flashloan-v7-runtime.test.ts"
+    }
+  ],
+  "matrix": {
+    "S-E01": "SK-01",
+    "S-E02": "SK-01,SK-05",
+    "S-E03": "SK-03",
+    "S-E04": "SK-00,SK-02,SK-04",
+    "S-E05": "SK-05,SK-06",
+    "S-E06": "SK-05",
+    "S-E07": "SK-07",
+    "S-E08": "SK-08",
+    "S-E09": "SK-08,SK-09",
+    "S-E10": "SK-04,SK-09",
+    "S-E11": "SK-02,SK-10",
+    "S-E12": "SK-10"
+  },
+  "lanesNotInScope": {
+    "C": "fresh mainnet unsigned simulation",
+    "D": "authorized deployment + budgeted transaction",
+    "E": "canonical receipt/finality",
+    "status": "PENDING owner authorization"
+  },
+  "debt": [
+    {
+      "id": "D-01",
+      "what": "Callback auth exists in 3 contract families",
+      "ceiling": "parity suite guards behavior",
+      "upgrade": "migrate legacy onto FlashCallbackCore at next legacy redeploy"
+    }
+  ],
+  "pendingLanes": {
+    "B": "pinned Robinhood fork: deploy NativeV4FlashExecutor against real WETH + PoolManager, no broadcast",
+    "C": "fresh unsigned mainnet simulation",
+    "D": "separately authorized deployment and budgeted trade",
+    "E": "receipt/finality reconciliation",
+    "status": "PENDING owner authorization"
+  },
+  "implementationFindings": [
+    {
+      "id": "I1",
+      "finding": "Final reorg check charged the round budget after an exhausted scan, escaping as DEFERRED_RPC_BUDGET",
+      "fix": "head + final verification reserved up front; exhausted scans yield RESOLUTION_BUDGET rows"
+    },
+    {
+      "id": "I2",
+      "finding": "roundId leaked into effective-policy identity via embedded EvidenceRef traceId",
+      "fix": "refs inside Policy use a policy-derived trace id"
+    },
+    {
+      "id": "I3",
+      "finding": "Native executor's third immutable (wrapper code hash) would fail verifyExecutorManifest",
+      "fix": "status binds the wrapper's live code hash read from chain"
+    }
+  ]
+}

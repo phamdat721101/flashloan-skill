@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { AERO_EXECUTOR_ABI, AERO_V2_EXECUTOR_ABI } from '../aero/execution.js';
 import { toFunctionSelector, toEventSelector, type Abi, type AbiFunction, type AbiEvent } from 'viem';
-import { FLASH_EXECUTOR_ABI, IMMUTABLE_V4_EXECUTOR_ABI, PORTABLE_SPLIT_ABI } from '../contracts/flash-executor.js';
+import { FLASH_EXECUTOR_ABI, IMMUTABLE_V4_EXECUTOR_ABI, NATIVE_V4_ROUTE_ABI, PORTABLE_SPLIT_ABI } from '../contracts/flash-executor.js';
 import { MULTI_LENDER_ROUTE_ABI } from '../liquidity/arbitrum.js';
 
 export async function checkExecutorAbis(): Promise<void> {
@@ -22,6 +22,8 @@ export async function checkExecutorAbis(): Promise<void> {
     compare(await artifact(name),name === 'ImmutableArbitrageExecutor' ? IMMUTABLE_V4_EXECUTOR_ABI : FLASH_EXECUTOR_ABI.filter(i=>i.type==='function' && i.name===fn));
   }
   compare(portable,PORTABLE_SPLIT_ABI);
+  const native=await artifact('NativeV4FlashExecutor'); compare(native,NATIVE_V4_ROUTE_ABI);
+  if(native.some((a)=>a.type==='function'&&['executeLenderArbitrage','executeSplitArbitrage'].includes(a.name)))throw new Error('NATIVE_REUSES_LEGACY_SELECTOR');
   compare(await artifact('AeroSplitFlashExecutor'),AERO_EXECUTOR_ABI);
   compare(await artifact('AeroSplitFlashExecutorV2'),AERO_V2_EXECUTOR_ABI);
   const split=portable.find((a):a is AbiFunction=>a.type==='function' && a.name==='executeSplitArbitrage');

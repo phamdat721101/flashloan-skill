@@ -12,7 +12,8 @@ import { digest, SnapshotStore, uint } from '../liquidity/state.js';
 import { AttemptJournal } from '../liquidity/journal.js';
 import { LiquidityRuntime, type RouteCandidate } from '../liquidity/runtime.js';
 import { ExecutionLock } from '../execution-lock.js';
-import { atomicJson, loadSigner, parseManifest, secureEndpoint, type DeploymentState } from './deployment.js';
+import { atomicJson, loadSigner, parseManifest, secureEndpoint, type DeploymentState, type ExecutorManifest } from './deployment.js';
+import { domainHash, IntegrationError, sha256Bytes, validateIntegration, without } from '../evidence/integration.js';
 
 export interface AcceptanceConfig {
   schemaVersion: '1.0'; chainId: number; manifestPath: string; deploymentStatePath: string;
@@ -61,9 +62,8 @@ export function parseAcceptance(input: unknown): AcceptanceConfig {
   return structuredClone(c);
 }
 /** Local proof artifacts are explicit host inputs. Their contents and capabilities must agree. */
-export async function loadAdmissionEvidence(path: string, chainId: number, executor: { runtimeCodeHash: Hex; artifactHash: string }) {
+export async function loadAdmissionEvidence(path: string, chainId: number, executor: { runtimeCodeHash: Hex; artifactHash: string }, capability: string = toFunctionSelector(MULTI_LENDER_ROUTE_ABI[0])) {
   const evidence=JSON.parse(await readFile(path,'utf8'));
-  const capability=toFunctionSelector(MULTI_LENDER_ROUTE_ABI[0]);
   if(!evidence || Object.keys(evidence).sort().join(',')!=='artifactHash,capability,chainId,executorCodeHash,proofs,schemaVersion' || evidence.schemaVersion!=='1.0' || evidence.chainId!==chainId || evidence.executorCodeHash!==executor.runtimeCodeHash || evidence.artifactHash!==executor.artifactHash || evidence.capability!==capability || !evidence.proofs || Object.keys(evidence.proofs).sort().join(',')!=='canary,math,schema,simulation')throw new Error('MISSING_EXECUTION_ADMISSION_EVIDENCE');
   const verified: Record<string,string>={};
   for(const kind of ['schema','math','simulation','canary']) {
@@ -221,3 +221,32 @@ export async function runAcceptance(path: string, envFile?: string, reconcileOnl
     state.status='NO_PROFITABLE_OPPORTUNITY';await save();return state;
   });
 }
+
+/** v7 SK-07: typed admission. Every reference is re-hashed from bytes; the producer list is hash-pinned outside the bundle; a fixture never admits. */
+export interface AdmissionBinding { manifest: ExecutorManifest; capability: string; payloadHash: string; policyHash: string; stateDigest: string }
+export async function verifyAdmissionBundle(bundleInput: unknown, binding: AdmissionBinding, trusted: { producersBytes: Uint8Array; pinnedSha256: string }, options: { now: Date; proofRoot: string }) {
+  const bundle = validateIntegration<{ chainId: string; executorManifestHash: string; capability: string; payloadHash: string; policyHash: string; stateDigest: string; expiresAt: string;
+    schemaProofRef: Ref; mathProofRef: Ref; canaryProofRef: Ref; nativeSimulationRef: Ref; producerRef: Ref; ownerReviewRef: Ref }>('AdmissionBundle', bundleInput);
+  if (sha256Bytes(trusted.producersBytes) !== `sha256:${trusted.pinnedSha256}`) throw new IntegrationError('PRODUCER_UNTRUSTED', 'producer list hash differs from the pinned owner-reviewed list');
+  const producers = JSON.parse(Buffer.from(trusted.producersBytes).toString('utf8')) as { schema: string; producers: Array<{ contentHash: string }> };
+  if (producers.schema !== 'admission-producers/1' || !producers.producers.some(p => p.contentHash === bundle.producerRef.contentHash)) throw new IntegrationError('PRODUCER_UNTRUSTED');
+  const m = binding.manifest;
+  if (m.manifestHash !== domainHash('flash/executor-manifest/1', without(m, 'manifestHash')) || bundle.executorManifestHash !== m.manifestHash || bundle.chainId !== m.chainId) throw new IntegrationError('ADMISSION_BINDING_MISMATCH', 'executor manifest');
+  if (bundle.capability !== binding.capability || !m.capabilities.includes(bundle.capability)) throw new IntegrationError('ADMISSION_BINDING_MISMATCH', 'capability');
+  for (const k of ['payloadHash', 'policyHash', 'stateDigest'] as const) if (bundle[k] !== binding[k]) throw new IntegrationError('ADMISSION_BINDING_MISMATCH', k);
+  const refs = [bundle.schemaProofRef, bundle.mathProofRef, bundle.canaryProofRef, bundle.nativeSimulationRef, bundle.producerRef, bundle.ownerReviewRef];
+  if (Date.parse(bundle.expiresAt) <= options.now.getTime() || refs.some(r => r.expiresAt !== null && Date.parse(r.expiresAt) <= options.now.getTime())) throw new IntegrationError('ADMISSION_EXPIRED');
+  const bytes = new Map<Ref, Buffer>();
+  for (const ref of refs) {
+    if (!/^[A-Za-z0-9._-]+(\/[A-Za-z0-9._-]+)*$/.test(ref.locator) || ref.locator.split('/').includes('..')) throw new IntegrationError('ADMISSION_BINDING_MISMATCH', 'locator');
+    const b = await readFile(`${options.proofRoot}/${ref.locator}`).catch(() => { throw new IntegrationError('ADMISSION_MISSING', ref.locator); });
+    if (sha256Bytes(b) !== ref.contentHash) throw new IntegrationError('ADMISSION_BINDING_MISMATCH', `bytes ${ref.locator}`);
+    bytes.set(ref, b);
+  }
+  const sim = validateIntegration<{ kind: string; fixture: boolean; success: boolean; fidelity: string; overrideRefs: unknown[]; payloadHash: string; policyHash: string; executorManifestHash: string; chainId: string }>(
+    'ExecutionEvidence', JSON.parse(bytes.get(bundle.nativeSimulationRef)!.toString('utf8')));
+  if (sim.fixture || sim.fidelity !== 'existing-native' || sim.kind !== 'NATIVE_SIM' || !sim.success || sim.overrideRefs.length) throw new IntegrationError('ADMISSION_FIXTURE', 'native simulation proof is not existing-native without overrides');
+  if (sim.payloadHash !== binding.payloadHash || sim.policyHash !== binding.policyHash || sim.executorManifestHash !== m.manifestHash || sim.chainId !== m.chainId) throw new IntegrationError('ADMISSION_BINDING_MISMATCH', 'simulation');
+  return { admitted: true as const, capability: bundle.capability, refs: refs.map(r => r.contentHash) };
+}
+type Ref = { kind: string; contentHash: string; expiresAt: string | null; locator: string };

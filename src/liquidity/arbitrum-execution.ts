@@ -1,7 +1,7 @@
-import { createPublicClient, decodeEventLog, decodeFunctionData, encodeAbiParameters, hexToBytes, http, keccak256, parseAbi, parseTransaction, recoverTransactionAddress, toHex, type Abi, type Address, type Hex, type LocalAccount } from 'viem';
+import { createPublicClient, decodeEventLog, decodeFunctionData, encodeAbiParameters, encodeFunctionData, hexToBytes, http, keccak256, parseAbi, parseTransaction, recoverTransactionAddress, toHex, type Abi, type Address, type Hex, type LocalAccount } from 'viem';
 import { evmProfile, PROFIT_ASSETS } from '../evm-chains.js';
 import { estimateEvmFees, nativeCostInAsset, receiptNativeCost, type GasValuation } from '../evm-fees.js';
-import { DYNAMIC_V4_EXECUTOR_DEPLOYMENT, MULTI_VENUE_EXECUTOR_DEPLOYMENT } from '../contracts/flash-executor.js';
+import { DYNAMIC_V4_EXECUTOR_DEPLOYMENT, MULTI_VENUE_EXECUTOR_DEPLOYMENT, NATIVE_V4_ROUTE_ABI, PORTABLE_SPLIT_ABI } from '../contracts/flash-executor.js';
 import { MULTI_LENDER_ROUTE_ABI } from './arbitrum.js';
 import { digest, uint } from './state.js';
 import { buildLedger, reconcileReceipt, type ExecutionEvidence } from '../evidence/economics.js';
@@ -48,6 +48,79 @@ export const MULTI_VENUE_ROUTE_CODEC: RouteCodec = {
     return { proven: event.routeHash === routeHash && event.asset.toLowerCase() === view.flashAsset.toLowerCase() && event.flashAmount === view.flashAmount && event.legs === BigInt(view.size) && event.netProfit >= view.minProfit, profit: event.netProfit };
   }
 };
+type LegArgs = { venueVersion: number; root: Address; pool: Address; hooks: Address; hookData: Hex };
+type SplitRouteArgs = { kind: number; lender: Address; flashAsset: Address; flashAmount: bigint; branches: Array<{ amountIn: bigint; legs: LegArgs[] }>; minProfit: bigint; deadline: bigint };
+type NativeRouteArgs = { lenderKind: number; lender: Address; flashAsset: Address; principalRaw: bigint; minSurplusRaw: bigint; deadline: bigint;
+  branches: Array<{ allocationRaw: bigint; actions: Array<{ kind: number; manager: Address; key: { hooks: Address }; hookData: Hex }> }> };
+/** v7 SK-06: the portable split codec; V2 legs request leg.minAmountOut from the pair, so it must equal the exact quoted output (review A5). */
+export const PORTABLE_SPLIT_ROUTE_CODEC: RouteCodec = {
+  decode(calldata) {
+    const route = decodeFunctionData({ abi: [PORTABLE_SPLIT_ABI[0]], data: calldata }).args[0] as unknown as SplitRouteArgs;
+    const legs = route.branches.flatMap(b => b.legs);
+    return { kind: route.kind, supportedKind: [1, 2].includes(route.kind) && route.branches.length > 0 && route.branches.length <= 8 && route.branches.reduce((s, b) => s + b.amountIn, 0n) === route.flashAmount,
+      unsupportedLeg: legs.some(leg => ![2, 3, 4, 5].includes(leg.venueVersion) || leg.hooks !== zero || leg.hookData !== '0x'),
+      lender: route.lender, flashAsset: route.flashAsset, flashAmount: route.flashAmount, minProfit: route.minProfit, deadline: route.deadline,
+      pinned: [route.lender, ...legs.flatMap(leg => [leg.root, ...(leg.venueVersion === 4 ? [] : [leg.pool])])], size: route.branches.length };
+  },
+  prove(logs, executor, calldata, view) {
+    const route = decodeFunctionData({ abi: [PORTABLE_SPLIT_ABI[0]], data: calldata }).args[0] as unknown as SplitRouteArgs;
+    const routeHash = keccak256(encodeAbiParameters(PORTABLE_SPLIT_ABI[0].inputs, [route]));
+    const events = decodeExecutorEvents(logs, executor, PORTABLE_SPLIT_ABI, 'SplitArbitrageExecuted');
+    if (events.length !== 1) return { proven: false, profit: 0n };
+    const e = events[0] as { routeHash: Hex; asset: Address; principal: bigint; profit: bigint; branches: bigint };
+    return { proven: e.routeHash === routeHash && e.asset.toLowerCase() === view.flashAsset.toLowerCase() && e.principal === view.flashAmount && e.branches === BigInt(view.size) && e.profit >= view.minProfit, profit: e.profit };
+  }
+};
+/** Encodes V2 legs with their exact quoted output as the requested amount; other venues keep their min-output guard. */
+export function portableSplitCalldata(route: { kind: number; lender: Address; flashAsset: Address; flashAmount: bigint; minProfit: bigint; deadline: bigint;
+  branches: Array<{ amountIn: bigint; legs: Array<{ venueVersion: number; root: Address; pool: Address; tokenIn: Address; tokenOut: Address; minAmountOut: bigint; quotedOutRaw: bigint; fee: number; sqrtPriceLimitX96: bigint; tickSpacing: number; hooks: Address; hookData: Hex }> }> }): Hex {
+  const branches = route.branches.map(b => ({ amountIn: b.amountIn, legs: b.legs.map(({ quotedOutRaw, ...leg }) => {
+    if (leg.venueVersion === 2 && quotedOutRaw < leg.minAmountOut) throw new Error('V2_REQUESTED_OUTPUT_BELOW_MIN');
+    return { ...leg, minAmountOut: leg.venueVersion === 2 ? quotedOutRaw : leg.minAmountOut };
+  }) }));
+  return encodeFunctionData({ abi: PORTABLE_SPLIT_ABI, functionName: 'executeSplitArbitrage', args: [{ ...route, branches }] });
+}
+/** v7 SK-05/06: native-v4 codec. Surplus is the event's attributable surplus; unexplainedNative is custody and never profit. */
+export const NATIVE_V4_ROUTE_CODEC: RouteCodec = {
+  decode(calldata) {
+    const route = decodeFunctionData({ abi: [NATIVE_V4_ROUTE_ABI[0]], data: calldata }).args[0] as unknown as NativeRouteArgs;
+    const actions = route.branches.flatMap(b => b.actions);
+    return { kind: route.lenderKind, supportedKind: [1, 2].includes(route.lenderKind) && route.branches.length > 0 && route.branches.reduce((s, b) => s + b.allocationRaw, 0n) === route.principalRaw,
+      unsupportedLeg: actions.some(a => a.kind > 2 || a.key.hooks !== zero || a.hookData !== '0x'),
+      lender: route.lender, flashAsset: route.flashAsset, flashAmount: route.principalRaw, minProfit: route.minSurplusRaw, deadline: route.deadline,
+      pinned: [route.lender, ...new Set(actions.filter(a => a.kind === 0).map(a => a.manager))], size: route.branches.length };
+  },
+  prove(logs, executor, calldata, view) {
+    const route = decodeFunctionData({ abi: [NATIVE_V4_ROUTE_ABI[0]], data: calldata }).args[0] as unknown as NativeRouteArgs;
+    const routeHash = keccak256(encodeAbiParameters(NATIVE_V4_ROUTE_ABI[0].inputs, [route]));
+    const events = decodeExecutorEvents(logs, executor, NATIVE_V4_ROUTE_ABI, 'NativeArbitrageExecuted');
+    if (events.length !== 1) return { proven: false, profit: 0n };
+    const e = events[0] as { routeHash: Hex; asset: Address; principal: bigint; surplus: bigint; branches: bigint };
+    return { proven: e.routeHash === routeHash && e.asset.toLowerCase() === view.flashAsset.toLowerCase() && e.principal === view.flashAmount && e.branches === BigInt(view.size) && e.surplus >= view.minProfit, profit: e.surplus };
+  }
+};
+export type PoolDescriptor = { manager: Address; key: { currency0: Address; currency1: Address; fee: number; tickSpacing: number; hooks: Address } };
+const NONE_KEY = { currency0: zero, currency1: zero, fee: 0, tickSpacing: 0, hooks: zero } as const;
+/** execution-plan/1 -> exact native calldata. Asset ids map to addresses (native = zero), pool ids resolve only through verified descriptors. */
+export function nativeRouteCalldata(plan: { principalRaw: string; deployedRaw: string; expiresAt: string; branches: Array<{ allocationRaw: string; actions: Array<{ kind: 'SWAP' | 'WRAP' | 'UNWRAP'; tokenIn: string; tokenOut: string; minAmountOutRaw: string; poolId: string | null }> }> },
+  lender: { kind: 1 | 2; address: Address }, flashAsset: Address, minSurplusRaw: bigint, descriptors: ReadonlyMap<string, PoolDescriptor>): Hex {
+  const address = (assetId: string) => /\/slip44:60$/.test(assetId) ? zero : (/\/erc20:(0x[0-9a-f]{40})$/.exec(assetId)?.[1] ?? (() => { throw new Error('CODEC_UNAVAILABLE'); })()) as Address;
+  if (plan.principalRaw !== plan.deployedRaw) throw new Error('CODEC_UNAVAILABLE'); // the native executor borrows exactly the deployed principal
+  const branches = plan.branches.map(b => ({ allocationRaw: BigInt(b.allocationRaw), actions: b.actions.map(a => {
+    if (a.kind !== 'SWAP') return { kind: a.kind === 'UNWRAP' ? 1 : 2, tokenIn: address(a.tokenIn), tokenOut: address(a.tokenOut), minAmountOut: BigInt(a.minAmountOutRaw), manager: zero, key: NONE_KEY, sqrtPriceLimitX96: 0n, hookData: '0x' as Hex };
+    const d = a.poolId ? descriptors.get(a.poolId) : undefined;
+    if (!d) throw new Error('CODEC_UNAVAILABLE');
+    return { kind: 0, tokenIn: address(a.tokenIn), tokenOut: address(a.tokenOut), minAmountOut: BigInt(a.minAmountOutRaw), manager: d.manager, key: d.key, sqrtPriceLimitX96: 0n, hookData: '0x' as Hex };
+  }) }));
+  return encodeFunctionData({ abi: NATIVE_V4_ROUTE_ABI, functionName: 'executeNativeArbitrage', args: [{ lenderKind: lender.kind, lender: lender.address, flashAsset, principalRaw: BigInt(plan.principalRaw), branches, minSurplusRaw, deadline: BigInt(Math.floor(Date.parse(plan.expiresAt) / 1000)) }] });
+}
+/** Matches the requested execution mode to the deployed capability; never silently downgrades a split or native route. */
+export function selectRouteCodec(capabilities: readonly string[], mode: 'single' | 'split', native: boolean): { codec: RouteCodec; capability: string } {
+  if (native) { if (capabilities.includes('evm-native-v4/1')) return { codec: NATIVE_V4_ROUTE_CODEC, capability: 'evm-native-v4/1' }; throw new Error('UNSUPPORTED_NATIVE_CURRENCY'); }
+  if (mode === 'split') { if (capabilities.includes('erc20-portable-split/1')) return { codec: PORTABLE_SPLIT_ROUTE_CODEC, capability: 'erc20-portable-split/1' }; throw new Error('SPLIT_UNSUPPORTED'); }
+  if (capabilities.includes('erc20-multivenue/1')) return { codec: MULTI_VENUE_ROUTE_CODEC, capability: 'erc20-multivenue/1' };
+  throw new Error('CODEC_UNAVAILABLE');
+}
 export function decodeExecutorEvents(logs: ReadonlyArray<{ address: Address; data: Hex; topics: readonly Hex[] }>, executor: Address, abi: Abi, name: string): Record<string, unknown>[] {
   return logs.filter(log => log.address.toLowerCase() === executor.toLowerCase()).flatMap(log => {
     try { return [decodeEventLog({ abi, data: log.data, topics: log.topics as [Hex, ...Hex[]], strict: true })]; } catch { return []; }

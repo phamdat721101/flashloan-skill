@@ -71,3 +71,12 @@ export async function assessReadiness(mode:'research'|'unsigned-simulation'|'aut
   if(halt)reasons.push('PNL_UNKNOWN_HALT');if(!canonical)reasons.push('STATE_NOT_CANONICAL');
   return validateRecord('Readiness',{schemaVersion:'5.1',recordType:'readiness',runId,mode,state:chain.identity,operatorGasBalanceRaw:balance,gasBudgetRaw:gasBudget,executorStrayBalances:stray,adapterAdmitted:manifest.admitted,pnlUnknownHalt:halt,verdict:canonical?(reasons.length?'RESEARCH_ONLY':'READY'):'BLOCKED',reasons});
 }
+/** v7 SK-08: execution-readiness/1 view of assessReadiness. Unknown stays null (never 0); unresolved P&L blocks execution only, research continues. */
+export function toReadiness(local: { verdict: 'READY' | 'RESEARCH_ONLY' | 'BLOCKED'; reasons: string[]; operatorGasBalanceRaw: string | null; gasBudgetRaw: string | null; pnlUnknownHalt: boolean },
+  ctx: { roundId: string; chainId: string; requestedMode: 'research' | 'simulate' | 'execute'; operator: string | null; pendingAttemptIds: string[]; admissionRef: unknown | null; executorBalanceRefs: unknown[] }) {
+  const reasons = [...new Set(local.reasons)];
+  const verdict = local.verdict === 'BLOCKED' ? 'BLOCKED' : ctx.requestedMode === 'execute' && local.verdict === 'READY' && ctx.admissionRef !== null ? 'READY' : 'RESEARCH_ONLY';
+  return { schema: 'execution-readiness/1', roundId: ctx.roundId, chainId: ctx.chainId, requestedMode: ctx.requestedMode, verdict, operator: ctx.operator?.toLowerCase() ?? null,
+    gasBalanceNativeRaw: local.operatorGasBalanceRaw, gasBudgetRemainingNativeRaw: local.gasBudgetRaw, pendingAttemptIds: ctx.pendingAttemptIds,
+    pnlState: local.pnlUnknownHalt ? 'UNKNOWN' : 'KNOWN', admissionRef: ctx.admissionRef, executorBalanceRefs: ctx.executorBalanceRefs, reasonCodes: reasons };
+}

@@ -1,0 +1,30 @@
+{
+  "schema": "flash-intent/1",
+  "roundId": "robinhood-review-002",
+  "chainId": "eip155:4663",
+  "mode": "execute",
+  "selection": {
+    "movers": true,
+    "explicitAssets": [],
+    "minReportedLiquidityUsd": "10000",
+    "maxCandidates": 10
+  },
+  "requestedConstraints": {
+    "repaymentAssetId": "eip155:4663/erc20:0x0bd7d308f8e1639fab988df18a8011f41eacad73",
+    "principalCapRaw": "1000000000000000000",
+    "minNetProfitRaw": "1000",
+    "maxPriceImpactBps": 50,
+    "maxRoutes": 2
+  },
+  "profileRef": null,
+  "authorizationRef": null,
+  "previousRoundRef": null,
+  "limits": {
+    "maxRpcCalls": 100,
+    "maxEvaluations": 500,
+    "maxPools": 4,
+    "maxRoutes": 3,
+    "deadlineMs": 30000,
+    "watchDurationMs": 0
+  }
+}

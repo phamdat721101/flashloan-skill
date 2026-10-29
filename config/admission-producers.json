@@ -1,0 +1,5 @@
+{
+  "schema": "admission-producers/1",
+  "note": "Owner-reviewed list. Changing it requires an owner-approved commit and a new sha256 pin in flashloan-integration-versions.json.",
+  "producers": []
+}

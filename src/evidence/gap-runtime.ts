@@ -144,3 +144,72 @@ export async function runFlashRound(raw:unknown,options:EvidenceOptions&{host:Ga
     candidates:[...(movers?.candidates??[]),...explicit],maxCandidates:v6.selection.max_candidates,inventoryOutcomes:{},routes,evidence,capturedTokens:[...captured]});
   return {gap,ledger:validateCandidateLedger(ledger,routes,v6.selection.explicit_assets),versions,request};
 }
+
+/**
+ * v7 integration round (identity + policy + ledger half of the System Map). It never signs: execution stays in the admitted
+ * acceptance lane. Every inventory target ends with exactly one disposition and an exact next dependency.
+ */
+export async function runIntegrationRound(input: { intent: unknown; inventory: unknown; mappingBytes: Uint8Array; mappingLocator: string; versions: unknown;
+  release: { baseVersionsBytes: Uint8Array; promptBytes: Uint8Array; contractBytes: Uint8Array; producersBytes: Uint8Array }; refs: import('./intent.js').IntentRefs; nowNs: bigint },
+  reader: import('../evm/v4-resolution.js').V4Reader, now: () => number = Date.now) {
+  const { checkIntegrationVersions, RoundCounters, sha256Bytes, IntegrationError, validateIntegration } = await import('./integration.js');
+  const { adaptIntent, compileEffectivePolicy, networkIdOf } = await import('./intent.js');
+  const { partitionV4Inventory, resolveV4Pools } = await import('../evm/v4-resolution.js');
+  const { toReadiness } = await import('../evm/budget.js');
+  const { buildRoundResult } = await import('../execution-outcome.js');
+  const { parseInventory } = await import('../evm/pool-universe.js');
+  const intentRaw = input.intent as { roundId: string; chainId: string; mode: 'research' | 'simulate' | 'execute' };
+  const readiness = (reasons: string[]) => validateIntegration('Readiness', toReadiness({ verdict: 'RESEARCH_ONLY', reasons, operatorGasBalanceRaw: null, gasBudgetRaw: null, pnlUnknownHalt: true },
+    { roundId: intentRaw.roundId, chainId: intentRaw.chainId, requestedMode: intentRaw.mode, operator: null, pendingAttemptIds: [], admissionRef: null, executorBalanceRefs: [] }));
+  const emptyLedger = { schema: 'candidate-ledger/2', roundId: intentRaw.roundId, chainId: intentRaw.chainId, items: [], counts: { requested: 0, discovered: 0, resolved: 0, evaluated: 0, rejected: 0, deferred: 0, incomplete: 0, unsupported: 0 }, exhaustive: false, sourceRefs: [] };
+  const search = { attempted: 0, complete: false, termination: 'identity-only', domainHash: null };
+  try { checkIntegrationVersions(input.versions, input.release); }
+  catch (e) {
+    if (!(e instanceof IntegrationError)) throw e;
+    const result = await buildRoundResult({ roundId: intentRaw.roundId, chainId: intentRaw.chainId, ledger: emptyLedger, readiness: readiness(['BUDGET_UNAVAILABLE', 'VERSION_UNSUPPORTED']), plan: null, executionEvidence: null,
+      reasonCodes: ['VERSION_UNSUPPORTED'], nextDependencies: [e.message], search, artifactRefs: [] },
+      { versionSupported: false, inputBlockers: [], policyUnsupported: [], submitted: false, pnlState: 'UNKNOWN', evidence: null, planQualified: false, search, ledger: emptyLedger });
+    return { result, report: null, configs: [], effective: null };
+  }
+  const adapted = adaptIntent(input.intent, input.refs), intent = adapted.intent, chainNumber = Number(networkIdOf(intent.chainId));
+  const inventory = parseInventory(input.inventory, ['flashloan.inventory.v2', 'flashloan.inventory.v3']);
+  const part = partitionV4Inventory(inventory as never, chainNumber);
+  const counters = new RoundCounters(intent.limits, now() + intent.limits.deadlineMs, now);
+  const references = part.references.slice(0, Math.min(64, intent.limits.maxPools * 8));
+  const issued = new Date(now()).toISOString().replace(/\.\d+Z$/, 'Z');
+  const resolution = references.length ? await resolveV4Pools({ schema: 'pool-resolution-request/1', roundId: intent.roundId, chainId: intent.chainId, references,
+    managerMappingRef: { kind: 'configuration', contentHash: sha256Bytes(input.mappingBytes), issuedAt: issued, expiresAt: null, traceId: intent.roundId, locator: input.mappingLocator }, atBlock: null, limits: intent.limits },
+    reader, counters, { mappingBytes: input.mappingBytes }) : null;
+  type Pool = { poolId: string; asset0: { assetId: string }; asset1: { assetId: string }; support: { read: boolean; quote: boolean; prepare: boolean; simulate: boolean; execute: boolean; reasonCodes: string[] } };
+  const resolved = (resolution?.report as { resolved: Pool[]; unresolved: Array<{ providerPoolId: string; reasonCode: string; nextDependency: string }> } | undefined);
+  const repayment = input.refs.repaymentAsset ? `${intent.chainId}/erc20:${input.refs.repaymentAsset.assetId.toLowerCase()}` : null;
+  const targets = new Map<string, Set<'explicit' | 'movers'>>();
+  for (const a of intent.selection.explicitAssets) targets.set(a, new Set(['explicit']));
+  for (const r of references) for (const a of r.assetIds) if (a !== repayment) targets.set(a, (targets.get(a) ?? new Set<'explicit' | 'movers'>()).add('movers'));
+  const items = [...targets.entries()].slice(0, 40).map(([assetId, sources]) => {
+    const pools = (resolved?.resolved ?? []).filter(p => p.asset0.assetId === assetId || p.asset1.assetId === assetId);
+    const pending = (resolved?.unresolved ?? []).filter(u => references.some(r => r.providerPoolId === u.providerPoolId && r.assetIds.includes(assetId)));
+    const quotable = pools.filter(p => p.support.quote);
+    const support = { read: pools.some(p => p.support.read), quote: quotable.length > 0, prepare: pools.some(p => p.support.prepare), simulate: pools.some(p => p.support.simulate), execute: pools.some(p => p.support.execute),
+      reasonCodes: [...new Set(pools.flatMap(p => p.support.reasonCodes))].slice(0, 20) };
+    const base = { assetId, sources: [...sources].sort(), poolIds: pools.map(p => p.poolId), routeIds: [], support, evidenceRefs: [] };
+    if (quotable.length) return { ...base, outcome: 'RESOLVED', stage: 'identity', reasonCode: null, nextDependency: null };
+    if (pools.length) return { ...base, outcome: 'UNSUPPORTED', stage: 'identity', reasonCode: support.reasonCodes[0] ?? 'UNSUPPORTED_HOOK', nextDependency: 'reviewed adapter for hooked/dynamic-fee/native pools' };
+    if (pending.length) return { ...base, outcome: 'INCOMPLETE_DATA', stage: 'identity', reasonCode: pending[0].reasonCode, nextDependency: pending[0].nextDependency };
+    return { ...base, outcome: 'DISCOVERED', stage: 'discovery', reasonCode: null, nextDependency: null };
+  });
+  const tally = (o: string) => items.filter(i => i.outcome === o).length;
+  const ledger = validateIntegration('CandidateLedger', { schema: 'candidate-ledger/2', roundId: intent.roundId, chainId: intent.chainId, items,
+    counts: { requested: items.length, discovered: tally('DISCOVERED'), resolved: tally('RESOLVED'), evaluated: tally('EVALUATED'), rejected: tally('REJECTED'), deferred: tally('DEFERRED_BUDGET'), incomplete: tally('INCOMPLETE_DATA'), unsupported: tally('UNSUPPORTED') },
+    exhaustive: false, sourceRefs: [] }) as { items: Array<{ outcome: string; nextDependency: string | null }> };
+  const effective = adapted.kind === 'ready' && input.refs.profile && input.refs.repaymentAsset && input.refs.valuation
+    ? compileEffectivePolicy(adapted, { profile: input.refs.profile, repaymentAsset: input.refs.repaymentAsset, valuation: input.refs.valuation }, input.nowNs).effective : null;
+  const blockers = adapted.kind === 'ready' ? adapted.blockers : adapted.blockers;
+  const next = [...new Set([...blockers.map(b => `resolve ${b}`), ...ledger.items.map(i => i.nextDependency).filter((d): d is string => !!d),
+    ...(ledger.items.some(i => i.outcome === 'RESOLVED') ? ['amount-aware route search and exact native simulation over resolved v4 configs'] : [])])].slice(0, 32);
+  const result = await buildRoundResult({ roundId: intent.roundId, chainId: intent.chainId, ledger, readiness: readiness(['BUDGET_UNAVAILABLE', ...blockers.filter(b => b !== 'INPUT_BLOCKED_VALUATION'), 'RESEARCH_MODE']),
+    plan: null, executionEvidence: null, reasonCodes: blockers, nextDependencies: next.length ? next : ['no v4 targets in inventory'], search: { ...search, attempted: counters.evaluations },
+    artifactRefs: effective ? [{ kind: 'configuration', contentHash: effective.policyHash, issuedAt: issued, expiresAt: null, traceId: intent.roundId, locator: 'effective-policy' }] : [] },
+    { versionSupported: true, inputBlockers: blockers, policyUnsupported: [], submitted: false, pnlState: 'UNKNOWN', evidence: null, planQualified: false, search, ledger });
+  return { result, report: resolution?.report ?? null, configs: resolution?.configs ?? [], effective };
+}

@@ -2,16 +2,17 @@ import { atomicJson } from './storage.js';
 import { AERO_EXECUTOR_ABI, AERO_V2_EXECUTOR_ABI } from '../aero/execution.js';
 export { atomicJson } from './storage.js';
 import { EvmBudget } from './budget.js';
-import { readFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { domainHash, sha256Bytes, validateIntegration, without } from '../evidence/integration.js';
 import { resolve } from 'node:path';
 import { createHash } from 'node:crypto';
-import { createPublicClient, http, keccak256, encodeFunctionData, parseAbi, type Address, type Hex, type LocalAccount, type PublicClient } from 'viem';
+import { createPublicClient, encodeAbiParameters, http, keccak256, encodeFunctionData, parseAbi, type Address, type Hex, type LocalAccount, type PublicClient } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { evmProfile } from '../evm-chains.js';
 import { estimateEvmFees, receiptNativeCost } from '../evm-fees.js';
 import { ExecutionLock } from '../execution-lock.js';
 
-export const CONTRACTS = ['MultiVenueArbitrageExecutor', 'PortableMultiSplitFlashExecutor', 'V4StateQuoter', 'ImmutableArbitrageExecutor', 'AeroSplitFlashExecutor', 'AeroSplitFlashExecutorV2'] as const;
+export const CONTRACTS = ['MultiVenueArbitrageExecutor', 'PortableMultiSplitFlashExecutor', 'V4StateQuoter', 'ImmutableArbitrageExecutor', 'AeroSplitFlashExecutor', 'AeroSplitFlashExecutorV2', 'NativeV4FlashExecutor'] as const;
 export type ContractName = typeof CONTRACTS[number];
 /** AeroSplitFlashExecutorV2 roots: aero-factory generation 5/6/7 = Uniswap V2/V3/V4 manager; v4-manager = V4 lender;
  * v2-fee = a V2 factory's fixed fee (feePips); v4-pool = a trusted hookless PoolKey id on that manager. */
@@ -24,7 +25,7 @@ export interface DeploymentState { schemaVersion: '1.0'; chainId: number; owner:
 const rootAbi = parseAbi([
   'function owner() view returns(address)', 'function configureLender(uint8,address,bytes32,bool)',
   'function configureRoot(uint8,address,bytes32,bool,bool)', 'function configureAaveProvider(address,bytes32,bool)',
-  'function configurePoolManager(address,bytes32,bool,bool)',
+  'function configurePoolManager(address,bytes32,bool,bool)', 'function configureManager(address,bytes32,bool)',
   'function trustedLenderCodeHash(uint8,address) view returns(bytes32)',
   'function trustedAaveProviderCodeHash(address) view returns(bytes32)',
   'function trustedV2FactoryCodeHash(address) view returns(bytes32)', 'function trustedV3FactoryCodeHash(address) view returns(bytes32)', 'function trustedAlgebraFactoryCodeHash(address) view returns(bytes32)',
@@ -73,19 +74,63 @@ export async function loadSigner(path: string): Promise<LocalAccount> {
   if (!/^0x[0-9a-fA-F]{64}$/.test(key)) throw new Error('INVALID_SIGNER_BINDING');
   return privateKeyToAccount(key as Hex);
 }
-export function verifyRuntime(artifact: ForgeArtifact, actual: Hex, owner: Address): void {
+/** Immutables must be the owner, or (v7 native executor) one of the reviewed extra values such as the wrapped-native address. */
+export function verifyRuntime(artifact: ForgeArtifact, actual: Hex, owner: Address, extraImmutables: readonly Hex[] = []): void {
   let expected = artifact.deployedBytecode.object.replace(/^0x/, '').toLowerCase(), normalized = actual.slice(2).toLowerCase();
+  const allowed = new Set([owner, ...extraImmutables].map(v => v.slice(2).toLowerCase().padStart(64, '0')));
   for (const ref of Object.values(artifact.deployedBytecode.immutableReferences ?? {}).flat()) {
     const begin = ref.start * 2, size = ref.length * 2;
-    if (size !== 64 || normalized.slice(begin, begin + size) !== owner.slice(2).toLowerCase().padStart(64, '0')) throw new Error('RUNTIME_OWNER_IMMUTABLE_MISMATCH');
+    if (size !== 64 || !allowed.has(normalized.slice(begin, begin + size))) throw new Error('RUNTIME_OWNER_IMMUTABLE_MISMATCH');
     expected = expected.slice(0, begin) + '0'.repeat(size) + expected.slice(begin + size);
     normalized = normalized.slice(0, begin) + '0'.repeat(size) + normalized.slice(begin + size);
   }
   if (!expected || expected !== normalized) throw new Error('DEPLOYED_ARTIFACT_MISMATCH');
 }
+/** v7 SK-03: artifacts are stored by content hash, written once; a rebuilt out/ file can never replace a historical binding. */
+export async function storeArtifact(bytes: Uint8Array, root = '.nim/artifacts/executors') {
+  const sha = createHash('sha256').update(bytes).digest('hex'), path = `${root}/${sha}.json`;
+  try { const prior = await readFile(path); if (!prior.equals(Buffer.from(bytes))) throw new Error('ARTIFACT_IMMUTABLE'); return { sha256: sha, path, created: false }; }
+  catch (e) { if ((e as NodeJS.ErrnoException).code !== 'ENOENT') throw e; }
+  await mkdir(root, { recursive: true }); await writeFile(path, bytes, { flag: 'wx' });
+  return { sha256: sha, path, created: true };
+}
+export async function loadStoredArtifact(sha256: string, root = '.nim/artifacts/executors') {
+  if (!/^[0-9a-f]{64}$/.test(sha256)) throw new Error('INVALID_ARTIFACT_HASH');
+  const bytes = await readFile(`${root}/${sha256}.json`);
+  if (createHash('sha256').update(bytes).digest('hex') !== sha256) throw new Error('ARTIFACT_HASH_MISMATCH');
+  return { bytes, artifact: JSON.parse(bytes.toString('utf8')) as ForgeArtifact };
+}
+export interface CompilerProvenance { version: string; binaryHash: string; settings: unknown; sourceRevision: string }
+/** executor-manifest/1 for one deployment; manifestHash covers every field except itself (no self-hashing record). */
+export function buildExecutorManifest(chainId: number, entry: { address: Address; owner: Address; runtimeCodeHash: Hex; deploymentReceiptRef: unknown }, artifactBytes: Uint8Array,
+  compiler: CompilerProvenance, codecVersion: string, capabilities: string[], allowedWrapper: Address | null) {
+  const artifact = JSON.parse(Buffer.from(artifactBytes).toString('utf8')) as ForgeArtifact;
+  const body = { schema: 'executor-manifest/1', chainId: `eip155:${chainId}`, address: entry.address.toLowerCase(), owner: entry.owner.toLowerCase(), runtimeCodeHash: entry.runtimeCodeHash.toLowerCase(),
+    abiHash: domainHash('flash/abi/1', artifact.abi), artifactFileHash: sha256Bytes(artifactBytes), sourceRevision: compiler.sourceRevision, compilerVersion: compiler.version,
+    compilerBinaryHash: compiler.binaryHash, compilerSettingsHash: domainHash('flash/compiler-settings/1', compiler.settings),
+    immutableRefsHash: domainHash('flash/immutable-refs/1', artifact.deployedBytecode.immutableReferences ?? {}), codecVersion, capabilities, allowedWrapper: allowedWrapper?.toLowerCase() ?? null,
+    deploymentReceiptRef: entry.deploymentReceiptRef, manifestHash: '' };
+  body.manifestHash = domainHash('flash/executor-manifest/1', without(body, 'manifestHash'));
+  return validateIntegration<typeof body>('ExecutorManifest', body);
+}
+export type ExecutorManifest = ReturnType<typeof buildExecutorManifest>;
+/** Live checks stay strict: stored artifact bytes, normalized runtime, code hash, owner and manifest self-consistency. out/ is a diagnostic only. */
+export async function verifyExecutorManifest(manifestInput: unknown, live: { code: Hex; owner: Address; wrapperCodeHash?: Hex }, store = '.nim/artifacts/executors', rebuiltBytes?: Uint8Array) {
+  const manifest = validateIntegration<ExecutorManifest>('ExecutorManifest', manifestInput);
+  if (manifest.manifestHash !== domainHash('flash/executor-manifest/1', without(manifest, 'manifestHash'))) throw new Error('EXECUTOR_MANIFEST_HASH_MISMATCH');
+  const { bytes, artifact } = await loadStoredArtifact(manifest.artifactFileHash.slice(7), store);
+  if (domainHash('flash/abi/1', artifact.abi) !== manifest.abiHash || domainHash('flash/immutable-refs/1', artifact.deployedBytecode.immutableReferences ?? {}) !== manifest.immutableRefsHash) throw new Error('EXECUTOR_MANIFEST_ARTIFACT_MISMATCH');
+  if (manifest.allowedWrapper && !live.wrapperCodeHash) throw new Error('WRAPPER_CODE_HASH_REQUIRED');
+  // The native executor's immutables are owner, wrapped-native address and that wrapper's live code hash.
+  verifyRuntime(artifact, live.code, manifest.owner as Address, manifest.allowedWrapper ? [manifest.allowedWrapper as Hex, live.wrapperCodeHash!] : []);
+  if (keccak256(live.code) !== manifest.runtimeCodeHash) throw new Error('DEPLOYED_CODE_CHANGED');
+  if (live.owner.toLowerCase() !== manifest.owner) throw new Error('OWNER_MISMATCH');
+  const rebuild = rebuiltBytes === undefined ? 'NOT_CHECKED' : Buffer.from(rebuiltBytes).equals(bytes) ? 'REBUILD_MATCHES' : 'REBUILD_DIFFERS';
+  return { manifestHash: manifest.manifestHash, capabilities: manifest.capabilities, rebuild };
+}
 /** Fixed release lanes preserve prior deployment receipts; signer locks and budgets remain shared. */
 export function deploymentLedgerPath(manifest:DeploymentManifest,owner:Address):string {
-  const suffix=manifest.contracts.includes('AeroSplitFlashExecutorV2')?'-aero-v2':manifest.contracts.includes('AeroSplitFlashExecutor')?'-aero':manifest.contracts.length===1&&manifest.contracts[0]==='PortableMultiSplitFlashExecutor'?'-portable-split':'';
+  const suffix=manifest.contracts.includes('NativeV4FlashExecutor')?'-native-v4':manifest.contracts.includes('AeroSplitFlashExecutorV2')?'-aero-v2':manifest.contracts.includes('AeroSplitFlashExecutor')?'-aero':manifest.contracts.length===1&&manifest.contracts[0]==='PortableMultiSplitFlashExecutor'?'-portable-split':'';
   return `.nim/deployment-ledger/${manifest.chainId}-${owner.toLowerCase()}${suffix}.json`;
 }
 export class EvmDeployment {
@@ -173,6 +218,14 @@ export class EvmDeployment {
     record.status = 'submitted'; await this.save();
     return this.reconcile(record);
   }
+  /** The native executor binds the chain profile's reviewed wrapped-native address and its live code hash at construction. */
+  private async constructorData(contract: ContractName, bytecode: Hex): Promise<{ data: Hex; immutables: Hex[] }> {
+    if (contract !== 'NativeV4FlashExecutor') return { data: bytecode, immutables: [] };
+    const wrapped = evmProfile(this.manifest.chainId).wrappedNative as Address, code = await this.client.getCode({ address: wrapped });
+    if (!code || code === '0x') throw new Error('WRAPPED_NATIVE_CODE_MISSING');
+    const hash = keccak256(code);
+    return { data: `${bytecode}${encodeAbiParameters([{ type: 'address' }, { type: 'bytes32' }], [wrapped, hash]).slice(2)}` as Hex, immutables: [wrapped, hash] };
+  }
   private rootConfiguration(contract: ContractName, root: RootPin): Hex | null {
     if(contract==='AeroSplitFlashExecutorV2') {
       const abi=AERO_V2_EXECUTOR_ABI;
@@ -188,6 +241,11 @@ export class EvmDeployment {
       if(root.role==='aero-factory')return encodeFunctionData({abi:AERO_EXECUTOR_ABI,functionName:'configureFactory',args:[root.generation!,root.address,root.codeHash]});
       if(root.role==='aero-pool')return encodeFunctionData({abi:AERO_EXECUTOR_ABI,functionName:'configurePool',args:[root.address,root.codeHash,root.implementation!,root.implementationCodeHash!]});
       throw new Error('INVALID_ROOT_PIN');
+    }
+    if (contract === 'NativeV4FlashExecutor') {
+      // Configured by capability, not parent contract name (lesson #48): lenders and hookless v4 managers only.
+      if (root.role === 'morpho' || root.role === 'balancer-v2') return encodeFunctionData({ abi: rootAbi, functionName: 'configureLender', args: [root.role === 'morpho' ? 1 : 2, root.address, root.codeHash, true] });
+      return root.role === 'v4-manager' ? encodeFunctionData({ abi: rootAbi, functionName: 'configureManager', args: [root.address, root.codeHash, true] }) : null;
     }
     if (contract === 'V4StateQuoter') return null;
     if (root.role === 'aave-provider') return encodeFunctionData({ abi: rootAbi, functionName: 'configureAaveProvider', args: [root.address, root.codeHash, true] });
@@ -240,14 +298,14 @@ export class EvmDeployment {
         let entry = this.state.deployments.find(e => e.contract === contract);
         if (entry && entry.artifactHash !== artifactHash) throw new Error('DEPLOYMENT_ARTIFACT_CHANGED');
         if (!entry) {
-          const tx = await this.send(`deploy:${contract}`, artifact.bytecode.object);
+          const tx = await this.send(`deploy:${contract}`, (await this.constructorData(contract, artifact.bytecode.object)).data);
           if (!tx.contractAddress || !tx.blockNumber) throw new Error('DEPLOYMENT_ADDRESS_MISSING');
           entry = { contract, address: tx.contractAddress, txHash: tx.hash, blockNumber: tx.blockNumber, runtimeCodeHash: '0x', artifactHash, owner: contract === 'V4StateQuoter' ? null : this.account.address, status: 'deployed', configurations: [] };
           this.state.deployments.push(entry); await this.save();
         }
         const code = await this.client.getCode({ address: entry.address });
         if (!code) throw new Error('DEPLOYED_CODE_MISSING');
-        verifyRuntime(artifact, code, this.account.address); entry.runtimeCodeHash = keccak256(code);
+        verifyRuntime(artifact, code, this.account.address, (await this.constructorData(contract, artifact.bytecode.object)).immutables); entry.runtimeCodeHash = keccak256(code);
         if (entry.owner && (await this.client.readContract({ address: entry.address, abi: rootAbi, functionName: 'owner' })).toLowerCase() !== entry.owner.toLowerCase()) throw new Error('DEPLOYED_OWNER_MISMATCH');
         for (const root of this.manifest.roots) {
           const data = this.rootConfiguration(contract, root); if (!data) continue;

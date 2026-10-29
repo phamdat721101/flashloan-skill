@@ -37,7 +37,8 @@ export interface LiquidityExecutionAdapter {
   submit(signedBytes: Uint8Array, signal?: AbortSignal): Promise<string>;
   receipt(transactionId: string, signal?: AbortSignal): Promise<{ transactionId: string; source: string; executionStatus: 'success' | 'revert'; repaymentProven: boolean; profitTransferProven: boolean; profitCustodyProven?: boolean; gasCostInProfitAsset: string; profitAfterDebt: string; executionEvidence?: { kind: string; reconciliation: 'RECONCILED' | 'UNKNOWN' | 'MISMATCH'; transaction: { tx_hash: string | null } } } | null>;
 }
-export interface RuntimePolicy { concurrency: number; maxCandidates: number; maxDailyLoss: string; minProfit: string; budgetAssets: Record<string, string>; mode: 'shadow' | 'auto'; stepTimeoutMs?: number }
+/** cancel (v7 SK-08): a round-level abort rechecked after the final awaited verification, immediately before sign and before submit. */
+export interface RuntimePolicy { concurrency: number; maxCandidates: number; maxDailyLoss: string; minProfit: string; budgetAssets: Record<string, string>; mode: 'shadow' | 'auto'; stepTimeoutMs?: number; cancel?: AbortSignal }
 export interface LiquidityDecision { candidateDigest: string; status: 'rejected' | 'simulated' | 'reconciled' | 'halted'; code: string; attemptId?: string }
 
 /** Simulation workers share immutable inputs; only an admitted exact proof enters the signing lane. */
@@ -104,6 +105,7 @@ export class LiquidityRuntime {
         this.validate(c, a, policy);
         if (admissionGate) await this.step(timeout, signal => admissionGate(c, signal));
         this.validate(c, a, policy);
+        if (policy.cancel?.aborted) { await this.journal.transition(attemptId, 'cancelled', null); decisions.push({ candidateDigest, status: 'rejected', code: 'CANCELLED', attemptId }); return; }
         const signed = await this.step(timeout, signal => a.sign(c, resource, signal));
         const validId = c.identity.chain !== 'sui' ? /^0x[0-9a-f]{64}$/.test(signed.transactionId) : isSuiDigest(signed.transactionId);
         if (!validId || !(signed.signedBytes instanceof Uint8Array) || signed.signedBytes.length === 0 || signed.resource !== resource || signed.payloadDigest !== c.payloadDigest) throw new Error('INVALID_SIGNED_TRANSACTION');
@@ -112,6 +114,7 @@ export class LiquidityRuntime {
         this.validate(c, a, policy);
         if (admissionGate) await this.step(timeout, signal => admissionGate(c, signal));
         this.validate(c, a, policy);
+        if (policy.cancel?.aborted) { await this.journal.transition(attemptId, 'cancelled', transactionId); decisions.push({ candidateDigest, status: 'rejected', code: 'CANCELLED', attemptId }); return; }
         const submitted = await this.step(timeout, signal => a.submit(signed.signedBytes, signal));
         if (submitted !== transactionId) throw new Error('SUBMISSION_ID_MISMATCH');
         await this.journal.transition(attemptId, 'submitted', transactionId);

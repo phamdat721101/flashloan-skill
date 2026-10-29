@@ -24,6 +24,9 @@ docs/features/*
 !docs/features/level-2.md
 !docs/features/level-2.spec.json
 !docs/features/level-2-map.md
+!docs/features/flashloan-v7-integration.md
+!docs/features/flashloan-v7-integration-map.md
+!docs/features/flashloan-v7-integration.spec.json
 !docs/sui-flashloan/
 
 .nim-memory/

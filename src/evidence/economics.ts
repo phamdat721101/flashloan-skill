@@ -1,3 +1,5 @@
+import { nativeToRepaymentUpper } from '../evm-fees.js';
+import { domainHash, IntegrationError, validateIntegration, validatePlanAccounting } from './integration.js';
 import { optimizeTradeSize, type SizingBounds, type SizeQuoter } from '../adaptive-sizing.js';
 import { digest, uint } from '../liquidity/state.js';
 import { fresh, recordHash, sameAsset, validateRecord, type Asset, type EvidenceRef, type Ledger, type NativeProof, type Plan, type Policy, type Ratio, type RunRequest, type Search, type WatchLimits } from './contracts.js';
@@ -17,7 +19,20 @@ export function rawThreshold(usd: Ratio, price: Ratio, decimals: number): bigint
   if (BigInt(usd.numerator) < 0n || !Number.isInteger(decimals) || decimals < 0 || decimals > 255) throw new Error('INVALID_THRESHOLD');
   return BigInt(usd.numerator)*BigInt(price.denominator)*10n**BigInt(decimals)/(BigInt(usd.denominator)*BigInt(price.numerator));
 }
-export function compilePolicy(request: RunRequest, approved: ApprovedProfile, asset: Asset, valuation: { price: Ratio; ref: EvidenceRef }, nowNs: bigint): Policy {
+/** v7 caller bounds (flash-intent/1 requestedConstraints). They can only tighten an approved profile and must name the repayment asset. */
+export interface RequestedConstraints { repaymentAssetId: string; principalCapRaw: string | null; minNetProfitRaw: string | null; maxPriceImpactBps: number | null; maxRoutes: number | null }
+const CONSTRAINT_KEYS = ['repaymentAssetId','principalCapRaw','minNetProfitRaw','maxPriceImpactBps','maxRoutes'];
+function tighten(policy: Policy, c: RequestedConstraints, asset: Asset) {
+  if (!c || typeof c !== 'object' || Object.keys(c).sort().join() !== [...CONSTRAINT_KEYS].sort().join()) throw new Error('POLICY_UNSUPPORTED_FIELD');
+  if (c.repaymentAssetId !== `${asset.namespace}:${asset.networkId}/erc20:${asset.assetId.toLowerCase()}`) throw new Error('CONSTRAINT_ASSET_MISMATCH');
+  const min = (a: bigint, b: bigint) => a < b ? a : b;
+  if (c.principalCapRaw !== null) policy.principalCapRaw = min(uint(policy.principalCapRaw), uint(c.principalCapRaw)).toString();
+  if (c.minNetProfitRaw !== null && uint(c.minNetProfitRaw) > uint(policy.minProfitRaw)) policy.minProfitRaw = c.minNetProfitRaw;
+  if (c.maxPriceImpactBps !== null) { if (!Number.isInteger(c.maxPriceImpactBps) || c.maxPriceImpactBps < 0 || c.maxPriceImpactBps > 10000) throw new Error('POLICY_UNSUPPORTED_FIELD'); policy.maxPriceImpactBps = Math.min(policy.maxPriceImpactBps, c.maxPriceImpactBps); }
+  if (c.maxRoutes !== null) { if (!Number.isInteger(c.maxRoutes) || c.maxRoutes < 1 || c.maxRoutes > 8) throw new Error('POLICY_UNSUPPORTED_FIELD'); policy.maxBranches = Math.min(policy.maxBranches, c.maxRoutes); }
+}
+/** Sole economic policy owner. Absent requestedConstraints keeps the pre-v7 output byte-identical. */
+export function compilePolicy(request: RunRequest, approved: ApprovedProfile, asset: Asset, valuation: { price: Ratio; ref: EvidenceRef }, nowNs: bigint, requestedConstraints?: RequestedConstraints): Policy {
   validateRecord<RunRequest>('RunRequest',request,request.schemaVersion); validateRecord<Asset>('Asset',asset);
   const p=approved.body, version=request.schemaVersion;
   if (!request.borrowAsset || !sameAsset(request.borrowAsset,asset) || request.networkId !== asset.networkId || !request.riskProfileRef || request.riskProfileRef.contentHash !== digest(p) || approved.ref.contentHash !== request.riskProfileRef.contentHash || approved.ref.kind !== 'configuration' || !request.principalCapRaw || !request.networkCostEvidenceRef || !request.valuationEvidenceRef || request.valuationEvidenceRef.contentHash !== valuation.ref.contentHash) throw new Error('INPUT_BLOCKED');
@@ -31,7 +46,8 @@ export function compilePolicy(request: RunRequest, approved: ApprovedProfile, as
   const cap=uint(request.principalCapRaw)<uint(p.principalCapRaw)?uint(request.principalCapRaw):uint(p.principalCapRaw);
   const result: Policy={schemaVersion:version,recordType:'policy',runId:request.runId,profileRef:approved.ref,policyHash:'0'.repeat(64),mode:request.mode,principalCapRaw:cap.toString(),minimumPrincipalRaw:max(uint(p.minimumPrincipalRaw),usdMinimum(request.requestedMinPrincipalUsd)).toString(),minimumBranchRaw:max(uint(p.minimumBranchRaw),usdMinimum(request.requestedMinBranchUsd)).toString(),minProfitRaw:rawThreshold(floor,valuation.price,asset.decimals).toString(),profitComparison:'gt',maxPriceImpactBps:Math.min(p.maxPriceImpactBps,request.requestedPriceImpactBps??p.maxPriceImpactBps),minDeploymentBps:Math.max(p.minDeploymentBps,request.requestedMinDeploymentBps??0),minBranchWeightBps:Math.max(p.minBranchWeightBps,request.requestedMinBranchWeightBps??0),maxHopsPerBranch:p.maxHopsPerBranch,maxBranches:p.maxBranches,maxAttempts:p.maxAttempts,deadlineMs:p.deadlineMs,maxStateAgeNs:p.maxStateAgeNs,maxDailyLossRaw:p.maxDailyLossRaw,executionAuthorizationRef:null,borrowAsset:asset,maxTotalSwaps:p.maxTotalSwaps,valuationEvidenceRef:valuation.ref,networkCostEvidenceRef:request.networkCostEvidenceRef};
   if(version!=='5.0')for(const key of ['watchMode','maxTriggerToSimulationBlocks','bandTtlBlocks','bandRebuildTicks','bandMaxEvaluationsPerRow','bandMaxEvaluationsTotal','watchQueueCapacity','watchMaxSolves'] as const) if(p[key]!==undefined) Object.assign(result,{[key]:p[key]});
-  if(!cap || uint(result.minimumPrincipalRaw)>cap)throw new Error('POLICY_UNSUPPORTED');
+  if(requestedConstraints!==undefined) tighten(result,requestedConstraints,asset);
+  if(!uint(result.principalCapRaw) || uint(result.minimumPrincipalRaw)>uint(result.principalCapRaw))throw new Error('POLICY_UNSUPPORTED');
   result.policyHash=digest(Object.fromEntries(Object.entries(result).filter(([k])=>!['policyHash','runId'].includes(k))));
   return validateRecord<Policy>('Policy',result,version);
 }
@@ -134,4 +150,49 @@ export function reconcileReceipt(input:{
     repayment:{principal_raw:input.simulated.principalRaw,lender_fee_raw:input.simulated.flashFeeRaw,proven:input.repaymentProven},
     costs:{gas_native_raw:gasNative.toString(),l1_native_raw:l1.toString()},valuation_refs:Object.values(input.valuations).map(v=>v.ref),
     reconciliation,net_by_asset:Object.fromEntries(keys.map(k=>[k,delta[k].toString()])),realized_net_raw:realized===null?null:realized.toString(),sim_drift_raw:drift===null?null:drift.toString(),reasons:[...new Set(reasons)]},'v6');
+}
+
+/** v7 SK-04: route-specific fee evidence is the cost; the cumulative gas budget only bounds the reservation (review: acceptance.ts used remaining('trade') as cost). */
+export interface RouteCostInput {
+  repaymentAssetId: string; state: { blockHash: string } & Record<string, unknown>; nativeCostUpperRaw: bigint; otherCostUpperRaw: bigint; reservationNativeRaw: bigint; budgetRemainingNativeRaw: bigint;
+  conversion: { nativeUsdUpper: Ratio; repaymentUsdLower: Ratio; nativeDecimals: number; repaymentDecimals: number };
+  valuationRefs: unknown[]; feeEvidenceRef: unknown; expiresAt: string;
+}
+export function buildRouteCost(input: RouteCostInput, policy: { maxGasReservationNativeRaw: string; repaymentAsset: { assetId: string } }) {
+  if (input.repaymentAssetId !== policy.repaymentAsset.assetId) throw new IntegrationError('CONSTRAINT_ASSET_MISMATCH', 'cost asset');
+  const ceiling = BigInt(policy.maxGasReservationNativeRaw) < input.budgetRemainingNativeRaw ? BigInt(policy.maxGasReservationNativeRaw) : input.budgetRemainingNativeRaw;
+  if (input.reservationNativeRaw < input.nativeCostUpperRaw || input.reservationNativeRaw > ceiling) throw new IntegrationError('CHAIN_BUDGET_EXHAUSTED', `${input.nativeCostUpperRaw}<=${input.reservationNativeRaw}<=${ceiling}`);
+  const c = input.conversion;
+  const cost = { schema: 'route-cost/1', repaymentAssetId: input.repaymentAssetId, state: input.state, networkNativeUpperRaw: input.nativeCostUpperRaw.toString(),
+    networkCostUpperRaw: nativeToRepaymentUpper(input.nativeCostUpperRaw, c.nativeUsdUpper, c.repaymentUsdLower, c.nativeDecimals, c.repaymentDecimals).toString(),
+    otherCostUpperRaw: input.otherCostUpperRaw.toString(), gasReservationNativeRaw: input.reservationNativeRaw.toString(), valuationRefs: input.valuationRefs,
+    feeEvidenceRef: input.feeEvidenceRef, expiresAt: input.expiresAt };
+  return validateIntegration<typeof cost>('Cost', cost);
+}
+/** On-chain floor: the lender fee is already in debt and is not added again. */
+export const contractMinSurplus = (policy: { minNetProfitRaw: string }, cost: { networkCostUpperRaw: string; otherCostUpperRaw: string }) =>
+  BigInt(policy.minNetProfitRaw) + BigInt(cost.networkCostUpperRaw) + BigInt(cost.otherCostUpperRaw) + 1n;
+type V7Plan = { policyHash: string; costHash: string; repaymentAssetId: string; state: { blockHash: string }; principalRaw: string; surplusAfterDebtRaw: string; netLowerBoundRaw: string;
+  branches: Array<{ actions: unknown[] }> } & Parameters<typeof validatePlanAccounting>[0];
+/** Rule 5 + strict threshold, bound to the exact policy/cost/state the plan claims. */
+export function verifyPlanV7(plan: V7Plan, policy: { policyHash: string; minNetProfitRaw: string; principalCapRaw: string; maxRoutes: number; maxHopsPerRoute: number; repaymentAsset: { assetId: string } },
+  cost: { networkCostUpperRaw: string; otherCostUpperRaw: string; repaymentAssetId: string; state: { blockHash: string } }) {
+  validatePlanAccounting(plan);
+  if (plan.policyHash !== policy.policyHash || plan.costHash !== domainHash('flash/route-cost/1', cost)) throw new IntegrationError('BINDING_MISMATCH', 'plan policy/cost');
+  if (plan.repaymentAssetId !== policy.repaymentAsset.assetId || cost.repaymentAssetId !== plan.repaymentAssetId || plan.state.blockHash !== cost.state.blockHash) throw new IntegrationError('BINDING_MISMATCH', 'plan asset/state');
+  if (BigInt(plan.principalRaw) > BigInt(policy.principalCapRaw) || plan.branches.length > policy.maxRoutes || plan.branches.some(b => b.actions.length > policy.maxHopsPerRoute)) throw new IntegrationError('POLICY_BOUND_EXCEEDED');
+  const net = BigInt(plan.surplusAfterDebtRaw) - BigInt(cost.networkCostUpperRaw) - BigInt(cost.otherCostUpperRaw);
+  if (net.toString() !== plan.netLowerBoundRaw) throw new IntegrationError('BINDING_MISMATCH', 'netLowerBound');
+  if (net <= BigInt(policy.minNetProfitRaw)) throw new IntegrationError('INSUFFICIENT_NET_PROFIT', `${net}<=${policy.minNetProfitRaw}`);
+  return net;
+}
+/** v7 SK-09: execution-evidence/1 receipt -> /2. Only a RECONCILED receipt with proven repayment becomes RECEIPT_RECONCILED; anything else halts. */
+export function toExecutionEvidenceV2(v1: ExecutionEvidence, binding: { roundId: string; chainId: string; candidateHash: string; policyHash: string; executorManifestHash: string; payloadHash: string;
+  state: unknown; receiptState: unknown; receiptRef: unknown; producerRef: unknown; ownerReviewRef: unknown | null }) {
+  if (v1.kind !== 'RECEIPT_RECONCILED' || v1.reconciliation !== 'RECONCILED' || !v1.transaction.tx_hash || v1.realized_net_raw === null || !v1.repayment.proven || v1.fixture) throw new IntegrationError('PNL_UNKNOWN_HALT', v1.reconciliation);
+  if (`eip155:${v1.chain_id.replace(/^eip155:/, '')}` !== binding.chainId) throw new IntegrationError('WRONG_CHAIN');
+  return validateIntegration<Record<string, unknown>>('ExecutionEvidence', { schema: 'execution-evidence/2', roundId: binding.roundId, chainId: binding.chainId, kind: 'RECEIPT_RECONCILED', fixture: false,
+    candidateHash: binding.candidateHash, policyHash: binding.policyHash, executorManifestHash: binding.executorManifestHash, payloadHash: binding.payloadHash, state: binding.state,
+    transactionHash: v1.transaction.tx_hash.toLowerCase(), receiptRef: binding.receiptRef, repaymentProven: true, custodyProven: true, realizedNetRaw: v1.realized_net_raw,
+    producerRef: binding.producerRef, ownerReviewRef: binding.ownerReviewRef, success: true, fidelity: 'receipt', overrideRefs: [], nativeProofRef: null, receiptState: binding.receiptState });
 }

@@ -1,0 +1,2389 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:flashloan-integration:1",
+  "$defs": {
+    "Uint": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)$",
+      "maxLength": 78
+    },
+    "Int": {
+      "type": "string",
+      "pattern": "^(0|-?[1-9][0-9]*)$",
+      "maxLength": 79
+    },
+    "Hash": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "Bytes32": {
+      "type": "string",
+      "pattern": "^0x[0-9a-f]{64}$"
+    },
+    "Address": {
+      "type": "string",
+      "pattern": "^0x[0-9a-f]{40}$"
+    },
+    "NonzeroAddress": {
+      "type": "string",
+      "pattern": "^0x(?!0{40}$)[0-9a-f]{40}$"
+    },
+    "ChainId": {
+      "type": "string",
+      "pattern": "^eip155:[1-9][0-9]*$"
+    },
+    "AssetId": {
+      "type": "string",
+      "pattern": "^eip155:[1-9][0-9]*/(slip44:60|erc20:0x(?!0{40}$)[0-9a-f]{40})$"
+    },
+    "Timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "Z$"
+    },
+    "EvidenceRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "source",
+            "configuration",
+            "authorization",
+            "canonical-state",
+            "native-simulation",
+            "receipt",
+            "review",
+            "code",
+            "artifact"
+          ]
+        },
+        "contentHash": {
+          "$ref": "#/$defs/Hash"
+        },
+        "issuedAt": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "expiresAt": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Timestamp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "traceId": {
+          "type": "string",
+          "pattern": "\\S",
+          "maxLength": 128
+        },
+        "locator": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        }
+      },
+      "required": [
+        "kind",
+        "contentHash",
+        "issuedAt",
+        "expiresAt",
+        "traceId",
+        "locator"
+      ]
+    },
+    "Asset": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "assetId": {
+          "$ref": "#/$defs/AssetId"
+        },
+        "chainId": {
+          "$ref": "#/$defs/ChainId"
+        },
+        "kind": {
+          "enum": [
+            "native",
+            "erc20"
+          ]
+        },
+        "address": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/NonzeroAddress"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "decimals": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "metadataRef": {
+          "$ref": "#/$defs/EvidenceRef"
+        }
+      },
+      "required": [
+        "assetId",
+        "chainId",
+        "kind",
+        "address",
+        "decimals",
+        "metadataRef"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "native"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "address": {
+                "type": "null"
+              },
+              "decimals": {
+                "const": 18
+              },
+              "assetId": {
+                "pattern": "/slip44:60$"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "address": {
+                "$ref": "#/$defs/NonzeroAddress"
+              },
+              "assetId": {
+                "pattern": "/erc20:0x[0-9a-f]{40}$"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "State": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "chainId": {
+          "$ref": "#/$defs/ChainId"
+        },
+        "blockNumber": {
+          "$ref": "#/$defs/Uint"
+        },
+        "blockHash": {
+          "$ref": "#/$defs/Bytes32"
+        },
+        "parentHash": {
+          "$ref": "#/$defs/Bytes32"
+        },
+        "observedAt": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "finality": {
+          "enum": [
+            "latest",
+            "safe",
+            "finalized"
+          ]
+        },
+        "stateDigest": {
+          "$ref": "#/$defs/Hash"
+        }
+      },
+      "required": [
+        "chainId",
+        "blockNumber",
+        "blockHash",
+        "parentHash",
+        "observedAt",
+        "finality",
+        "stateDigest"
+      ]
+    },
+    "PoolKey": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "currency0": {
+          "$ref": "#/$defs/Address"
+        },
+        "currency1": {
+          "$ref": "#/$defs/Address"
+        },
+        "fee": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 16777215
+        },
+        "tickSpacing": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 32767
+        },
+        "hooks": {
+          "$ref": "#/$defs/Address"
+        }
+      },
+      "required": [
+        "currency0",
+        "currency1",
+        "fee",
+        "tickSpacing",
+        "hooks"
+      ]
+    },
+    "Support": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "read": {
+          "type": "boolean"
+        },
+        "quote": {
+          "type": "boolean"
+        },
+        "prepare": {
+          "type": "boolean"
+        },
+        "simulate": {
+          "type": "boolean"
+        },
+        "execute": {
+          "type": "boolean"
+        },
+        "reasonCodes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "minItems": 0,
+          "maxItems": 20
+        }
+      },
+      "required": [
+        "read",
+        "quote",
+        "prepare",
+        "simulate",
+        "execute",
+        "reasonCodes"
+      ]
+    },
+    "ResolvedPool": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema": {
+          "const": "resolved-pool/1"
+        },
+        "chainId": {
+          "$ref": "#/$defs/ChainId"
+        },
+        "protocol": {
+          "const": "uniswap-v4"
+        },
+        "provider": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "providerPoolId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "manager": {
+          "$ref": "#/$defs/NonzeroAddress"
+        },
+        "managerCodeHash": {
+          "$ref": "#/$defs/Bytes32"
+        },
+        "poolId": {
+          "$ref": "#/$defs/Bytes32"
+        },
+        "key": {
+          "$ref": "#/$defs/PoolKey"
+        },
+        "asset0": {
+          "$ref": "#/$defs/Asset"
+        },
+        "asset1": {
+          "$ref": "#/$defs/Asset"
+        },
+        "state": {
+          "$ref": "#/$defs/State"
+        },
+        "initializationRef": {
+          "$ref": "#/$defs/EvidenceRef"
+        },
+        "mappingRef": {
+          "$ref": "#/$defs/EvidenceRef"
+        },
+        "support": {
+          "$ref": "#/$defs/Support"
+        },
+        "sourceRefs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "minItems": 1,
+          "maxItems": 16
+        }
+      },
+      "required": [
+        "schema",
+        "chainId",
+        "protocol",
+        "provider",
+        "providerPoolId",
+        "manager",
+        "managerCodeHash",
+        "poolId",
+        "key",
+        "asset0",
+        "asset1",
+        "state",
+        "initializationRef",
+        "mappingRef",
+        "support",
+        "sourceRefs"
+      ]
+    },
+    "Limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "maxRpcCalls": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000
+        },
+        "maxEvaluations": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000
+        },
+        "maxPools": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 64
+        },
+        "maxRoutes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8
+        },
+        "deadlineMs": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 60000
+        },
+        "watchDurationMs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3600000
+        }
+      },
+      "required": [
+        "maxRpcCalls",
+        "maxEvaluations",
+        "maxPools",
+        "maxRoutes",
+        "deadlineMs",
+        "watchDurationMs"
+      ]
+    },
+    "Intent": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema": {
+          "const": "flash-intent/1"
+        },
+        "roundId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "chainId": {
+          "$ref": "#/$defs/ChainId"
+        },
+        "mode": {
+          "enum": [
+            "research",
+            "simulate",
+            "execute"
+          ]
+        },
+        "selection": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "movers": {
+              "type": "boolean"
+            },
+            "explicitAssets": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/AssetId"
+              },
+              "minItems": 0,
+              "maxItems": 30
+            },
+            "minReportedLiquidityUsd": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+            },
+            "maxCandidates": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 30
+            }
+          },
+          "required": [
+            "movers",
+            "explicitAssets",
+            "minReportedLiquidityUsd",
+            "maxCandidates"
+          ]
+        },
+        "requestedConstraints": {
+          "anyOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "repaymentAssetId": {
+                  "$ref": "#/$defs/AssetId"
+                },
+                "principalCapRaw": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/Uint"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "minNetProfitRaw": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/Uint"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "maxPriceImpactBps": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 10000
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "maxRoutes": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 8
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "repaymentAssetId",
+                "principalCapRaw",
+                "minNetProfitRaw",
+                "maxPriceImpactBps",
+                "maxRoutes"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "profileRef": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EvidenceRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "authorizationRef": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EvidenceRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "previousRoundRef": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EvidenceRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "limits": {
+          "$ref": "#/$defs/Limits"
+        }
+      },
+      "required": [
+        "schema",
+        "roundId",
+        "chainId",
+        "mode",
+        "selection",
+        "requestedConstraints",
+        "profileRef",
+        "authorizationRef",
+        "previousRoundRef",
+        "limits"
+      ]
+    },
+    "Policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema": {
+          "const": "effective-execution-policy/1"
+        },
+        "roundId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "chainId": {
+          "$ref": "#/$defs/ChainId"
+        },
+        "repaymentAsset": {
+          "$ref": "#/$defs/Asset"
+        },
+        "profileRef": {
+          "$ref": "#/$defs/EvidenceRef"
+        },
+        "policyHash": {
+          "$ref": "#/$defs/Hash"
+        },
+        "principalCapRaw": {
+          "$ref": "#/$defs/Uint"
+        },
+        "minNetProfitRaw": {
+          "$ref": "#/$defs/Uint"
+        },
+        "comparison": {
+          "const": "gt"
+        },
+        "maxPriceImpactBps": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "maxRoutes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8
+        },
+        "maxHopsPerRoute": {
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 8
+        },
+        "maxAttempts": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "maxGasReservationNativeRaw": {
+          "$ref": "#/$defs/Uint"
+        },
+        "maxDailyLossRaw": {
+          "$ref": "#/$defs/Uint"
+        },
+        "maxStateAgeMs": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3600000
+        },
+        "maxBlockLag": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "submissionPolicy": {
+          "enum": [
+            "approved-private",
+            "approved-direct"
+          ]
+        },
+        "allowedCapabilities": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "minItems": 1,
+          "maxItems": 32
+        },
+        "deadlineMs": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 60000
+        },
+        "compiledPolicyHash": {
+          "$ref": "#/$defs/Hash"
+        },
+        "compiledPolicyRef": {
+          "$ref": "#/$defs/EvidenceRef"
+        }
+      },
+      "required": [
+        "schema",
+        "roundId",
+        "chainId",
+        "repaymentAsset",
+        "profileRef",
+        "policyHash",
+        "principalCapRaw",
+        "minNetProfitRaw",
+        "comparison",
+        "maxPriceImpactBps",
+        "maxRoutes",
+        "maxHopsPerRoute",
+        "maxAttempts",
+        "maxGasReservationNativeRaw",
+        "maxDailyLossRaw",
+        "maxStateAgeMs",
+        "maxBlockLag",
+        "submissionPolicy",
+        "allowedCapabilities",
+        "deadlineMs",
+        "compiledPolicyHash",
+        "compiledPolicyRef"
+      ]
+    },
+    "Cost": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema": {
+          "const": "route-cost/1"
+        },
+        "repaymentAssetId": {
+          "$ref": "#/$defs/AssetId"
+        },
+        "state": {
+          "$ref": "#/$defs/State"
+        },
+        "networkNativeUpperRaw": {
+          "$ref": "#/$defs/Uint"
+        },
+        "networkCostUpperRaw": {
+          "$ref": "#/$defs/Uint"
+        },
+        "otherCostUpperRaw": {
+          "$ref": "#/$defs/Uint"
+        },
+        "gasReservationNativeRaw": {
+          "$ref": "#/$defs/Uint"
+        },
+        "valuationRefs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "minItems": 1,
+          "maxItems": 8
+        },
+        "feeEvidenceRef": {
+          "$ref": "#/$defs/EvidenceRef"
+        },
+        "expiresAt": {
+          "$ref": "#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "schema",
+        "repaymentAssetId",
+        "state",
+        "networkNativeUpperRaw",
+        "networkCostUpperRaw",
+        "otherCostUpperRaw",
+        "gasReservationNativeRaw",
+        "valuationRefs",
+        "feeEvidenceRef",
+        "expiresAt"
+      ]
+    },
+    "Readiness": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema": {
+          "const": "execution-readiness/1"
+        },
+        "roundId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "chainId": {
+          "$ref": "#/$defs/ChainId"
+        },
+        "requestedMode": {
+          "enum": [
+            "research",
+            "simulate",
+            "execute"
+          ]
+        },
+        "verdict": {
+          "enum": [
+            "READY",
+            "RESEARCH_ONLY",
+            "BLOCKED"
+          ]
+        },
+        "operator": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/NonzeroAddress"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "gasBalanceNativeRaw": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Uint"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "gasBudgetRemainingNativeRaw": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Uint"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "pendingAttemptIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "minItems": 0,
+          "maxItems": 100
+        },
+        "pnlState": {
+          "enum": [
+            "KNOWN",
+            "UNKNOWN",
+            "HALTED"
+          ]
+        },
+        "admissionRef": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EvidenceRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "executorBalanceRefs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "minItems": 0,
+          "maxItems": 32
+        },
+        "reasonCodes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "minItems": 0,
+          "maxItems": 32
+        }
+      },
+      "required": [
+        "schema",
+        "roundId",
+        "chainId",
+        "requestedMode",
+        "verdict",
+        "operator",
+        "gasBalanceNativeRaw",
+        "gasBudgetRemainingNativeRaw",
+        "pendingAttemptIds",
+        "pnlState",
+        "admissionRef",
+        "executorBalanceRefs",
+        "reasonCodes"
+      ]
+    },
+    "CandidateItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "assetId": {
+          "$ref": "#/$defs/AssetId"
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "explicit",
+              "movers"
+            ]
+          },
+          "minItems": 1,
+          "maxItems": 2
+        },
+        "outcome": {
+          "enum": [
+            "DISCOVERED",
+            "RESOLVED",
+            "EVALUATED",
+            "REJECTED",
+            "DEFERRED_BUDGET",
+            "INCOMPLETE_DATA",
+            "UNSUPPORTED"
+          ]
+        },
+        "stage": {
+          "enum": [
+            "discovery",
+            "identity",
+            "snapshot",
+            "quote",
+            "solve",
+            "prepare",
+            "simulate",
+            "execute"
+          ]
+        },
+        "reasonCode": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "nextDependency": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "poolIds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Bytes32"
+          },
+          "minItems": 0,
+          "maxItems": 64
+        },
+        "routeIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "minItems": 0,
+          "maxItems": 64
+        },
+        "support": {
+          "$ref": "#/$defs/Support"
+        },
+        "evidenceRefs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "minItems": 0,
+          "maxItems": 32
+        }
+      },
+      "required": [
+        "assetId",
+        "sources",
+        "outcome",
+        "stage",
+        "reasonCode",
+        "nextDependency",
+        "poolIds",
+        "routeIds",
+        "support",
+        "evidenceRefs"
+      ]
+    },
+    "CandidateLedger": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema": {
+          "const": "candidate-ledger/2"
+        },
+        "roundId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "chainId": {
+          "$ref": "#/$defs/ChainId"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CandidateItem"
+          },
+          "minItems": 0,
+          "maxItems": 40
+        },
+        "counts": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "requested": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 40
+            },
+            "discovered": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 40
+            },
+            "resolved": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 40
+            },
+            "evaluated": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 40
+            },
+            "rejected": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 40
+            },
+            "deferred": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 40
+            },
+            "incomplete": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 40
+            },
+            "unsupported": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 40
+            }
+          },
+          "required": [
+            "requested",
+            "discovered",
+            "resolved",
+            "evaluated",
+            "rejected",
+            "deferred",
+            "incomplete",
+            "unsupported"
+          ]
+        },
+        "exhaustive": {
+          "const": false
+        },
+        "sourceRefs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "minItems": 0,
+          "maxItems": 32
+        }
+      },
+      "required": [
+        "schema",
+        "roundId",
+        "chainId",
+        "items",
+        "counts",
+        "exhaustive",
+        "sourceRefs"
+      ]
+    },
+    "Action": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "SWAP",
+            "WRAP",
+            "UNWRAP"
+          ]
+        },
+        "tokenIn": {
+          "$ref": "#/$defs/AssetId"
+        },
+        "tokenOut": {
+          "$ref": "#/$defs/AssetId"
+        },
+        "amountInRaw": {
+          "$ref": "#/$defs/Uint"
+        },
+        "minAmountOutRaw": {
+          "$ref": "#/$defs/Uint"
+        },
+        "poolId": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Bytes32"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "kind",
+        "tokenIn",
+        "tokenOut",
+        "amountInRaw",
+        "minAmountOutRaw",
+        "poolId"
+      ]
+    },
+    "Branch": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "branchId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "allocationRaw": {
+          "$ref": "#/$defs/Uint"
+        },
+        "actions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Action"
+          },
+          "minItems": 1,
+          "maxItems": 10
+        }
+      },
+      "required": [
+        "branchId",
+        "allocationRaw",
+        "actions"
+      ]
+    },
+    "Plan": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema": {
+          "const": "execution-plan/1"
+        },
+        "roundId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "chainId": {
+          "$ref": "#/$defs/ChainId"
+        },
+        "state": {
+          "$ref": "#/$defs/State"
+        },
+        "policyHash": {
+          "$ref": "#/$defs/Hash"
+        },
+        "costHash": {
+          "$ref": "#/$defs/Hash"
+        },
+        "executorManifestHash": {
+          "$ref": "#/$defs/Hash"
+        },
+        "payloadHash": {
+          "$ref": "#/$defs/Hash"
+        },
+        "repaymentAssetId": {
+          "$ref": "#/$defs/AssetId"
+        },
+        "principalRaw": {
+          "$ref": "#/$defs/Uint"
+        },
+        "deployedRaw": {
+          "$ref": "#/$defs/Uint"
+        },
+        "unusedPrincipalRaw": {
+          "$ref": "#/$defs/Uint"
+        },
+        "swapProceedsRaw": {
+          "$ref": "#/$defs/Uint"
+        },
+        "lenderFeeRaw": {
+          "$ref": "#/$defs/Uint"
+        },
+        "terminalBeforeDebtRaw": {
+          "$ref": "#/$defs/Uint"
+        },
+        "surplusAfterDebtRaw": {
+          "$ref": "#/$defs/Int"
+        },
+        "netLowerBoundRaw": {
+          "$ref": "#/$defs/Int"
+        },
+        "branches": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Branch"
+          },
+          "minItems": 1,
+          "maxItems": 8
+        },
+        "expiresAt": {
+          "$ref": "#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "schema",
+        "roundId",
+        "chainId",
+        "state",
+        "policyHash",
+        "costHash",
+        "executorManifestHash",
+        "payloadHash",
+        "repaymentAssetId",
+        "principalRaw",
+        "deployedRaw",
+        "unusedPrincipalRaw",
+        "swapProceedsRaw",
+        "lenderFeeRaw",
+        "terminalBeforeDebtRaw",
+        "surplusAfterDebtRaw",
+        "netLowerBoundRaw",
+        "branches",
+        "expiresAt"
+      ]
+    },
+    "ExecutionEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema": {
+          "const": "execution-evidence/2"
+        },
+        "roundId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "chainId": {
+          "$ref": "#/$defs/ChainId"
+        },
+        "kind": {
+          "enum": [
+            "NATIVE_SIM",
+            "RECEIPT_RECONCILED"
+          ]
+        },
+        "fixture": {
+          "type": "boolean"
+        },
+        "candidateHash": {
+          "$ref": "#/$defs/Hash"
+        },
+        "policyHash": {
+          "$ref": "#/$defs/Hash"
+        },
+        "executorManifestHash": {
+          "$ref": "#/$defs/Hash"
+        },
+        "payloadHash": {
+          "$ref": "#/$defs/Hash"
+        },
+        "state": {
+          "$ref": "#/$defs/State"
+        },
+        "transactionHash": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Bytes32"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "receiptRef": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EvidenceRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "repaymentProven": {
+          "type": "boolean"
+        },
+        "custodyProven": {
+          "type": "boolean"
+        },
+        "realizedNetRaw": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Int"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "producerRef": {
+          "$ref": "#/$defs/EvidenceRef"
+        },
+        "ownerReviewRef": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EvidenceRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "success": {
+          "type": "boolean"
+        },
+        "fidelity": {
+          "enum": [
+            "existing-native",
+            "fixture",
+            "model",
+            "receipt"
+          ]
+        },
+        "overrideRefs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "minItems": 0,
+          "maxItems": 16
+        },
+        "nativeProofRef": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EvidenceRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "receiptState": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/State"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "schema",
+        "roundId",
+        "chainId",
+        "kind",
+        "fixture",
+        "candidateHash",
+        "policyHash",
+        "executorManifestHash",
+        "payloadHash",
+        "state",
+        "transactionHash",
+        "receiptRef",
+        "repaymentProven",
+        "custodyProven",
+        "realizedNetRaw",
+        "producerRef",
+        "ownerReviewRef",
+        "success",
+        "fidelity",
+        "overrideRefs",
+        "nativeProofRef",
+        "receiptState"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "NATIVE_SIM"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "transactionHash": {
+                "type": "null"
+              },
+              "receiptRef": {
+                "type": "null"
+              },
+              "realizedNetRaw": {
+                "type": "null"
+              },
+              "nativeProofRef": {
+                "$ref": "#/$defs/EvidenceRef"
+              },
+              "receiptState": {
+                "type": "null"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "fixture": {
+                "const": false
+              },
+              "transactionHash": {
+                "$ref": "#/$defs/Bytes32"
+              },
+              "receiptRef": {
+                "$ref": "#/$defs/EvidenceRef"
+              },
+              "realizedNetRaw": {
+                "$ref": "#/$defs/Int"
+              },
+              "fidelity": {
+                "const": "receipt"
+              },
+              "receiptState": {
+                "$ref": "#/$defs/State"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "Result": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema": {
+          "const": "flash-round-result/1"
+        },
+        "roundId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "chainId": {
+          "$ref": "#/$defs/ChainId"
+        },
+        "status": {
+          "enum": [
+            "DISCOVERY_ONLY",
+            "COVERAGE_BLOCKED",
+            "INPUT_BLOCKED",
+            "POLICY_UNSUPPORTED",
+            "VERSION_UNSUPPORTED",
+            "INCONCLUSIVE",
+            "NO_OPPORTUNITY_WITHIN_DOMAIN",
+            "MODEL_OPPORTUNITY",
+            "SIMULATED_OPPORTUNITY",
+            "SUBMITTED_UNKNOWN",
+            "RECEIPT_RECONCILED",
+            "HALTED",
+            "TOOL_ERROR"
+          ]
+        },
+        "ledger": {
+          "$ref": "#/$defs/CandidateLedger"
+        },
+        "readiness": {
+          "$ref": "#/$defs/Readiness"
+        },
+        "plan": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Plan"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "executionEvidence": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ExecutionEvidence"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reasonCodes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "minItems": 0,
+          "maxItems": 32
+        },
+        "nextDependencies": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "minItems": 0,
+          "maxItems": 32
+        },
+        "search": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "attempted": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 10000
+            },
+            "complete": {
+              "type": "boolean"
+            },
+            "termination": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80
+            },
+            "domainHash": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Hash"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "attempted",
+            "complete",
+            "termination",
+            "domainHash"
+          ]
+        },
+        "artifactRefs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "minItems": 0,
+          "maxItems": 64
+        }
+      },
+      "required": [
+        "schema",
+        "roundId",
+        "chainId",
+        "status",
+        "ledger",
+        "readiness",
+        "plan",
+        "executionEvidence",
+        "reasonCodes",
+        "nextDependencies",
+        "search",
+        "artifactRefs"
+      ]
+    },
+    "PoolResolutionRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema": {
+          "const": "pool-resolution-request/1"
+        },
+        "roundId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "chainId": {
+          "$ref": "#/$defs/ChainId"
+        },
+        "references": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "provider": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "providerPoolId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1024
+              },
+              "assetIds": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/AssetId"
+                },
+                "minItems": 2,
+                "maxItems": 2
+              }
+            },
+            "required": [
+              "provider",
+              "providerPoolId",
+              "assetIds"
+            ]
+          },
+          "minItems": 1,
+          "maxItems": 64
+        },
+        "managerMappingRef": {
+          "$ref": "#/$defs/EvidenceRef"
+        },
+        "atBlock": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Uint"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "limits": {
+          "$ref": "#/$defs/Limits"
+        }
+      },
+      "required": [
+        "schema",
+        "roundId",
+        "chainId",
+        "references",
+        "managerMappingRef",
+        "atBlock",
+        "limits"
+      ]
+    },
+    "PoolResolutionReport": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema": {
+          "const": "pool-resolution-report/1"
+        },
+        "roundId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "chainId": {
+          "$ref": "#/$defs/ChainId"
+        },
+        "resolved": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ResolvedPool"
+          },
+          "minItems": 0,
+          "maxItems": 64
+        },
+        "unresolved": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "provider": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "providerPoolId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1024
+              },
+              "reasonCode": {
+                "enum": [
+                  "MANAGER_MAPPING_REQUIRED",
+                  "UNRESOLVED_POOL_KEY",
+                  "POOL_ID_MISMATCH",
+                  "UNINITIALIZED_POOL",
+                  "BLOCK_REORG",
+                  "RESOLUTION_BUDGET",
+                  "UNSUPPORTED_HOOK_OR_FEE"
+                ]
+              },
+              "nextDependency": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512
+              }
+            },
+            "required": [
+              "provider",
+              "providerPoolId",
+              "reasonCode",
+              "nextDependency"
+            ]
+          },
+          "minItems": 0,
+          "maxItems": 64
+        },
+        "complete": {
+          "type": "boolean"
+        },
+        "rpcCallsUsed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "sourceRefs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "minItems": 0,
+          "maxItems": 32
+        }
+      },
+      "required": [
+        "schema",
+        "roundId",
+        "chainId",
+        "resolved",
+        "unresolved",
+        "complete",
+        "rpcCallsUsed",
+        "sourceRefs"
+      ]
+    },
+    "ExecutorManifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema": {
+          "const": "executor-manifest/1"
+        },
+        "chainId": {
+          "$ref": "#/$defs/ChainId"
+        },
+        "address": {
+          "$ref": "#/$defs/NonzeroAddress"
+        },
+        "owner": {
+          "$ref": "#/$defs/NonzeroAddress"
+        },
+        "runtimeCodeHash": {
+          "$ref": "#/$defs/Bytes32"
+        },
+        "abiHash": {
+          "$ref": "#/$defs/Hash"
+        },
+        "artifactFileHash": {
+          "$ref": "#/$defs/Hash"
+        },
+        "sourceRevision": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "compilerVersion": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "compilerBinaryHash": {
+          "$ref": "#/$defs/Hash"
+        },
+        "compilerSettingsHash": {
+          "$ref": "#/$defs/Hash"
+        },
+        "immutableRefsHash": {
+          "$ref": "#/$defs/Hash"
+        },
+        "codecVersion": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "minItems": 1,
+          "maxItems": 32
+        },
+        "allowedWrapper": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/NonzeroAddress"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "deploymentReceiptRef": {
+          "$ref": "#/$defs/EvidenceRef"
+        },
+        "manifestHash": {
+          "$ref": "#/$defs/Hash"
+        }
+      },
+      "required": [
+        "schema",
+        "chainId",
+        "address",
+        "owner",
+        "runtimeCodeHash",
+        "abiHash",
+        "artifactFileHash",
+        "sourceRevision",
+        "compilerVersion",
+        "compilerBinaryHash",
+        "compilerSettingsHash",
+        "immutableRefsHash",
+        "codecVersion",
+        "capabilities",
+        "allowedWrapper",
+        "deploymentReceiptRef",
+        "manifestHash"
+      ]
+    },
+    "AdmissionBundle": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema": {
+          "const": "execution-admission/1"
+        },
+        "chainId": {
+          "$ref": "#/$defs/ChainId"
+        },
+        "executorManifestHash": {
+          "$ref": "#/$defs/Hash"
+        },
+        "capability": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "schemaProofRef": {
+          "$ref": "#/$defs/EvidenceRef"
+        },
+        "mathProofRef": {
+          "$ref": "#/$defs/EvidenceRef"
+        },
+        "canaryProofRef": {
+          "$ref": "#/$defs/EvidenceRef"
+        },
+        "nativeSimulationRef": {
+          "$ref": "#/$defs/EvidenceRef"
+        },
+        "payloadHash": {
+          "$ref": "#/$defs/Hash"
+        },
+        "policyHash": {
+          "$ref": "#/$defs/Hash"
+        },
+        "stateDigest": {
+          "$ref": "#/$defs/Hash"
+        },
+        "producerRef": {
+          "$ref": "#/$defs/EvidenceRef"
+        },
+        "ownerReviewRef": {
+          "$ref": "#/$defs/EvidenceRef"
+        },
+        "expiresAt": {
+          "$ref": "#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "schema",
+        "chainId",
+        "executorManifestHash",
+        "capability",
+        "schemaProofRef",
+        "mathProofRef",
+        "canaryProofRef",
+        "nativeSimulationRef",
+        "payloadHash",
+        "policyHash",
+        "stateDigest",
+        "producerRef",
+        "ownerReviewRef",
+        "expiresAt"
+      ]
+    },
+    "ExistingProofEnvelope": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "const": 2
+        },
+        "kind": {
+          "enum": [
+            "evm_snapshot",
+            "evm_plan",
+            "xrpl_routes",
+            "sui_snapshot",
+            "sui_plan"
+          ]
+        },
+        "issued_at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "expires_at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "registry_version": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "content_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "payload": {
+          "type": "object"
+        },
+        "proof": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "algorithm": {
+              "const": "HS256"
+            },
+            "key_id": {
+              "const": "v2"
+            },
+            "signature": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{43}$"
+            }
+          },
+          "required": [
+            "algorithm",
+            "key_id",
+            "signature"
+          ]
+        }
+      },
+      "required": [
+        "version",
+        "kind",
+        "issued_at",
+        "expires_at",
+        "registry_version",
+        "content_hash",
+        "payload",
+        "proof"
+      ]
+    },
+    "CandidateRequestV2": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema": {
+          "const": "flash-candidate-request/2"
+        },
+        "roundId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "chainId": {
+          "$ref": "#/$defs/ChainId"
+        },
+        "mode": {
+          "const": "research"
+        },
+        "selection": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "movers": {
+              "type": "boolean"
+            },
+            "explicitAssets": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/AssetId"
+              },
+              "minItems": 0,
+              "maxItems": 30
+            },
+            "minReportedLiquidityUsd": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+            },
+            "maxCandidates": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 30
+            }
+          },
+          "required": [
+            "movers",
+            "explicitAssets",
+            "minReportedLiquidityUsd",
+            "maxCandidates"
+          ]
+        },
+        "fundingAnchor": {
+          "$ref": "#/$defs/AssetId"
+        },
+        "profileResearchPolicy": {
+          "anyOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "repaymentAssetId": {
+                  "$ref": "#/$defs/AssetId"
+                },
+                "principalCapRaw": {
+                  "$ref": "#/$defs/Uint"
+                },
+                "minNetProfitRaw": {
+                  "$ref": "#/$defs/Uint"
+                },
+                "comparison": {
+                  "const": "gt"
+                },
+                "maxPriceImpactBps": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 10000
+                },
+                "maxRoutes": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 8
+                }
+              },
+              "required": [
+                "repaymentAssetId",
+                "principalCapRaw",
+                "minNetProfitRaw",
+                "comparison",
+                "maxPriceImpactBps",
+                "maxRoutes"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "costEvidence": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Cost"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "snapshot": {
+          "anyOf": [
+            {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/ExistingProofEnvelope"
+                },
+                {
+                  "properties": {
+                    "kind": {
+                      "const": "evm_snapshot"
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "managerMappingRef": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EvidenceRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "limits": {
+          "$ref": "#/$defs/Limits"
+        }
+      },
+      "required": [
+        "schema",
+        "roundId",
+        "chainId",
+        "mode",
+        "selection",
+        "fundingAnchor",
+        "profileResearchPolicy",
+        "costEvidence",
+        "snapshot",
+        "managerMappingRef",
+        "limits"
+      ]
+    },
+    "CandidateResultV2": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema": {
+          "const": "flash-candidate-research/2"
+        },
+        "roundId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "chainId": {
+          "$ref": "#/$defs/ChainId"
+        },
+        "status": {
+          "enum": [
+            "DISCOVERY_ONLY",
+            "COVERAGE_BLOCKED",
+            "INPUT_BLOCKED",
+            "INCONCLUSIVE",
+            "NO_OPPORTUNITY_WITHIN_DOMAIN",
+            "MODEL_OPPORTUNITY",
+            "TOOL_ERROR"
+          ]
+        },
+        "execution": {
+          "const": false
+        },
+        "ledger": {
+          "$ref": "#/$defs/CandidateLedger"
+        },
+        "resolution": {
+          "$ref": "#/$defs/PoolResolutionReport"
+        },
+        "snapshot": {
+          "anyOf": [
+            {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/ExistingProofEnvelope"
+                },
+                {
+                  "properties": {
+                    "kind": {
+                      "const": "evm_snapshot"
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "researchPlan": {
+          "anyOf": [
+            {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/ExistingProofEnvelope"
+                },
+                {
+                  "properties": {
+                    "kind": {
+                      "const": "evm_plan"
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "ranking": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "targetAssetId": {
+                "$ref": "#/$defs/AssetId"
+              },
+              "planHash": {
+                "$ref": "#/$defs/Hash"
+              },
+              "repaymentAssetId": {
+                "$ref": "#/$defs/AssetId"
+              },
+              "planNetRaw": {
+                "$ref": "#/$defs/Int"
+              },
+              "basis": {
+                "const": "PLAN_CONTAINING_TARGET"
+              }
+            },
+            "required": [
+              "targetAssetId",
+              "planHash",
+              "repaymentAssetId",
+              "planNetRaw",
+              "basis"
+            ]
+          },
+          "minItems": 0,
+          "maxItems": 30
+        },
+        "search": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "attempted": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 10000
+            },
+            "complete": {
+              "type": "boolean"
+            },
+            "termination": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80
+            },
+            "domainHash": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Hash"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "attempted",
+            "complete",
+            "termination",
+            "domainHash"
+          ]
+        },
+        "reasonCodes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "minItems": 0,
+          "maxItems": 32
+        },
+        "nextDependencies": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "minItems": 0,
+          "maxItems": 32
+        },
+        "researchPlans": {
+          "type": "array",
+          "items": {
+            "allOf": [
+              {
+                "$ref": "#/$defs/ExistingProofEnvelope"
+              },
+              {
+                "properties": {
+                  "kind": {
+                    "const": "evm_plan"
+                  }
+                }
+              }
+            ]
+          },
+          "minItems": 0,
+          "maxItems": 30
+        }
+      },
+      "required": [
+        "schema",
+        "roundId",
+        "chainId",
+        "status",
+        "execution",
+        "ledger",
+        "resolution",
+        "snapshot",
+        "researchPlan",
+        "ranking",
+        "search",
+        "reasonCodes",
+        "nextDependencies",
+        "researchPlans"
+      ]
+    }
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/Intent"
+    },
+    {
+      "$ref": "#/$defs/ResolvedPool"
+    },
+    {
+      "$ref": "#/$defs/PoolResolutionRequest"
+    },
+    {
+      "$ref": "#/$defs/PoolResolutionReport"
+    },
+    {
+      "$ref": "#/$defs/ExecutorManifest"
+    },
+    {
+      "$ref": "#/$defs/AdmissionBundle"
+    },
+    {
+      "$ref": "#/$defs/Policy"
+    },
+    {
+      "$ref": "#/$defs/Cost"
+    },
+    {
+      "$ref": "#/$defs/Readiness"
+    },
+    {
+      "$ref": "#/$defs/CandidateLedger"
+    },
+    {
+      "$ref": "#/$defs/Plan"
+    },
+    {
+      "$ref": "#/$defs/ExecutionEvidence"
+    },
+    {
+      "$ref": "#/$defs/Result"
+    },
+    {
+      "$ref": "#/$defs/CandidateRequestV2"
+    },
+    {
+      "$ref": "#/$defs/CandidateResultV2"
+    }
+  ]
+}
