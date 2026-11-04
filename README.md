@@ -71,7 +71,7 @@ To enable v8 permanently, set the flags in `config/flashloan-integration-version
 
 **Not done yet:**
 - Hooked-pool quote parity. RPC log limits blocked discovering hooked pools.
-- A Robinhood fork backrun proof.
+- A profitable Robinhood backrun proof. The 2026-10-29 fork proof covers only the native path (real Morpho, WETH and PoolManager settlement); its deepest native pool lost 1.99% on a round trip.
 - The trigger lane, shadow ledger and live sends (PRD PR4/PR5).
 
 Live sending still needs a positive shadow verdict and explicit owner approval.
@@ -673,7 +673,7 @@ authorize sending or establish liquidity-pattern production admission.
 | Arbitrum One / historical V4-only | `0xfcd8f1257d8f37f4c51b4e6ac923137e5b6a2a16` | Execution revoked |
 | Base 8453 / MultiVenueArbitrageExecutor | `0xa27873424e74037d93dcf05d3a40556d07c2cfa8` | Finalized; Morpho, V4 manager, and Aave provider configured |
 | Base 8453 / NativeV4FlashExecutor (latest, 2026-11-04) | [`0xfeba729feb4b090f56b8ec8f9ca7f8478eb58157`](https://basescan.org/address/0xfeba729feb4b090f56b8ec8f9ca7f8478eb58157) | `executeNativeArbitrage` (native-ETH V4 routes); Morpho and V4 PoolManager pinned; fork-proven; `not-admitted`. [Record](docs/deployments/base-native-v4-20261104.json) |
-| Robinhood 4663 / NativeV4FlashExecutor (latest, 2026-11-04) | `0xc3e836ff1b18dd11048ac5ada9d43a5f5c16b73e` | `executeNativeArbitrage`; Morpho and V4 PoolManager pinned; no Robinhood fork proof yet; `not-admitted`. [Record](docs/deployments/robinhood-native-v4-20261104.json) |
+| Robinhood 4663 / NativeV4FlashExecutor (latest, 2026-11-04) | `0xc3e836ff1b18dd11048ac5ada9d43a5f5c16b73e` | `executeNativeArbitrage`; Morpho and V4 PoolManager pinned; native path fork-proven without a profitable route ([fork record](docs/deployments/robinhood-native-v4-fork-verification.json)); `not-admitted`. [Record](docs/deployments/robinhood-native-v4-20261104.json) |
 | Base 8453 / PortableMultiSplitFlashExecutor | `0x0cd3a077aec94f51d32e8d55120cf90d5db7841c` | Finalized portable split executor; Morpho, V4 manager, and Aave provider configured; PancakeSwap V3 and Hydrex Algebra factories pinned 2026-11-04 ([roots record](docs/deployments/base-portable-roots-v8.json)) |
 | Base 8453 / V4StateQuoter | `0x84f9615db5a1c6ac87acb686a3cb3fcb44ec1825` | Finalized read-only V4 state quoter |
 | Base 8453 / ImmutableArbitrageExecutor | `0x00cba652a1b4cf21063d443c5c1b0d495f477999` | Finalized immutable executor; V4 manager and Aave provider configured |
