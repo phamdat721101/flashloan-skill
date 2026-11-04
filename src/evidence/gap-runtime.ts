@@ -150,7 +150,8 @@ export async function runFlashRound(raw:unknown,options:EvidenceOptions&{host:Ga
  * acceptance lane. Every inventory target ends with exactly one disposition and an exact next dependency.
  */
 export async function runIntegrationRound(input: { intent: unknown; inventory: unknown; mappingBytes: Uint8Array; mappingLocator: string; versions: unknown;
-  release: { baseVersionsBytes: Uint8Array; promptBytes: Uint8Array; contractBytes: Uint8Array; producersBytes: Uint8Array }; refs: import('./intent.js').IntentRefs; nowNs: bigint },
+  release: { baseVersionsBytes: Uint8Array; promptBytes: Uint8Array; contractBytes: Uint8Array; producersBytes: Uint8Array }; refs: import('./intent.js').IntentRefs; nowNs: bigint;
+  knownFacts?: ReadonlyMap<string, import('../evm/v4-resolution.js').InitializeFact>; pageSize?: bigint },
   reader: import('../evm/v4-resolution.js').V4Reader, now: () => number = Date.now) {
   const { checkIntegrationVersions, RoundCounters, sha256Bytes, IntegrationError, validateIntegration } = await import('./integration.js');
   const { adaptIntent, compileEffectivePolicy, networkIdOf } = await import('./intent.js');
@@ -169,7 +170,7 @@ export async function runIntegrationRound(input: { intent: unknown; inventory: u
     const result = await buildRoundResult({ roundId: intentRaw.roundId, chainId: intentRaw.chainId, ledger: emptyLedger, readiness: readiness(['BUDGET_UNAVAILABLE', 'VERSION_UNSUPPORTED']), plan: null, executionEvidence: null,
       reasonCodes: ['VERSION_UNSUPPORTED'], nextDependencies: [e.message], search, artifactRefs: [] },
       { versionSupported: false, inputBlockers: [], policyUnsupported: [], submitted: false, pnlState: 'UNKNOWN', evidence: null, planQualified: false, search, ledger: emptyLedger });
-    return { result, report: null, configs: [], effective: null };
+    return { result, report: null, configs: [], effective: null, facts: new Map() };
   }
   const adapted = adaptIntent(input.intent, input.refs), intent = adapted.intent, chainNumber = Number(networkIdOf(intent.chainId));
   const inventory = parseInventory(input.inventory, ['flashloan.inventory.v2', 'flashloan.inventory.v3']);
@@ -179,7 +180,7 @@ export async function runIntegrationRound(input: { intent: unknown; inventory: u
   const issued = new Date(now()).toISOString().replace(/\.\d+Z$/, 'Z');
   const resolution = references.length ? await resolveV4Pools({ schema: 'pool-resolution-request/1', roundId: intent.roundId, chainId: intent.chainId, references,
     managerMappingRef: { kind: 'configuration', contentHash: sha256Bytes(input.mappingBytes), issuedAt: issued, expiresAt: null, traceId: intent.roundId, locator: input.mappingLocator }, atBlock: null, limits: intent.limits },
-    reader, counters, { mappingBytes: input.mappingBytes }) : null;
+    reader, counters, { mappingBytes: input.mappingBytes, knownFacts: input.knownFacts, pageSize: input.pageSize }) : null;
   type Pool = { poolId: string; asset0: { assetId: string }; asset1: { assetId: string }; support: { read: boolean; quote: boolean; prepare: boolean; simulate: boolean; execute: boolean; reasonCodes: string[] } };
   const resolved = (resolution?.report as { resolved: Pool[]; unresolved: Array<{ providerPoolId: string; reasonCode: string; nextDependency: string }> } | undefined);
   const repayment = input.refs.repaymentAsset ? `${intent.chainId}/erc20:${input.refs.repaymentAsset.assetId.toLowerCase()}` : null;
@@ -211,5 +212,5 @@ export async function runIntegrationRound(input: { intent: unknown; inventory: u
     plan: null, executionEvidence: null, reasonCodes: blockers, nextDependencies: next.length ? next : ['no v4 targets in inventory'], search: { ...search, attempted: counters.evaluations },
     artifactRefs: effective ? [{ kind: 'configuration', contentHash: effective.policyHash, issuedAt: issued, expiresAt: null, traceId: intent.roundId, locator: 'effective-policy' }] : [] },
     { versionSupported: true, inputBlockers: blockers, policyUnsupported: [], submitted: false, pnlState: 'UNKNOWN', evidence: null, planQualified: false, search, ledger });
-  return { result, report: resolution?.report ?? null, configs: resolution?.configs ?? [], effective };
+  return { result, report: resolution?.report ?? null, configs: resolution?.configs ?? [], effective, facts: resolution?.facts ?? new Map() };
 }

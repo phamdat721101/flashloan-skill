@@ -23,18 +23,24 @@ async function main() {
   if (command === 'integration-run') {
     // v7: read-only identity/policy/ledger round. It never loads signer secrets; execution stays in the admitted acceptance lane.
     const { runIntegrationRound } = await import('../evidence/gap-runtime.js');
-    const { viemV4Reader } = await import('./v4-resolution.js');
+    const { viemV4Reader, parseInitializeCache, serializeInitializeCache } = await import('./v4-resolution.js');
     const read = (path: string | undefined, name: string) => { if (!path) throw new Error(`${name}_REQUIRED`); return readFile(path); };
     const intent = JSON.parse((await read(option('--intent'), 'INTENT')).toString());
     const chainId = Number(String(intent.chainId).replace(/^eip155:/, '')), profile = evmProfile(chainId);
     const mappingPath = option('--mapping'), refs = option('--profile') ? JSON.parse((await read(option('--profile'), 'PROFILE')).toString()) : {};
     const client = createPublicClient({ transport: http(secureEndpoint(process.env[profile.rpcEnv] ?? profile.chain.rpcUrls.default.http[0]), { retryCount: 0, timeout: 20000 }) });
     if (await client.getChainId() !== chainId) throw new Error('CHAIN_MISMATCH');
-    const out = await runIntegrationRound({ intent, inventory: JSON.parse((await read(option('--inventory'), 'INVENTORY')).toString()), mappingBytes: await read(mappingPath, 'MAPPING'), mappingLocator: mappingPath!,
+    // Initialize facts are immutable: cache them so a round scans logs only for pool ids it has never verified.
+    const cachePath = option('--resolution-cache') ?? `.nim/v4-resolution-cache/${chainId}.json`, pageSize = option('--page-size');
+    if (pageSize !== undefined && !/^[1-9]\d*$/.test(pageSize)) throw new Error('PAGE_SIZE_INVALID');
+    const knownFacts = await readFile(cachePath, 'utf8').then(t => parseInitializeCache(JSON.parse(t), intent.chainId), (e: NodeJS.ErrnoException) => { if (e.code === 'ENOENT') return new Map(); throw e; });
+    const out = await runIntegrationRound({ intent, knownFacts, pageSize: pageSize === undefined ? undefined : BigInt(pageSize), inventory: JSON.parse((await read(option('--inventory'), 'INVENTORY')).toString()), mappingBytes: await read(mappingPath, 'MAPPING'), mappingLocator: mappingPath!,
       versions: JSON.parse(await readFile('config/flashloan-integration-versions.json', 'utf8')),
       release: { baseVersionsBytes: await readFile('config/flashloan-versions.json'), promptBytes: await readFile('skills/flashloan-agent/prompt-v7.md'), contractBytes: await readFile('schemas/flashloan-integration-v1.schema.json'), producersBytes: await readFile('config/admission-producers.json') },
       refs, nowNs: BigInt(Date.now()) * 1_000_000n }, viemV4Reader(client as never));
-    return out;
+    if (out.facts.size) await atomicJson(cachePath, serializeInitializeCache(intent.chainId, new Map([...knownFacts, ...out.facts])));
+    const { facts: _facts, ...result } = out;
+    return result;
   }
   if (command === 'profiles') return [42161,8453,4663].map(id => { const p = evmProfile(id); return { chainId:id, key:p.key, rpcEnv:p.rpcEnv, feeModel:p.feeModel, wrappedNative:p.wrappedNative }; });
   if (command === 'acceptance' || command === 'acceptance-reconcile') {

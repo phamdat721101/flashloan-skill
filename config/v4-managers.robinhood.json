@@ -1,0 +1,12 @@
+{
+  "schema": "v4-manager-mapping/1",
+  "chainId": "eip155:4663",
+  "managers": [
+    {
+      "provider": "dexscreener",
+      "manager": "0x8366a39cc670b4001a1121b8f6a443a643e40951",
+      "codeHash": "0xbd3881180b547f5fe817545743cfb4343e96b1bc6640dcd70c106b0066e95626",
+      "fromBlock": "9070"
+    }
+  ]
+}

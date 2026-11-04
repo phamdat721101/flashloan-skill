@@ -3,6 +3,7 @@ import { deriveV4PoolId, type V4PoolKey } from '../state-adapters.js';
 import type { AnalyticsPoolConfig } from '../liquidity/sources.js';
 import type { LiquiditySnapshot } from '../liquidity/state.js';
 import { discoveryTickWindow } from './discovery.js';
+import { EVM_PROFILES, type EvmChainId } from '../evm-chains.js';
 import { domainHash, IntegrationError, sha256Bytes, validateIntegration, type RoundCounters } from '../evidence/integration.js';
 
 /** SK-01: canonical v4 identity is (chain, PoolManager, poolId, PoolKey); a 32-byte poolId is never an EVM contract address. */
@@ -52,7 +53,8 @@ export async function readV4Initialize(reader: V4Reader, manager: Address, ids: 
 }
 
 export interface ManagerMapping { schema: 'v4-manager-mapping/1'; chainId: string; managers: Array<{ provider: string; manager: Address; codeHash: Hex; fromBlock: string }> }
-export interface ResolutionOptions { mappingBytes: Uint8Array; nativeCapability?: boolean; pageSize?: bigint; adapterRevision?: string; now?: () => Date }
+/** knownFacts: cached Initialize facts keyed `${manager}:${poolId}`. They skip the log scan only; key hash, reorg and slot0 are still re-verified every round. */
+export interface ResolutionOptions { mappingBytes: Uint8Array; nativeCapability?: boolean; pageSize?: bigint; adapterRevision?: string; now?: () => Date; knownFacts?: ReadonlyMap<string, InitializeFact> }
 type Unresolved = { provider: string; providerPoolId: string; reasonCode: string; nextDependency: string };
 const nativeId = (chainId: string) => `${chainId}/slip44:60`;
 const assetIdOf = (chainId: string, currency: string) => currency === ZERO ? nativeId(chainId) : `${chainId}/erc20:${currency}`;
@@ -67,7 +69,7 @@ export async function resolveV4Pools(requestInput: unknown, reader: V4Reader, co
   const now = options.now ?? (() => new Date());
   counters.charge('rpc', 2); // head read + the final reorg check are reserved first, so an exhausted scan still yields typed rows
   const head = await reader.block(req.atBlock === null ? undefined : BigInt(req.atBlock));
-  const unresolved: Unresolved[] = [], resolved: unknown[] = [], configs: AnalyticsPoolConfig[] = [], seen = new Set<string>();
+  const unresolved: Unresolved[] = [], resolved: unknown[] = [], configs: AnalyticsPoolConfig[] = [], seen = new Set<string>(), verifiedFacts = new Map<string, InitializeFact>();
   const sources = [{ kind: 'configuration' as const, contentHash: req.managerMappingRef.contentHash, issuedAt: now().toISOString().replace(/\.\d+Z$/, 'Z'), expiresAt: null, traceId: req.roundId, locator: req.managerMappingRef.locator }];
   const byManager = new Map<string, { entry: ManagerMapping['managers'][number]; refs: typeof req.references }>();
   for (const ref of req.references) {
@@ -89,7 +91,10 @@ export async function resolveV4Pools(requestInput: unknown, reader: V4Reader, co
     try {
       counters.charge('rpc');
       if ((await reader.codeHash(manager, head.number)) !== entry.codeHash.toLowerCase()) { block(refs, 'MANAGER_MAPPING_REQUIRED', `manager ${manager} code hash drift; re-review mapping`); continue; }
-      facts = await readV4Initialize(reader, manager, refs.map(r => r.providerPoolId as Hex), { from: BigInt(entry.fromBlock), to: head.number, pageSize: options.pageSize }, counters);
+      facts = new Map();
+      for (const r of refs) { const f = options.knownFacts?.get(`${manager}:${r.providerPoolId}`); if (f) facts.set(r.providerPoolId as Hex, f); }
+      const unknown = refs.map(r => r.providerPoolId as Hex).filter(id => !facts.has(id));
+      if (unknown.length) for (const [id, f] of await readV4Initialize(reader, manager, unknown, { from: BigInt(entry.fromBlock), to: head.number, pageSize: options.pageSize }, counters)) facts.set(id, f);
     } catch (e) {
       if (e instanceof IntegrationError) { block(refs, 'RESOLUTION_BUDGET', `${e.reason}: raise maxRpcCalls/deadline or narrow selection`); continue; }
       throw e;
@@ -103,6 +108,7 @@ export async function resolveV4Pools(requestInput: unknown, reader: V4Reader, co
         if ([...ref.assetIds].sort().join() !== [...ids].sort().join()) { block([ref], 'POOL_ID_MISMATCH', `provider assets ${ref.assetIds.join(',')} differ from PoolKey currencies`); continue; }
         counters.charge('rpc', 2);
         if ((await reader.block(fact.blockNumber)).hash !== fact.blockHash) { block([ref], 'BLOCK_REORG', `Initialize block ${fact.blockNumber} reorged; re-resolve`); continue; }
+        verifiedFacts.set(`${manager}:${fact.id}`, fact);
         const slot0 = await reader.extsload(manager, v4PoolStateSlot(fact.id), head.number);
         if ((slot0 & ((1n << 160n) - 1n)) === 0n) { block([ref], 'UNINITIALIZED_POOL', 'pool state is uninitialized at the pinned block'); continue; }
         let tick = Number((slot0 >> 160n) & 0xffffffn); if (tick >= 0x800000) tick -= 0x1000000;
@@ -132,11 +138,21 @@ export async function resolveV4Pools(requestInput: unknown, reader: V4Reader, co
   if ((await reader.block(head.number)).hash !== head.hash) throw new IntegrationError('STATE_CHANGED', 'resolution head reorged');
   const report = validateIntegration('PoolResolutionReport', { schema: 'pool-resolution-report/1', roundId: req.roundId, chainId: req.chainId, resolved, unresolved,
     complete: unresolved.length === 0, rpcCallsUsed: counters.rpc, sourceRefs: sources });
-  return { report, configs, head };
+  return { report, configs, head, facts: verifiedFacts };
 
   function sourceRef(kind: 'configuration' | 'canonical-state' | 'code', value: unknown) {
     return { kind, contentHash: domainHash(`flash/v4-resolution-${kind}/1`, value), issuedAt: iso(head.timestamp), expiresAt: null, traceId: req.roundId, locator: `rpc://${req.chainId}/${head.number}` };
   }
+}
+/** v4-initialize-cache/1: verified Initialize facts keyed `${manager}:${poolId}`; bigints are decimal strings. A tampered entry fails re-verification, never resolves a wrong key. */
+export function parseInitializeCache(raw: unknown, chainId: string): Map<string, InitializeFact> {
+  const c = raw as { schema?: string; chainId?: string; facts?: Record<string, { id: Hex; key: V4PoolKey; tick: number; blockNumber: string; blockHash: Hex }> } | null;
+  if (!c || c.schema !== 'v4-initialize-cache/1' || c.chainId !== chainId || typeof c.facts !== 'object') throw new IntegrationError('VERSION_UNSUPPORTED', 'v4 initialize cache');
+  return new Map(Object.entries(c.facts).map(([k, f]) => [k, { ...f, blockNumber: BigInt(f.blockNumber) }]));
+}
+export function serializeInitializeCache(chainId: string, facts: ReadonlyMap<string, InitializeFact>) {
+  const sorted = [...facts.entries()].sort(([a], [b]) => a.localeCompare(b));
+  return { schema: 'v4-initialize-cache/1', chainId, facts: Object.fromEntries(sorted.map(([k, f]) => [k, { ...f, blockNumber: f.blockNumber.toString() }])) };
 }
 const safePoolId = (key: V4PoolKey) => { try { return deriveV4PoolId(key); } catch { return null; } };
 const pick = (r: { provider: string; providerPoolId: string }) => ({ provider: r.provider, providerPoolId: r.providerPoolId });
@@ -156,15 +172,18 @@ export async function readPinnedBatches<T extends { snapshot: LiquiditySnapshot 
 }
 
 /** Splits v4 rows (manager+poolId) from contract-address rows; the legacy universe keeps receiving only the latter, byte-identical. */
-export function partitionV4Inventory(inventory: { pools: Array<{ id: string; reference?: { kind?: string; chainId?: number; address?: string; manager?: string; poolId?: string; provider?: string }; asset_ids?: string[]; protocol: string }> }, chainId: number) {
+export function partitionV4Inventory(inventory: { pools: Array<{ id: string; reference?: { kind?: string; chainId?: number; network?: string; address?: string; manager?: string; poolId?: string; providerPoolId?: string; provider?: string }; asset_ids?: string[]; labels?: string[]; protocol: string }> }, chainId: number) {
   const chain = `eip155:${chainId}`, references: Array<{ provider: string; providerPoolId: string; assetIds: string[] }> = [], legacy: typeof inventory.pools = [];
   const rejected: Array<{ providerPoolId: string; reasonCode: 'UNRESOLVED_POOL_KEY' | 'WRONG_CHAIN'; nextDependency: string }> = [];
   const assetId = (a: string) => a === ZERO || a === 'native' ? `${chain}/slip44:60` : `${chain}/erc20:${a.toLowerCase()}`;
+  const networkKey = Object.hasOwn(EVM_PROFILES, chainId) ? EVM_PROFILES[chainId as EvmChainId].key : null;
   for (const row of inventory.pools) {
-    const ref = row.reference ?? {}, id = String(ref.poolId ?? row.id).toLowerCase();
-    const v4 = ref.kind === 'v4_pool' || /v4/i.test(row.protocol) || (ref.kind === 'provider_opaque' && /^0x[0-9a-f]{64}$/.test(id));
+    // Live MCP inventory.v2 carries the v4 id in reference.providerPoolId, the chain as reference.network and v4 only in labels.
+    const ref = row.reference ?? {}, id = String(ref.poolId ?? ref.providerPoolId ?? row.id).toLowerCase();
+    const v4 = ref.kind === 'v4_pool' || /v4/i.test(row.protocol) || (row.labels ?? []).includes('v4') || (ref.kind === 'provider_opaque' && /^0x[0-9a-f]{64}$/.test(id));
     if (!v4) { legacy.push(row); continue; }
     if (ref.chainId !== undefined && ref.chainId !== chainId) { rejected.push({ providerPoolId: id, reasonCode: 'WRONG_CHAIN', nextDependency: `inventory row for chain ${ref.chainId}` }); continue; }
+    if (ref.chainId === undefined && ref.network !== undefined && ref.network !== networkKey) { rejected.push({ providerPoolId: id, reasonCode: 'WRONG_CHAIN', nextDependency: `inventory row for network ${ref.network}` }); continue; }
     const assets = (row.asset_ids ?? []).map(a => a.toLowerCase());
     if (!/^0x[0-9a-f]{64}$/.test(id) || assets.length !== 2) { rejected.push({ providerPoolId: id, reasonCode: 'UNRESOLVED_POOL_KEY', nextDependency: 'canonical 32-byte v4 poolId and two asset ids' }); continue; }
     references.push({ provider: ref.provider ?? row.protocol, providerPoolId: id, assetIds: assets.map(assetId) });

@@ -1,0 +1,1197 @@
+{
+ "capturedAt": "2026-10-29T07:36:00Z",
+ "source": "flashloan MCP flashloan_discover_arbitrage_pools (flashloan.public.v3 envelope, verbatim data)",
+ "data": {
+  "schema_version": "flashloan.inventory.v2",
+  "network": "robinhood",
+  "observed_at": "2026-10-29T07:36:32.562Z",
+  "outcome": "SUCCESS",
+  "pools": [
+   {
+    "id": "018b2116cccf3eef3191011cb1d8b976a2524d0c2022bc1d9e7ff991127489c2",
+    "reference": {
+     "kind": "provider_opaque",
+     "network": "robinhood",
+     "provider": "dexscreener",
+     "providerPoolId": "0x195b783d904a9bb242cfd6774c64717752c8d5ae478b40800820c760d583b101"
+    },
+    "asset_ids": [
+     "0x000de658153f47f23e92973c8eb1e89762703676",
+     "0x5fc5360d0400a0fd4f2af552add042d716f1d168"
+    ],
+    "protocol": "uniswap",
+    "labels": [
+     "v4"
+    ],
+    "liquidity_usd": "1.06",
+    "price_usd": "0.0002945",
+    "liquidity_eligible": false,
+    "eligibility_reasons": [
+     "BELOW_LIQUIDITY_THRESHOLD"
+    ],
+    "capabilities": {
+     "state": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     },
+     "quote": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     },
+     "funding": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     },
+     "simulation": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     }
+    },
+    "provenance": [
+     {
+      "source": "dexscreener:token-pairs/v1",
+      "provider_pool_id": "0x195b783d904a9bb242cfd6774c64717752c8d5ae478b40800820c760d583b101",
+      "observed_at": "2026-10-29T07:36:32.562Z"
+     }
+    ]
+   },
+   {
+    "id": "08b929d4c390ddacd031a3b8a1b81535be47249c8eaf50d31fcd701294c3bf46",
+    "reference": {
+     "kind": "provider_opaque",
+     "network": "robinhood",
+     "provider": "dexscreener",
+     "providerPoolId": "0x74815e68a62a463c677f552543225456865518248dd030e3ac336aa455817285"
+    },
+    "asset_ids": [
+     "0xd463402e7678738886ae4bed5df3ee3a9b165e0f",
+     "0x000de658153f47f23e92973c8eb1e89762703676"
+    ],
+    "protocol": "uniswap",
+    "labels": [
+     "v4"
+    ],
+    "liquidity_usd": "182170.02",
+    "price_usd": "0.0001841",
+    "liquidity_eligible": true,
+    "eligibility_reasons": [],
+    "capabilities": {
+     "state": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     },
+     "quote": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     },
+     "funding": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     },
+     "simulation": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     }
+    },
+    "provenance": [
+     {
+      "source": "dexscreener:token-pairs/v1",
+      "provider_pool_id": "0x74815e68a62a463c677f552543225456865518248dd030e3ac336aa455817285",
+      "observed_at": "2026-10-29T07:36:32.562Z"
+     }
+    ]
+   },
+   {
+    "id": "0b59a147b66cb517d78159fa6f59ef0292c39f907aac60b0dcbcc62a0e77b432",
+    "reference": {
+     "kind": "provider_opaque",
+     "network": "robinhood",
+     "provider": "dexscreener",
+     "providerPoolId": "0xe851a627bd65ac5114f29af75e90b9788291d5c18546179c6a79fc4ae48683b2"
+    },
+    "asset_ids": [
+     "0x000de658153f47f23e92973c8eb1e89762703676",
+     "0x5fc5360d0400a0fd4f2af552add042d716f1d168"
+    ],
+    "protocol": "uniswap",
+    "labels": [
+     "v4"
+    ],
+    "liquidity_usd": "5.64",
+    "price_usd": "0.001605",
+    "liquidity_eligible": false,
+    "eligibility_reasons": [
+     "BELOW_LIQUIDITY_THRESHOLD"
+    ],
+    "capabilities": {
+     "state": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     },
+     "quote": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     },
+     "funding": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     },
+     "simulation": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     }
+    },
+    "provenance": [
+     {
+      "source": "dexscreener:token-pairs/v1",
+      "provider_pool_id": "0xe851a627bd65ac5114f29af75e90b9788291d5c18546179c6a79fc4ae48683b2",
+      "observed_at": "2026-10-29T07:36:32.562Z"
+     }
+    ]
+   },
+   {
+    "id": "18dec937638ef993bc04008f9e7973ed406133e7342e3af4c3062dda4e5f5504",
+    "reference": {
+     "kind": "provider_opaque",
+     "network": "robinhood",
+     "provider": "dexscreener",
+     "providerPoolId": "0xa8e9a688e24e38eb5fedbeda69ac367ba4ef5b0ff16114fe60ec05eb67f6025f"
+    },
+    "asset_ids": [
+     "0x75607e2779962b959e8197e6927acf36b2a7536a",
+     "0x000de658153f47f23e92973c8eb1e89762703676"
+    ],
+    "protocol": "uniswap",
+    "labels": [
+     "v4"
+    ],
+    "liquidity_usd": "63758.98",
+    "price_usd": "0.00006375",
+    "liquidity_eligible": true,
+    "eligibility_reasons": [],
+    "capabilities": {
+     "state": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     },
+     "quote": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     },
+     "funding": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     },
+     "simulation": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     }
+    },
+    "provenance": [
+     {
+      "source": "dexscreener:token-pairs/v1",
+      "provider_pool_id": "0xa8e9a688e24e38eb5fedbeda69ac367ba4ef5b0ff16114fe60ec05eb67f6025f",
+      "observed_at": "2026-10-29T07:36:32.562Z"
+     }
+    ]
+   },
+   {
+    "id": "195506e21700cb4dd8bee6959402b8e021a9a713e3073aec5c423f93dc326166",
+    "reference": {
+     "kind": "provider_opaque",
+     "network": "robinhood",
+     "provider": "dexscreener",
+     "providerPoolId": "0xbd827ac508b3bf758a376c9454ca1a1d94bcf25f4c14a1bf44e92bea7ed2dad8"
+    },
+    "asset_ids": [
+     "0x000de658153f47f23e92973c8eb1e89762703676",
+     "0x5fc5360d0400a0fd4f2af552add042d716f1d168"
+    ],
+    "protocol": "uniswap",
+    "labels": [
+     "v4"
+    ],
+    "liquidity_usd": "215.41",
+    "price_usd": "0.0008247",
+    "liquidity_eligible": false,
+    "eligibility_reasons": [
+     "BELOW_LIQUIDITY_THRESHOLD"
+    ],
+    "capabilities": {
+     "state": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     },
+     "quote": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     },
+     "funding": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     },
+     "simulation": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     }
+    },
+    "provenance": [
+     {
+      "source": "dexscreener:token-pairs/v1",
+      "provider_pool_id": "0xbd827ac508b3bf758a376c9454ca1a1d94bcf25f4c14a1bf44e92bea7ed2dad8",
+      "observed_at": "2026-10-29T07:36:32.562Z"
+     }
+    ]
+   },
+   {
+    "id": "3a5e179884ea36cec04a0ce643325b70bd62ff29fe18fde6324d68f6160d1b5b",
+    "reference": {
+     "kind": "provider_opaque",
+     "network": "robinhood",
+     "provider": "dexscreener",
+     "providerPoolId": "0xa0af9ca137023fe1597761aeb96559631161a33d26325a7bb4e9a8289729b2f1"
+    },
+    "asset_ids": [
+     "0x000de658153f47f23e92973c8eb1e89762703676",
+     "0x5fc5360d0400a0fd4f2af552add042d716f1d168"
+    ],
+    "protocol": "uniswap",
+    "labels": [
+     "v4"
+    ],
+    "liquidity_usd": "0.39",
+    "price_usd": "0.0003331",
+    "liquidity_eligible": false,
+    "eligibility_reasons": [
+     "BELOW_LIQUIDITY_THRESHOLD"
+    ],
+    "capabilities": {
+     "state": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     },
+     "quote": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     },
+     "funding": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     },
+     "simulation": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     }
+    },
+    "provenance": [
+     {
+      "source": "dexscreener:token-pairs/v1",
+      "provider_pool_id": "0xa0af9ca137023fe1597761aeb96559631161a33d26325a7bb4e9a8289729b2f1",
+      "observed_at": "2026-10-29T07:36:32.562Z"
+     }
+    ]
+   },
+   {
+    "id": "439ba3487fda3d618c0a21096c1d3641627a990585ddcf8bb930b441c4c2b56e",
+    "reference": {
+     "kind": "provider_opaque",
+     "network": "robinhood",
+     "provider": "dexscreener",
+     "providerPoolId": "0x602b81a93624a617155788fa78bd1e6a10a5fba34ed10a60745aa1a82ce1b5a1"
+    },
+    "asset_ids": [
+     "0xfad17d7cc41d9c9ca4a459da798a4446dd217974",
+     "0x0000000000000000000000000000000000000000"
+    ],
+    "protocol": "uniswap",
+    "labels": [
+     "v4"
+    ],
+    "liquidity_usd": "11.13",
+    "price_usd": "0.0002597",
+    "liquidity_eligible": false,
+    "eligibility_reasons": [
+     "BELOW_LIQUIDITY_THRESHOLD"
+    ],
+    "capabilities": {
+     "state": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     },
+     "quote": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     },
+     "funding": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     },
+     "simulation": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     }
+    },
+    "provenance": [
+     {
+      "source": "dexscreener:token-pairs/v1",
+      "provider_pool_id": "0x602b81a93624a617155788fa78bd1e6a10a5fba34ed10a60745aa1a82ce1b5a1",
+      "observed_at": "2026-10-29T07:36:32.562Z"
+     }
+    ]
+   },
+   {
+    "id": "4d4b5239064dc6bdf03fa2a0bbd5ad8dc7e5993ad1e99f17a8491eb6c3cdd572",
+    "reference": {
+     "kind": "provider_opaque",
+     "network": "robinhood",
+     "provider": "dexscreener",
+     "providerPoolId": "0x7c92e9444ded96ff942ca3f00e0b2e354082179b8a63cd95c0074e711a8490eb"
+    },
+    "asset_ids": [
+     "0xfad17d7cc41d9c9ca4a459da798a4446dd217974",
+     "0x5fc5360d0400a0fd4f2af552add042d716f1d168"
+    ],
+    "protocol": "uniswap",
+    "labels": [
+     "v4"
+    ],
+    "liquidity_usd": "83.22",
+    "price_usd": "0.0003068",
+    "liquidity_eligible": false,
+    "eligibility_reasons": [
+     "BELOW_LIQUIDITY_THRESHOLD"
+    ],
+    "capabilities": {
+     "state": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     },
+     "quote": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     },
+     "funding": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     },
+     "simulation": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     }
+    },
+    "provenance": [
+     {
+      "source": "dexscreener:token-pairs/v1",
+      "provider_pool_id": "0x7c92e9444ded96ff942ca3f00e0b2e354082179b8a63cd95c0074e711a8490eb",
+      "observed_at": "2026-10-29T07:36:32.562Z"
+     }
+    ]
+   },
+   {
+    "id": "4f6b072c3e41eaea7d0f43e4690ea4f44a8972c5cec1cab96064464b31d41287",
+    "reference": {
+     "kind": "provider_opaque",
+     "network": "robinhood",
+     "provider": "dexscreener",
+     "providerPoolId": "0x04a1d31d60df0a45ee7fc0d47d39ad10e362cf1e966c321f52630ed1e5738522"
+    },
+    "asset_ids": [
+     "0x000de658153f47f23e92973c8eb1e89762703676",
+     "0x5fc5360d0400a0fd4f2af552add042d716f1d168"
+    ],
+    "protocol": "uniswap",
+    "labels": [
+     "v4"
+    ],
+    "liquidity_usd": "11.61",
+    "price_usd": "0.0002955",
+    "liquidity_eligible": false,
+    "eligibility_reasons": [
+     "BELOW_LIQUIDITY_THRESHOLD"
+    ],
+    "capabilities": {
+     "state": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     },
+     "quote": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     },
+     "funding": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     },
+     "simulation": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     }
+    },
+    "provenance": [
+     {
+      "source": "dexscreener:token-pairs/v1",
+      "provider_pool_id": "0x04a1d31d60df0a45ee7fc0d47d39ad10e362cf1e966c321f52630ed1e5738522",
+      "observed_at": "2026-10-29T07:36:32.562Z"
+     }
+    ]
+   },
+   {
+    "id": "5b519503a2502762ebb3b73d2ca90df86f324295ea5a774d550c772d1cce5ff6",
+    "reference": {
+     "kind": "provider_opaque",
+     "network": "robinhood",
+     "provider": "dexscreener",
+     "providerPoolId": "0xacecaf3991fde9df314a91b0b9517f38144862572b901cfc18ba263e3f9e98a4"
+    },
+    "asset_ids": [
+     "0x000de658153f47f23e92973c8eb1e89762703676",
+     "0x5fc5360d0400a0fd4f2af552add042d716f1d168"
+    ],
+    "protocol": "uniswap",
+    "labels": [
+     "v4"
+    ],
+    "liquidity_usd": "55.75",
+    "price_usd": "0.001058",
+    "liquidity_eligible": false,
+    "eligibility_reasons": [
+     "BELOW_LIQUIDITY_THRESHOLD"
+    ],
+    "capabilities": {
+     "state": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     },
+     "quote": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     },
+     "funding": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     },
+     "simulation": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     }
+    },
+    "provenance": [
+     {
+      "source": "dexscreener:token-pairs/v1",
+      "provider_pool_id": "0xacecaf3991fde9df314a91b0b9517f38144862572b901cfc18ba263e3f9e98a4",
+      "observed_at": "2026-10-29T07:36:32.562Z"
+     }
+    ]
+   },
+   {
+    "id": "617f7f0dccfdcde6f7deb78fd2423c4d6ab08705deb4c3f7b71b521887d0cdaf",
+    "reference": {
+     "kind": "provider_opaque",
+     "network": "robinhood",
+     "provider": "dexscreener",
+     "providerPoolId": "0xe4a827ae5c76c5da8ead56346cc99dd2be016b9174e7c7dffcb09be60b0a0d3b"
+    },
+    "asset_ids": [
+     "0x9c0a8921f790df59cecf1d101c6cb54cd7318d6a",
+     "0x000de658153f47f23e92973c8eb1e89762703676"
+    ],
+    "protocol": "uniswap",
+    "labels": [
+     "v4"
+    ],
+    "liquidity_usd": "19708.11",
+    "price_usd": "0.00001980",
+    "liquidity_eligible": true,
+    "eligibility_reasons": [],
+    "capabilities": {
+     "state": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     },
+     "quote": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     },
+     "funding": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     },
+     "simulation": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     }
+    },
+    "provenance": [
+     {
+      "source": "dexscreener:token-pairs/v1",
+      "provider_pool_id": "0xe4a827ae5c76c5da8ead56346cc99dd2be016b9174e7c7dffcb09be60b0a0d3b",
+      "observed_at": "2026-10-29T07:36:32.562Z"
+     }
+    ]
+   },
+   {
+    "id": "730f567b2c886dc403d8a583b984f952be79ba914d19765372dbc3a21c2013f8",
+    "reference": {
+     "kind": "provider_opaque",
+     "network": "robinhood",
+     "provider": "dexscreener",
+     "providerPoolId": "0xcb81e994e23d61fd71ee2e284d47d5a2ee6c7a4ddcee82a2f2da4420761db36a"
+    },
+    "asset_ids": [
+     "0xfad17d7cc41d9c9ca4a459da798a4446dd217974",
+     "0x0000000000000000000000000000000000000000"
+    ],
+    "protocol": "uniswap",
+    "labels": [
+     "v4"
+    ],
+    "liquidity_usd": "268.71",
+    "price_usd": "0.0002914",
+    "liquidity_eligible": false,
+    "eligibility_reasons": [
+     "BELOW_LIQUIDITY_THRESHOLD"
+    ],
+    "capabilities": {
+     "state": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     },
+     "quote": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     },
+     "funding": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     },
+     "simulation": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     }
+    },
+    "provenance": [
+     {
+      "source": "dexscreener:token-pairs/v1",
+      "provider_pool_id": "0xcb81e994e23d61fd71ee2e284d47d5a2ee6c7a4ddcee82a2f2da4420761db36a",
+      "observed_at": "2026-10-29T07:36:32.562Z"
+     }
+    ]
+   },
+   {
+    "id": "76048438a04391e87f9108846d3b34487c3a51b5dd331668885c1d4d6abb5414",
+    "reference": {
+     "kind": "provider_opaque",
+     "network": "robinhood",
+     "provider": "dexscreener",
+     "providerPoolId": "0xf457236fdd27e640d273dcb445a34655661b260da0f71b37e60abe2e1150b308"
+    },
+    "asset_ids": [
+     "0x000de658153f47f23e92973c8eb1e89762703676",
+     "0x0000000000000000000000000000000000000000"
+    ],
+    "protocol": "uniswap",
+    "labels": [
+     "v4"
+    ],
+    "liquidity_usd": "638.04",
+    "price_usd": "0.0008111",
+    "liquidity_eligible": false,
+    "eligibility_reasons": [
+     "BELOW_LIQUIDITY_THRESHOLD"
+    ],
+    "capabilities": {
+     "state": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     },
+     "quote": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     },
+     "funding": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     },
+     "simulation": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     }
+    },
+    "provenance": [
+     {
+      "source": "dexscreener:token-pairs/v1",
+      "provider_pool_id": "0xf457236fdd27e640d273dcb445a34655661b260da0f71b37e60abe2e1150b308",
+      "observed_at": "2026-10-29T07:36:32.562Z"
+     }
+    ]
+   },
+   {
+    "id": "788a75410a8219d65e5a9557cb3a012e40175cf44302df8f25ec8b1efc9bdd3e",
+    "reference": {
+     "kind": "provider_opaque",
+     "network": "robinhood",
+     "provider": "dexscreener",
+     "providerPoolId": "0xdc0a25ab7351b6c349d16ea65446d3f88a8b182605e30fc8ea4f45ba18b77a3a"
+    },
+    "asset_ids": [
+     "0x000de658153f47f23e92973c8eb1e89762703676",
+     "0x5fc5360d0400a0fd4f2af552add042d716f1d168"
+    ],
+    "protocol": "uniswap",
+    "labels": [
+     "v4"
+    ],
+    "liquidity_usd": "0.25",
+    "price_usd": "0.0001096",
+    "liquidity_eligible": false,
+    "eligibility_reasons": [
+     "BELOW_LIQUIDITY_THRESHOLD"
+    ],
+    "capabilities": {
+     "state": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     },
+     "quote": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     },
+     "funding": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     },
+     "simulation": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     }
+    },
+    "provenance": [
+     {
+      "source": "dexscreener:token-pairs/v1",
+      "provider_pool_id": "0xdc0a25ab7351b6c349d16ea65446d3f88a8b182605e30fc8ea4f45ba18b77a3a",
+      "observed_at": "2026-10-29T07:36:32.562Z"
+     }
+    ]
+   },
+   {
+    "id": "8038fd410ef80cdef5534cd81f6b7b555251c60714216efe8e34fa183e0359c2",
+    "reference": {
+     "kind": "provider_opaque",
+     "network": "robinhood",
+     "provider": "dexscreener",
+     "providerPoolId": "0xe7f41c400b335cc426dc1a3fa2816a9819b30b04a8294c828d288ba3308d561d"
+    },
+    "asset_ids": [
+     "0x46da6495b41e11d9b94ea75f9e8227f56c89db8e",
+     "0x000de658153f47f23e92973c8eb1e89762703676"
+    ],
+    "protocol": "uniswap",
+    "labels": [
+     "v4"
+    ],
+    "liquidity_usd": "26584.6",
+    "price_usd": "0.00002671",
+    "liquidity_eligible": true,
+    "eligibility_reasons": [],
+    "capabilities": {
+     "state": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     },
+     "quote": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     },
+     "funding": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     },
+     "simulation": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     }
+    },
+    "provenance": [
+     {
+      "source": "dexscreener:token-pairs/v1",
+      "provider_pool_id": "0xe7f41c400b335cc426dc1a3fa2816a9819b30b04a8294c828d288ba3308d561d",
+      "observed_at": "2026-10-29T07:36:32.562Z"
+     }
+    ]
+   },
+   {
+    "id": "8156b69cfbe72a5b922752fb6ddcbb93113b4a3c5545b2ab053860866a580f9a",
+    "reference": {
+     "kind": "provider_opaque",
+     "network": "robinhood",
+     "provider": "dexscreener",
+     "providerPoolId": "0xb84209116c4cb8f3d73208260a9e104773c847cc0a9664259f30d6a80218b569"
+    },
+    "asset_ids": [
+     "0x000de658153f47f23e92973c8eb1e89762703676",
+     "0x5fc5360d0400a0fd4f2af552add042d716f1d168"
+    ],
+    "protocol": "uniswap",
+    "labels": [
+     "v4"
+    ],
+    "liquidity_usd": "13.86",
+    "price_usd": "0.0006159",
+    "liquidity_eligible": false,
+    "eligibility_reasons": [
+     "BELOW_LIQUIDITY_THRESHOLD"
+    ],
+    "capabilities": {
+     "state": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     },
+     "quote": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     },
+     "funding": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     },
+     "simulation": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     }
+    },
+    "provenance": [
+     {
+      "source": "dexscreener:token-pairs/v1",
+      "provider_pool_id": "0xb84209116c4cb8f3d73208260a9e104773c847cc0a9664259f30d6a80218b569",
+      "observed_at": "2026-10-29T07:36:32.562Z"
+     }
+    ]
+   },
+   {
+    "id": "a1d6d7f5c380cc1552f7b23bd57baf18c6085a2dd634c925b0cc5260079c9d16",
+    "reference": {
+     "kind": "provider_opaque",
+     "network": "robinhood",
+     "provider": "dexscreener",
+     "providerPoolId": "0xd6a5bc05379b098c59fcc643bb17ce5bb1d8f3e2d417f5d00aa1bd98f88d4521"
+    },
+    "asset_ids": [
+     "0x2932b2f5761cadca5cb3e09d940092ca723d9ee2",
+     "0x0000000000000000000000000000000000000000"
+    ],
+    "protocol": "uniswap",
+    "labels": [
+     "v4"
+    ],
+    "liquidity_usd": "35858.98",
+    "price_usd": "0.0001516",
+    "liquidity_eligible": true,
+    "eligibility_reasons": [],
+    "capabilities": {
+     "state": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     },
+     "quote": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     },
+     "funding": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     },
+     "simulation": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     }
+    },
+    "provenance": [
+     {
+      "source": "dexscreener:token-pairs/v1",
+      "provider_pool_id": "0xd6a5bc05379b098c59fcc643bb17ce5bb1d8f3e2d417f5d00aa1bd98f88d4521",
+      "observed_at": "2026-10-29T07:36:32.562Z"
+     }
+    ]
+   },
+   {
+    "id": "a1e3b3b55cd2612c79160216816ee49efb03f0073853defdb58eaae3f203e21a",
+    "reference": {
+     "kind": "provider_opaque",
+     "network": "robinhood",
+     "provider": "dexscreener",
+     "providerPoolId": "0x32c50d83271c3af69696fe6b08def9c4f26d38b640da2cdb2a7c39acd8bbca5a"
+    },
+    "asset_ids": [
+     "0x000de658153f47f23e92973c8eb1e89762703676",
+     "0x0000000000000000000000000000000000000000"
+    ],
+    "protocol": "uniswap",
+    "labels": [
+     "v4"
+    ],
+    "liquidity_usd": "648052.59",
+    "price_usd": "0.0008919",
+    "liquidity_eligible": true,
+    "eligibility_reasons": [],
+    "capabilities": {
+     "state": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     },
+     "quote": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     },
+     "funding": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     },
+     "simulation": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     }
+    },
+    "provenance": [
+     {
+      "source": "dexscreener:token-pairs/v1",
+      "provider_pool_id": "0x32c50d83271c3af69696fe6b08def9c4f26d38b640da2cdb2a7c39acd8bbca5a",
+      "observed_at": "2026-10-29T07:36:32.562Z"
+     }
+    ]
+   },
+   {
+    "id": "b59967551326de520688d5e04c2d50fa652704cabf492a42c232f83c8bc7478b",
+    "reference": {
+     "kind": "provider_opaque",
+     "network": "robinhood",
+     "provider": "dexscreener",
+     "providerPoolId": "0xb680f7e1e9518f8d537c5f462b6371db53e3db5fcc199c3901f1664d3e5cccb4"
+    },
+    "asset_ids": [
+     "0x2932b2f5761cadca5cb3e09d940092ca723d9ee2",
+     "0x5fc5360d0400a0fd4f2af552add042d716f1d168"
+    ],
+    "protocol": "uniswap",
+    "labels": [
+     "v4"
+    ],
+    "liquidity_usd": "185.11",
+    "price_usd": "0.0001603",
+    "liquidity_eligible": false,
+    "eligibility_reasons": [
+     "BELOW_LIQUIDITY_THRESHOLD"
+    ],
+    "capabilities": {
+     "state": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     },
+     "quote": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     },
+     "funding": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     },
+     "simulation": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     }
+    },
+    "provenance": [
+     {
+      "source": "dexscreener:token-pairs/v1",
+      "provider_pool_id": "0xb680f7e1e9518f8d537c5f462b6371db53e3db5fcc199c3901f1664d3e5cccb4",
+      "observed_at": "2026-10-29T07:36:32.562Z"
+     }
+    ]
+   },
+   {
+    "id": "d690a3efb82bf01629aa8706766e2d22fe68d7bd7faca4a39760cb8c5acdfc3a",
+    "reference": {
+     "kind": "provider_opaque",
+     "network": "robinhood",
+     "provider": "dexscreener",
+     "providerPoolId": "0xf972373d5ac6c3de3f9091a6e408e39f39ba49c8bd281fb94516577b1f531540"
+    },
+    "asset_ids": [
+     "0x000de658153f47f23e92973c8eb1e89762703676",
+     "0x5fc5360d0400a0fd4f2af552add042d716f1d168"
+    ],
+    "protocol": "uniswap",
+    "labels": [
+     "v4"
+    ],
+    "liquidity_usd": "8367.84",
+    "price_usd": "0.0008578",
+    "liquidity_eligible": false,
+    "eligibility_reasons": [
+     "BELOW_LIQUIDITY_THRESHOLD"
+    ],
+    "capabilities": {
+     "state": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     },
+     "quote": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     },
+     "funding": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     },
+     "simulation": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     }
+    },
+    "provenance": [
+     {
+      "source": "dexscreener:token-pairs/v1",
+      "provider_pool_id": "0xf972373d5ac6c3de3f9091a6e408e39f39ba49c8bd281fb94516577b1f531540",
+      "observed_at": "2026-10-29T07:36:32.562Z"
+     }
+    ]
+   },
+   {
+    "id": "db7b3a094f8a8efeac0ce5a5941eb5809d54ebcda95478c4bf4f0f35ede452b7",
+    "reference": {
+     "kind": "provider_opaque",
+     "network": "robinhood",
+     "provider": "dexscreener",
+     "providerPoolId": "0x4e813d0cdfdf30875b580ad90f51b4f4207de0a9a6f142ff0878a3f071dedaba"
+    },
+    "asset_ids": [
+     "0x000de658153f47f23e92973c8eb1e89762703676",
+     "0x5fc5360d0400a0fd4f2af552add042d716f1d168"
+    ],
+    "protocol": "uniswap",
+    "labels": [
+     "v4"
+    ],
+    "liquidity_usd": "1.51",
+    "price_usd": "0.0001282",
+    "liquidity_eligible": false,
+    "eligibility_reasons": [
+     "BELOW_LIQUIDITY_THRESHOLD"
+    ],
+    "capabilities": {
+     "state": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     },
+     "quote": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     },
+     "funding": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     },
+     "simulation": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     }
+    },
+    "provenance": [
+     {
+      "source": "dexscreener:token-pairs/v1",
+      "provider_pool_id": "0x4e813d0cdfdf30875b580ad90f51b4f4207de0a9a6f142ff0878a3f071dedaba",
+      "observed_at": "2026-10-29T07:36:32.562Z"
+     }
+    ]
+   },
+   {
+    "id": "e35b8c9c1441affbbc353b0e9b1b3a38896101b61ba937b44502db50a14f8620",
+    "reference": {
+     "kind": "provider_opaque",
+     "network": "robinhood",
+     "provider": "dexscreener",
+     "providerPoolId": "0x7d6436da4505ad6fc9c2876bedf2b40b465e3b6ebe6c39c3de31675a034d54d5"
+    },
+    "asset_ids": [
+     "0xfad17d7cc41d9c9ca4a459da798a4446dd217974",
+     "0x0000000000000000000000000000000000000000"
+    ],
+    "protocol": "uniswap",
+    "labels": [
+     "v4"
+    ],
+    "liquidity_usd": "50207.75",
+    "price_usd": "0.0003192",
+    "liquidity_eligible": true,
+    "eligibility_reasons": [],
+    "capabilities": {
+     "state": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     },
+     "quote": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     },
+     "funding": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     },
+     "simulation": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     }
+    },
+    "provenance": [
+     {
+      "source": "dexscreener:token-pairs/v1",
+      "provider_pool_id": "0x7d6436da4505ad6fc9c2876bedf2b40b465e3b6ebe6c39c3de31675a034d54d5",
+      "observed_at": "2026-10-29T07:36:32.562Z"
+     }
+    ]
+   },
+   {
+    "id": "e80924775f1fe4956fe020773ab4a2495c6f44b2b4d283d408a7a9ac653664c4",
+    "reference": {
+     "kind": "provider_opaque",
+     "network": "robinhood",
+     "provider": "dexscreener",
+     "providerPoolId": "0xbeb948495e25b4b84bc9bbade3eca6699b624f5da8cee56376a49cde17cc7cfd"
+    },
+    "asset_ids": [
+     "0x2932b2f5761cadca5cb3e09d940092ca723d9ee2",
+     "0x0000000000000000000000000000000000000000"
+    ],
+    "protocol": "uniswap",
+    "labels": [
+     "v4"
+    ],
+    "liquidity_usd": "1051.35",
+    "price_usd": "0.0001489",
+    "liquidity_eligible": false,
+    "eligibility_reasons": [
+     "BELOW_LIQUIDITY_THRESHOLD"
+    ],
+    "capabilities": {
+     "state": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     },
+     "quote": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     },
+     "funding": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     },
+     "simulation": {
+      "status": "unverified",
+      "reason": "NATIVE_STATE_NOT_VERIFIED"
+     }
+    },
+    "provenance": [
+     {
+      "source": "dexscreener:token-pairs/v1",
+      "provider_pool_id": "0xbeb948495e25b4b84bc9bbade3eca6699b624f5da8cee56376a49cde17cc7cfd",
+      "observed_at": "2026-10-29T07:36:32.562Z"
+     }
+    ]
+   }
+  ],
+  "token_results": [
+   {
+    "token": "0x000de658153f47f23e92973c8eb1e89762703676",
+    "disposition": "INCLUDED",
+    "pool_ids": [
+     "018b2116cccf3eef3191011cb1d8b976a2524d0c2022bc1d9e7ff991127489c2",
+     "08b929d4c390ddacd031a3b8a1b81535be47249c8eaf50d31fcd701294c3bf46",
+     "0b59a147b66cb517d78159fa6f59ef0292c39f907aac60b0dcbcc62a0e77b432",
+     "18dec937638ef993bc04008f9e7973ed406133e7342e3af4c3062dda4e5f5504",
+     "195506e21700cb4dd8bee6959402b8e021a9a713e3073aec5c423f93dc326166",
+     "3a5e179884ea36cec04a0ce643325b70bd62ff29fe18fde6324d68f6160d1b5b",
+     "4f6b072c3e41eaea7d0f43e4690ea4f44a8972c5cec1cab96064464b31d41287",
+     "5b519503a2502762ebb3b73d2ca90df86f324295ea5a774d550c772d1cce5ff6",
+     "617f7f0dccfdcde6f7deb78fd2423c4d6ab08705deb4c3f7b71b521887d0cdaf",
+     "76048438a04391e87f9108846d3b34487c3a51b5dd331668885c1d4d6abb5414",
+     "788a75410a8219d65e5a9557cb3a012e40175cf44302df8f25ec8b1efc9bdd3e",
+     "8038fd410ef80cdef5534cd81f6b7b555251c60714216efe8e34fa183e0359c2",
+     "8156b69cfbe72a5b922752fb6ddcbb93113b4a3c5545b2ab053860866a580f9a",
+     "a1e3b3b55cd2612c79160216816ee49efb03f0073853defdb58eaae3f203e21a",
+     "d690a3efb82bf01629aa8706766e2d22fe68d7bd7faca4a39760cb8c5acdfc3a",
+     "db7b3a094f8a8efeac0ce5a5941eb5809d54ebcda95478c4bf4f0f35ede452b7"
+    ],
+    "discovered_count": 16,
+    "liquidity_eligible_count": 5,
+    "route_status": "NOT_EVALUATED"
+   },
+   {
+    "token": "0xfad17d7cc41d9c9ca4a459da798a4446dd217974",
+    "disposition": "INCLUDED",
+    "pool_ids": [
+     "439ba3487fda3d618c0a21096c1d3641627a990585ddcf8bb930b441c4c2b56e",
+     "4d4b5239064dc6bdf03fa2a0bbd5ad8dc7e5993ad1e99f17a8491eb6c3cdd572",
+     "730f567b2c886dc403d8a583b984f952be79ba914d19765372dbc3a21c2013f8",
+     "e35b8c9c1441affbbc353b0e9b1b3a38896101b61ba937b44502db50a14f8620"
+    ],
+    "discovered_count": 4,
+    "liquidity_eligible_count": 1,
+    "route_status": "NOT_EVALUATED"
+   },
+   {
+    "token": "0x2932b2f5761cadca5cb3e09d940092ca723d9ee2",
+    "disposition": "INCLUDED",
+    "pool_ids": [
+     "a1d6d7f5c380cc1552f7b23bd57baf18c6085a2dd634c925b0cc5260079c9d16",
+     "b59967551326de520688d5e04c2d50fa652704cabf492a42c232f83c8bc7478b",
+     "e80924775f1fe4956fe020773ab4a2495c6f44b2b4d283d408a7a9ac653664c4"
+    ],
+    "discovered_count": 3,
+    "liquidity_eligible_count": 1,
+    "route_status": "NOT_EVALUATED"
+   }
+  ],
+  "coverage": [
+   {
+    "source": "dexscreener:token-pairs/v1",
+    "token": "0x000de658153f47f23e92973c8eb1e89762703676",
+    "scope": "provider_response",
+    "status": "SUCCESS",
+    "raw_count": 16,
+    "valid_count": 16,
+    "retrieval_complete": true,
+    "exhaustive": false,
+    "next_cursor": null,
+    "observed_at": "2026-10-29T07:36:32.562Z"
+   },
+   {
+    "source": "dexscreener:token-pairs/v1",
+    "token": "0xfad17d7cc41d9c9ca4a459da798a4446dd217974",
+    "scope": "provider_response",
+    "status": "SUCCESS",
+    "raw_count": 4,
+    "valid_count": 4,
+    "retrieval_complete": true,
+    "exhaustive": false,
+    "next_cursor": null,
+    "observed_at": "2026-10-29T07:36:32.562Z"
+   },
+   {
+    "source": "dexscreener:token-pairs/v1",
+    "token": "0x2932b2f5761cadca5cb3e09d940092ca723d9ee2",
+    "scope": "provider_response",
+    "status": "SUCCESS",
+    "raw_count": 3,
+    "valid_count": 3,
+    "retrieval_complete": true,
+    "exhaustive": false,
+    "next_cursor": null,
+    "observed_at": "2026-10-29T07:36:32.562Z"
+   }
+  ],
+  "diagnostics": [],
+  "warnings": [
+   "Provider responses are not an exhaustive chain inventory.",
+   "Liquidity eligibility does not establish a connected route or available flash funding."
+  ]
+ }
+}

@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "1.0",
+  "chainId": 4663,
+  "roots": [
+    {
+      "role": "morpho",
+      "address": "0x9D53d5E3bd5E8d4Cbfa6DB1ca238AEA02E651010",
+      "codeHash": "0x753b54fdb48c87c9c1ba1dcc3a330faac1a401a3bd23b43104b7b92409ecb424",
+      "source": "https://api.morpho.org/graphql"
+    },
+    {
+      "role": "v4-manager",
+      "address": "0x8366a39cc670b4001a1121b8f6a443a643e40951",
+      "codeHash": "0xbd3881180b547f5fe817545743cfb4343e96b1bc6640dcd70c106b0066e95626",
+      "source": "https://docs.uniswap.org/contracts/v4/deployments"
+    }
+  ],
+  "contracts": [
+    "NativeV4FlashExecutor"
+  ],
+  "exclusions": []
+}
