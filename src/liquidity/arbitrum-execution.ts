@@ -32,6 +32,8 @@ export interface RouteCodec {
   maxBlockLag?: number;
 }
 const zero = '0x0000000000000000000000000000000000000000';
+/** TickMath MIN_SQRT_PRICE + 1 and MAX_SQRT_PRICE - 1: the widest limits a V4 PoolManager accepts. */
+const V4_MIN_SQRT_LIMIT = 4295128740n, V4_MAX_SQRT_LIMIT = 1461446703485210103287273052203988822378723970341n;
 export const MULTI_VENUE_ROUTE_CODEC: RouteCodec = {
   decode(calldata) {
     const route = decodeFunctionData({ abi: MULTI_LENDER_ROUTE_ABI, data: calldata }).args[0];
@@ -110,7 +112,9 @@ export function nativeRouteCalldata(plan: { principalRaw: string; deployedRaw: s
     if (a.kind !== 'SWAP') return { kind: a.kind === 'UNWRAP' ? 1 : 2, tokenIn: address(a.tokenIn), tokenOut: address(a.tokenOut), minAmountOut: BigInt(a.minAmountOutRaw), manager: zero, key: NONE_KEY, sqrtPriceLimitX96: 0n, hookData: '0x' as Hex };
     const d = a.poolId ? descriptors.get(a.poolId) : undefined;
     if (!d) throw new Error('CODEC_UNAVAILABLE');
-    return { kind: 0, tokenIn: address(a.tokenIn), tokenOut: address(a.tokenOut), minAmountOut: BigInt(a.minAmountOutRaw), manager: d.manager, key: d.key, sqrtPriceLimitX96: 0n, hookData: '0x' as Hex };
+    // A real PoolManager rejects a zero price limit (PriceLimitOutOfBounds, Base fork proof 2026-11-04); bound by direction.
+    const tokenIn = address(a.tokenIn), zeroForOne = tokenIn.toLowerCase() === d.key.currency0.toLowerCase();
+    return { kind: 0, tokenIn, tokenOut: address(a.tokenOut), minAmountOut: BigInt(a.minAmountOutRaw), manager: d.manager, key: d.key, sqrtPriceLimitX96: zeroForOne ? V4_MIN_SQRT_LIMIT : V4_MAX_SQRT_LIMIT, hookData: '0x' as Hex };
   }) }));
   return encodeFunctionData({ abi: NATIVE_V4_ROUTE_ABI, functionName: 'executeNativeArbitrage', args: [{ lenderKind: lender.kind, lender: lender.address, flashAsset, principalRaw: BigInt(plan.principalRaw), branches, minSurplusRaw, deadline: BigInt(Math.floor(Date.parse(plan.expiresAt) / 1000)) }] });
 }

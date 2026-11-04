@@ -234,6 +234,7 @@ test('v7 SK-06 codec selection never downgrades, and native calldata/events roun
   assert.deepEqual(view.pinned,[EXEC,MANAGER]);
   assert.throws(()=>nativeRouteCalldata({...nativePlan,branches:[{...nativePlan.branches[0],actions:[{...nativePlan.branches[0].actions[1],poolId:B('9')}]}]},{kind:1,address:EXEC},WETH as Address,5n,descriptors),/CODEC_UNAVAILABLE/);
   const route=decodeFunctionData({abi:[NATIVE_V4_ROUTE_ABI[0]],data:calldata}).args[0];
+  for(const action of (route as unknown as {branches:{actions:{kind:number;sqrtPriceLimitX96:bigint}[]}[]}).branches.flatMap(b=>b.actions))assert.ok(action.kind!==0||action.sqrtPriceLimitX96===4295128740n||action.sqrtPriceLimitX96===1461446703485210103287273052203988822378723970341n,'every V4 swap carries a nonzero directional price limit');
   const routeHash=keccak256(encodeAbiParameters(NATIVE_V4_ROUTE_ABI[0].inputs,[route] as never));
   const log=(hash:Hex,surplus:bigint)=>({address:EXEC,topics:encodeEventTopics({abi:NATIVE_V4_ROUTE_ABI as Abi,eventName:'NativeArbitrageExecuted',args:{routeHash:hash,asset:WETH}}) as Hex[],
     data:encodeAbiParameters([{type:'uint256'},{type:'uint256'},{type:'uint256'},{type:'uint256'}],[100n,surplus,1n,7n])});
