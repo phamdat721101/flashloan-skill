@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "chainId": 8453,
+  "roots": [
+    {
+      "role": "morpho",
+      "address": "0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb",
+      "codeHash": "0xaa76348c0b91e5dfcece228ef6847b0c5081656d2def05c5617bcab659f0b819",
+      "source": "https://api.morpho.org/graphql"
+    },
+    {
+      "role": "v4-manager",
+      "address": "0x498581ff718922c3f8e6a244956af099b2652b2b",
+      "codeHash": "0x83b2af6e9f3158defc2811cbcb0db71ecf8b2ba2abea39c39e370ac5c6f43eb6",
+      "source": "https://docs.uniswap.org/contracts/v4/deployments"
+    }
+  ],
+  "contracts": [
+    "NativeV4FlashExecutor"
+  ],
+  "exclusions": [
+    {
+      "contract": "MultiVenueArbitrageExecutor",
+      "reason": "Already deployed; v8 R8 adds only the native-ETH V4 executor (legacy executors untouched)"
+    }
+  ]
+}

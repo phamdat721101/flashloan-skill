@@ -1,0 +1,53 @@
+{
+  "schemaVersion": "1.0",
+  "chainId": 4663,
+  "owner": "0xc75aAeBD1F395cFc9e7c7f291Ea32d5C9d4c270a",
+  "manifest": "config/native-v4-robinhood-mainnet.json",
+  "manifestHash": "8da5dbae1b10da1192b0e6c75fdba8eac2f0042c0286e4c48483cd4181e40d23",
+  "spentWei": "62800727544000",
+  "deployments": [
+    {
+      "contract": "NativeV4FlashExecutor",
+      "address": "0xc3e836ff1b18dd11048ac5ada9d43a5f5c16b73e",
+      "txHash": "0xda0969a72eddddf55f5cd8d973c3d52cc2f1037561666281ada1babde9152cba",
+      "blockNumber": "105622268",
+      "runtimeCodeHash": "0x183c698dbcc7416d3c6761b02277ae992ffdd1380523147a5ff3e2a51c04fc74",
+      "artifactHash": "0c33257431e8cd91f6a3068206c6c5fc07aab34b8ac5802ee90f2375ba0b9f0e",
+      "owner": "0xc75aAeBD1F395cFc9e7c7f291Ea32d5C9d4c270a",
+      "status": "verified",
+      "configurations": [
+        {
+          "role": "morpho",
+          "txHash": "0x489786420857fb15960d859d526d41abd635dd9dce29fb0db51f456e2ed350aa"
+        },
+        {
+          "role": "v4-manager",
+          "txHash": "0x48d194c6b1dbce3dee3284fd902ecf1a46b0f495d8832cc0c4d2d45a4508e815"
+        }
+      ]
+    }
+  ],
+  "transactions": [
+    {
+      "label": "deploy:NativeV4FlashExecutor",
+      "hash": "0xda0969a72eddddf55f5cd8d973c3d52cc2f1037561666281ada1babde9152cba",
+      "status": "confirmed",
+      "costWei": "60720717528000",
+      "blockNumber": "105622268"
+    },
+    {
+      "label": "configure:NativeV4FlashExecutor:morpho",
+      "hash": "0x489786420857fb15960d859d526d41abd635dd9dce29fb0db51f456e2ed350aa",
+      "status": "confirmed",
+      "costWei": "1044652896000",
+      "blockNumber": "105622368"
+    },
+    {
+      "label": "configure:NativeV4FlashExecutor:v4-manager",
+      "hash": "0x48d194c6b1dbce3dee3284fd902ecf1a46b0f495d8832cc0c4d2d45a4508e815",
+      "status": "confirmed",
+      "costWei": "1035357120000",
+      "blockNumber": "105622458"
+    }
+  ]
+}
