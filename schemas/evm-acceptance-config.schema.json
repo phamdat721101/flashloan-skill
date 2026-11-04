@@ -93,6 +93,22 @@
       "type": "integer",
       "minimum": 1000,
       "maximum": 60000
+    },
+    "minProfitUsd": {
+      "type": "number",
+      "minimum": 0,
+      "default": 10
+    },
+    "gasSigmaK": {
+      "type": "number",
+      "minimum": 0,
+      "default": 0
+    },
+    "bidShareBps": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 10000,
+      "default": 0
     }
   }
 }

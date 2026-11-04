@@ -7,7 +7,7 @@ import {fixture,pools,ref,now,token0,token1} from './flashloan-evidence-fixture.
 import {compilePolicy} from '../evidence/economics.js';
 import {sqrtRatioAtTick} from '../liquidity/clmm.js';
 import {digest} from '../liquidity/state.js';
-import {composeCurves,stationaryInput,allocateCpmm} from '../liquidity/price-gap.js';
+import {composeCurves,stationaryInput,allocateCpmm} from '../evm/cycle-engine.js';
 import {solvePoolGraph} from '../evidence/solver.js';
 import {ArtifactStore} from '../evidence/integrity.js';
 import {runEvidence} from '../evidence/runtime.js';

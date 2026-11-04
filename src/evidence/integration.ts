@@ -178,7 +178,18 @@ export class RoundCounters {
 
 /** v7 SK-10: sibling manifest (erratum E6: the v6 FlashloanVersions schema is closed and vendor-pinned). Any drift or a closed gate is VERSION_UNSUPPORTED. */
 export interface IntegrationVersions { schema: 'flashloan-integration-versions/1'; baseVersions: { path: string; sha256: string }; prompt: { id: string; sha256: string };
-  contract: { id: string; path: string; sha256: string }; codecs: Record<string, string>; admissionProducers: { path: string; sha256: string }; features: { integrationV7: boolean } }
+  contract: { id: string; path: string; sha256: string }; codecs: Record<string, string>; admissionProducers: { path: string; sha256: string }; features: { integrationV7: boolean; v8?: V8Features } }
+/** v8 PR2 gates (PRD §8, §17). All default off; off is byte-identical to v7 cycle-watch output. */
+export const V8_FLAGS = ['activeLiquidity', 'tokenBehavior', 'measuredGas', 'v4Quotes', 'foldSeed'] as const;
+export type V8Features = Record<typeof V8_FLAGS[number], boolean>;
+/** Missing block = all off; any unknown key or non-boolean value fails closed. `extra` is an explicit CLI opt-in. */
+export function v8Features(raw: unknown, extra: readonly string[] = []): V8Features {
+  const v = (raw as { features?: { v8?: Record<string, unknown> } } | null)?.features?.v8 ?? {};
+  if (typeof v !== 'object' || Array.isArray(v)) throw new IntegrationError('VERSION_UNSUPPORTED', 'features.v8');
+  for (const [k, x] of Object.entries(v)) if (!(V8_FLAGS as readonly string[]).includes(k) || typeof x !== 'boolean') throw new IntegrationError('VERSION_UNSUPPORTED', `features.v8.${k}`);
+  for (const k of extra) if (k !== 'all' && !(V8_FLAGS as readonly string[]).includes(k)) throw new IntegrationError('VERSION_UNSUPPORTED', `--v8 ${k}`);
+  return Object.fromEntries(V8_FLAGS.map(k => [k, v[k] === true || extra.includes(k) || extra.includes('all')])) as V8Features;
+}
 export function checkIntegrationVersions(raw: unknown, observed: { baseVersionsBytes: Uint8Array; promptBytes: Uint8Array; contractBytes: Uint8Array; producersBytes: Uint8Array }): IntegrationVersions {
   const v = raw as IntegrationVersions, hex = (b: Uint8Array) => createHash('sha256').update(b).digest('hex');
   if (!v || v.schema !== 'flashloan-integration-versions/1' || !v.features || typeof v.features.integrationV7 !== 'boolean') throw new IntegrationError('VERSION_UNSUPPORTED', 'integration manifest');

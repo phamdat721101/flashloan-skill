@@ -13,7 +13,7 @@ function option(name: string): string | undefined {
   return args[index + 1];
 }
 async function main() {
-  if (!['deploy', 'deployment-status', 'profiles', 'acceptance', 'acceptance-reconcile', 'recover-lock', 'discover', 'universe', 'universe-probe', 'integration-run'].includes(command ?? '')) throw new Error('usage: evm profiles | integration-run --intent <json> --inventory <json> --mapping <json> [--profile <json>] | universe --inventory <mcp.json> --policy <policy.json> --out <path> [--block <n>] | deploy|deployment-status --manifest <json> [--env-file <local-file>] [--state <json>] | acceptance --config <json>');
+  if (!['deploy', 'deployment-status', 'profiles', 'acceptance', 'acceptance-reconcile', 'recover-lock', 'discover', 'universe', 'universe-probe', 'cycle-watch', 'integration-run'].includes(command ?? '')) throw new Error('usage: evm profiles | integration-run --intent <json> --inventory <json> --mapping <json> [--profile <json>] | universe --inventory <mcp.json> --policy <policy.json> --out <path> [--block <n>] | cycle-watch --inventory <mcp.json> --chain <id> --out <jsonl> [--minutes n] [--flash a,b] [--bandit <json>] [--v8 flags|all] [--v4-scan-from <block>] [--executor a --operator a --lender kind:addr] | deploy|deployment-status --manifest <json> [--env-file <local-file>] [--state <json>] | acceptance --config <json>');
   if (command === 'recover-lock') {
     const chainId=Number(option('--chain'));evmProfile(chainId);
     const file=option('--env-file');if(!file)throw new Error('EXPLICIT_SIGNER_ENV_FILE_REQUIRED');
@@ -52,6 +52,26 @@ async function main() {
     await atomicJson(out, universe);
     return { out, blockNumber: universe.identity.blockNumber, pairs: universe.pairs.length, pools: universe.pools.length, candidatePairs: universe.candidatePairs.length,
       rejected: universe.rejected.reduce<Record<string, number>>((counts, r) => ({ ...counts, [r.reason]: (counts[r.reason] ?? 0) + 1 }), {}), topGaps: u.pairGaps(universe).slice(0, 5) };
+  }
+  if (command === 'cycle-watch') {
+    // Read-only: exact eth_call quotes with a code override; never signs or sends.
+    const inventoryPath = option('--inventory'), chainId = Number(option('--chain')), out = option('--out');
+    if (!inventoryPath || !out || !Number.isSafeInteger(chainId)) throw new Error('CYCLE_WATCH_INPUT_REQUIRED');
+    const profile = evmProfile(chainId), num = (name: string) => option(name) === undefined ? undefined : Number(option(name));
+    const client = createPublicClient({ transport: http(secureEndpoint(process.env[profile.rpcEnv] ?? profile.chain.rpcUrls.default.http[0]), { retryCount: 4, timeout: 60_000, batch: { batchSize: 25 } }) });
+    const { runCycleWatch } = await import('./cycle-watch.js');
+    // v8 PR2 gates: config features.v8, plus an explicit `--v8 a,b|all` opt-in. Roots and the hook allowlist come from reviewed config only (B3).
+    const { v8Features } = await import('../evidence/integration.js');
+    const features = v8Features(JSON.parse(await readFile('config/flashloan-integration-versions.json', 'utf8')), option('--v8')?.split(',') ?? []);
+    const chainConfig = await readFile(`config/${profile.key}-mainnet.json`, 'utf8').then(t => JSON.parse(t) as { roots?: { role: string; address: string }[]; hookAllowlist?: { address: string; codeHash: string }[] }).catch(() => ({} as { roots?: { role: string; address: string }[]; hookAllowlist?: { address: string; codeHash: string }[] }));
+    const lender = option('--lender')?.split(':');
+    return runCycleWatch(client as never, { chainId, inventory: JSON.parse(await readFile(inventoryPath, 'utf8')), out, minutes: num('--minutes') ?? 0,
+      flash: option('--flash')?.split(',') as Address[] | undefined, banditPath: option('--bandit'), top: num('--top'), maxHops: num('--max-hops'),
+      probeUsd: num('--probe-usd'), flashFeeBps: num('--flash-fee-bps'), nearBreakEvenBps: num('--near-bps'), concurrency: num('--concurrency'), sizeFloorBps: num('--size-floor-bps'),
+      features, v4Manager: chainConfig.roots?.find(r => r.role === 'v4-manager')?.address.toLowerCase() as Address | undefined, hookAllowlist: chainConfig.hookAllowlist ?? [],
+      v4ScanFrom: option('--v4-scan-from') === undefined ? undefined : BigInt(option('--v4-scan-from')!),
+      executor: option('--executor') as Address | undefined, operator: option('--operator') as Address | undefined,
+      lender: lender ? { kind: Number(lender[0]) as 1 | 2, address: lender[1] as Address } : undefined });
   }
   if (command === 'universe-probe') {
     const universePath = option('--universe') ?? process.env.UNIVERSE_PATH, executor = option('--executor') ?? process.env.MULTI_VENUE_EXECUTOR_ADDRESS, lender = option('--lender'), kind = Number(option('--lender-kind') ?? '2'), sizeUsd = Number(option('--size-usd') ?? '1000');

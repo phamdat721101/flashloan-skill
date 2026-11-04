@@ -23,6 +23,13 @@
     "sha256": "1312abcd3766c71257b73114166925aa243dee84eb6dd0850a26b1651a3eeca1"
   },
   "features": {
-    "integrationV7": false
+    "integrationV7": false,
+    "v8": {
+      "activeLiquidity": false,
+      "tokenBehavior": false,
+      "measuredGas": false,
+      "v4Quotes": false,
+      "foldSeed": false
+    }
   }
 }

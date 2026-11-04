@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { Ajv2020 } from 'ajv/dist/2020.js';
-import { encodeFunctionData, keccak256, parseAbi, type Address, type Hex, type PublicClient } from 'viem';
+import { decodeFunctionResult, encodeAbiParameters, encodeFunctionData, keccak256, parseAbi, type Address, type Hex, type PublicClient } from 'viem';
 import { evmProfile } from '../evm-chains.js';
 import { digest } from '../liquidity/state.js';
 import { poolPrice, type PoolStateEnvelope } from '../liquidity/projection.js';
@@ -266,6 +266,66 @@ export async function probeUniverseRoutes(client: PublicClient, universe: PoolUn
     }
   }
   return probes;
+}
+
+/** token-behavior/1 (PRD §5.5, R0b, A9). `UNKNOWN` = no plain mapping balance slot (proxy or ERC-7201 storage). */
+export interface TokenBehavior { chain_id: number; token: Address; block: string; status: 'OK' | 'TAXED' | 'BLOCKED' | 'UNKNOWN'; transfer_tax_bps: number | null;
+  sell_ok: boolean | null; blacklist_suspect: boolean | null; method: 'eth_call_override' }
+const PROBE_ABI = parseAbi(['function probeTransfer(address,address,uint256) returns (bool,uint256)', 'function balanceOf(address) view returns (uint256)']);
+const PROBE_RECIPIENT = '0x000000000000000000000000000000000000c0de' as Address, SLOT_SEARCH = 10;
+/** One balance read under 2·SLOT_SEARCH distinct overrides identifies the slot; then a plain transfer and a transfer
+ * into a pool (sell path) at the pinned block. Three RPC calls per token; callers cache per run. */
+export async function probeTokenBehavior(client: PublicClient, probeCode: Hex, probeAt: Address, token: Address, pool: Address, amount: bigint, chainId: number, blockNumber: bigint): Promise<TokenBehavior> {
+  const base = { chain_id: chainId, token, block: blockNumber.toString(), method: 'eth_call_override' as const };
+  const unknown: TokenBehavior = { ...base, status: 'UNKNOWN', transfer_tax_bps: null, sell_ok: null, blacklist_suspect: null };
+  if (amount <= 0n) return unknown;
+  const slots = Array.from({ length: SLOT_SEARCH }, (_, i) => BigInt(i)).flatMap(i => [
+    keccak256(encodeAbiParameters([{ type: 'address' }, { type: 'uint256' }], [probeAt, i])),   // Solidity mapping
+    keccak256(encodeAbiParameters([{ type: 'uint256' }, { type: 'address' }], [i, probeAt]))]); // Vyper mapping
+  const marker = (i: number) => amount * 1000n + BigInt(i + 1), word = (v: bigint) => `0x${v.toString(16).padStart(64, '0')}` as Hex;
+  let found: Hex | undefined;
+  try {
+    const seen = await client.readContract({ address: token, abi: PROBE_ABI, functionName: 'balanceOf', args: [probeAt], blockNumber,
+      stateOverride: [{ address: token, stateDiff: slots.map((slot, i) => ({ slot, value: word(marker(i)) })) }] } as never) as bigint;
+    const index = slots.findIndex((_, i) => marker(i) === seen); if (index >= 0) found = slots[index];
+  } catch { return unknown; }
+  if (!found) return unknown;
+  const send = async (to: Address) => {
+    try {
+      const r = await client.call({ to: probeAt, blockNumber, data: encodeFunctionData({ abi: PROBE_ABI, functionName: 'probeTransfer', args: [token, to, amount] }),
+        stateOverride: [{ address: probeAt, code: probeCode }, { address: token, stateDiff: [{ slot: found!, value: word(amount) }] }] });
+      const [ok, received] = r.data ? decodeFunctionResult({ abi: PROBE_ABI, functionName: 'probeTransfer', data: r.data }) as [boolean, bigint] : [false, 0n];
+      return ok ? received : null;
+    } catch { return null; }
+  };
+  const [plain, sell] = await Promise.all([send(PROBE_RECIPIENT), send(pool)]);
+  const tax = (r: bigint | null) => r === null ? 0 : Number((amount - (r < amount ? r : amount)) * 10_000n / amount);
+  const transfer_tax_bps = Math.max(tax(plain), tax(sell)), blacklist_suspect = plain === null, sell_ok = sell !== null;
+  return { ...base, status: blacklist_suspect || !sell_ok ? 'BLOCKED' : transfer_tax_bps > 0 ? 'TAXED' : 'OK', transfer_tax_bps, sell_ok, blacklist_suspect };
+}
+
+/** R0c measured gas (A6, A10): estimateGas of the exact single-branch cycle through a deployed MultiVenue/Portable
+ * executor, from its owner, at the pinned block. Never signs. Any precondition miss returns a labelled fallback reason. */
+export interface GasLeg { venueVersion: 2 | 3 | 4 | 5; root: Address; pool: Address; tokenIn: Address; tokenOut: Address; minAmountOut: bigint; fee: number; tickSpacing: number; hooks: Address }
+export async function measureCycleGas(client: PublicClient, executor: Address, operator: Address, lender: { kind: 1 | 2; address: Address }, flashAsset: Address, amount: bigint, legs: readonly GasLeg[], blockNumber: bigint):
+  Promise<{ units: bigint } | { reason: string }> {
+  const { MULTI_LENDER_ROUTE_ABI } = await import('../liquidity/arbitrum.js');
+  const { decodeErrorResult } = await import('viem');
+  const view = parseAbi(['function owner() view returns(address)', 'function trustedLenderCodeHash(uint8,address) view returns(bytes32)']);
+  try {
+    const [owner, pin] = await Promise.all([client.readContract({ address: executor, abi: view, functionName: 'owner', blockNumber }),
+      client.readContract({ address: executor, abi: view, functionName: 'trustedLenderCodeHash', args: [lender.kind, lender.address], blockNumber })]);
+    if (owner.toLowerCase() !== operator.toLowerCase()) return { reason: 'EXECUTOR_OWNER_MISMATCH' };
+    if (/^0x0+$/.test(pin)) return { reason: 'LENDER_NOT_CONFIGURED' };
+  } catch { return { reason: 'EXECUTOR_UNREADABLE' }; }
+  const block = await client.getBlock({ blockNumber });
+  const data = encodeFunctionData({ abi: MULTI_LENDER_ROUTE_ABI, functionName: 'executeLenderArbitrage', args: [{ kind: lender.kind, lender: lender.address, flashAsset, flashAmount: amount,
+    legs: legs.map(l => ({ ...l, sqrtPriceLimitX96: l.tokenIn.toLowerCase() < l.tokenOut.toLowerCase() ? MIN_SQRT : MAX_SQRT, hookData: '0x' as Hex })), minProfit: 1n, deadline: block.timestamp + 300n }] } as never);
+  try { return { units: await client.estimateGas({ account: operator, to: executor, data, blockNumber }) }; }
+  catch (error) {
+    const raw = (error as { walk?: (f: (e: unknown) => boolean) => { data?: Hex } | null }).walk?.(e => typeof (e as { data?: unknown })?.data === 'string')?.data;
+    try { return { reason: raw ? `EXECUTOR_${decodeErrorResult({ abi: EXECUTOR_ERRORS, data: raw }).errorName}` : 'EXECUTOR_REVERTED' }; } catch { return { reason: 'EXECUTOR_REVERTED' }; }
+  }
 }
 
 /**

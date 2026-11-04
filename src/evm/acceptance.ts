@@ -21,6 +21,8 @@ export interface AcceptanceConfig {
   venueRoots: Record<string, Address>; profitAsset: Address;
   assetUsdFeed: Address; nativeUsdFeed: Address; feedCodePins: Record<string, Hex>;
   maxPriceAgeSeconds: number; maxRounds: number; pollIntervalMs: number;
+  /** R0d (PRD §6.7, §17 A4). Defaults reproduce the previous fixed $10 floor exactly. */
+  minProfitUsd?: number; gasSigmaK?: number; bidShareBps?: number;
 }
 export interface AcceptanceState {
   schemaVersion: '1.0'; chainId: number; owner: Address; configDigest: string; startedAtMs: number;
@@ -175,7 +177,7 @@ export async function runAcceptance(path: string, envFile?: string, reconcileOnl
       const valuation: GasValuation={asset:profitAsset,decimals,nativeUsdFeed:config.nativeUsdFeed,assetUsdFeed:config.assetUsdFeed,maxAgeSeconds:config.maxPriceAgeSeconds};
       const reserveNative=budget.remaining('trade');
       const gasReserve=wrapped?reserveNative:await nativeCostInAsset(client,reserveNative,block,valuation);
-      const minimumProfit=(1000000000n*10n**BigInt(decimals)+price-1n)/price;
+      const minimumProfit=acceptanceThreshold(config,decimals,price,gasReserve);
       const cap=100000n*100000000n*10n**BigInt(decimals)/price;
       const maximum=available<cap?available:cap;
       const cycles=enumerateSimpleProfitCycles(captured.pools,profitAsset);
@@ -250,3 +252,22 @@ export async function verifyAdmissionBundle(bundleInput: unknown, binding: Admis
   return { admitted: true as const, capability: bundle.capability, refs: refs.map(r => r.contentHash) };
 }
 type Ref = { kind: string; contentHash: string; expiresAt: string | null; locator: string };
+
+/** R0d: accept ⇔ net > max(min_profit_abs, k·σ_gas) + priority bid. σ_gas is proxied by the per-trade gas reserve until the
+ * shadow ledger measures it. Defaults (10, 0, 0) give the historic `ceil($10 / price)` floor byte-for-byte. */
+export function acceptanceThreshold(config: Pick<AcceptanceConfig,'minProfitUsd'|'gasSigmaK'|'bidShareBps'>, decimals: number, price: bigint, gasReserve: bigint): bigint {
+  const usd=config.minProfitUsd??10, k=config.gasSigmaK??0, bid=config.bidShareBps??0;
+  if(!(usd>=0)||!Number.isFinite(usd)||!(k>=0)||!Number.isFinite(k)||!Number.isInteger(bid)||bid<0||bid>10000)throw new Error('INVALID_ACCEPTANCE_THRESHOLD');
+  const floor=(BigInt(Math.round(usd*1e8))*10n**BigInt(decimals)+price-1n)/price;
+  const sigma=gasReserve*BigInt(Math.round(k*1e6))/1000000n;
+  return (floor>sigma?floor:sigma)+gasReserve*BigInt(bid)/10000n;
+}
+
+/** D2 / EDGE-10: a hooked V4 pool may be quoted for research (its hook executes in the quote), but live acceptance
+ * requires its hook address and runtime code hash in the reviewed config allowlist (B3). */
+export interface HookedPool { pool: string; hooks: string; codeHash: string | null }
+export function hookAdmission(pools: readonly HookedPool[], allowlist: readonly { address: string; codeHash: string }[]): { ok: true } | { ok: false; reason: 'HOOK_NOT_ALLOWLISTED'; pools: string[] } {
+  const allowed = new Set(allowlist.map(h => `${h.address.toLowerCase()}:${h.codeHash.toLowerCase()}`));
+  const refused = pools.filter(p => !/^0x0{40}$/i.test(p.hooks) && (!p.codeHash || !allowed.has(`${p.hooks.toLowerCase()}:${p.codeHash.toLowerCase()}`))).map(p => p.pool);
+  return refused.length ? { ok: false, reason: 'HOOK_NOT_ALLOWLISTED', pools: refused } : { ok: true };
+}

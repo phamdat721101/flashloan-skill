@@ -1,4 +1,5 @@
-import {serialCpmmCurve,stationaryInput,allocateCpmm,searchAllocation} from '../liquidity/price-gap.js';
+import {serialCpmmCurve,searchAllocation} from '../liquidity/price-gap.js';
+import {stationaryInput,allocateCpmm} from '../evm/cycle-engine.js';
 import {digest,uint} from '../liquidity/state.js';
 import {parsePoolState,projectPool,type PoolStateEnvelope,type ProjectionResult} from '../liquidity/projection.js';
 import {verifyPlan} from './economics.js';
