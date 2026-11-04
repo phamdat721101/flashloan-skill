@@ -23,6 +23,59 @@ For the liquid-pattern workflow, start with [capture, size and prepare](#use-a-l
 
 ## Latest upgrade and how to use it
 
+### 2026-11-04: v8 engine (exact cycle sizing, V4 quotes, token checks) and NativeV4 executors
+
+**Why.** Top-of-block polling arbitrage is saturated: the best measured Base cycle was +$0.00007, and sizing it took 353 s. v8 fixes the engine's accuracy and speed first. Spec: `FLASHLOAN-SYSTEM-PRD.md` §17, with delivery evidence in §17.2.
+
+| Area | Change | Flag (`features.v8`, all off by default) |
+| --- | --- | --- |
+| Sizing | A closed-form fold of every hop seeds the optimal size, and an exact-quote refine always runs on top. A near-break-even cycle now costs 1 quote instead of 33; a live Base scan took 15.9 s vs 34.5 s. One integer allocation API now lives in `src/evm/cycle-engine.ts`. | `foldSeed` |
+| Phantom prices | Concentrated-liquidity pools with zero active liquidity are skipped, and the reason is recorded. | `activeLiquidity` |
+| Uniswap V4 | V4 pools are quoted by running the real PoolManager swap (code override), so hook fees count. Verified equal to Uniswap's V4Quoter to the wei on live Base pools. Hooked pools are research-only unless allowlisted. | `v4Quotes` |
+| Token safety | `token-behavior/1` probes transfer and sell taxes and blacklists at the pinned block. Taxed or blocked tokens leave the graph. | `tokenBehavior` |
+| Gas | Gas comes from the executor's own `estimateGas` from its owner when possible. Otherwise it is a labelled model estimate with a reason. | `measuredGas` |
+| Acceptance | `minProfitUsd` (default 10), `gasSigmaK` (0) and `bidShareBps` (0) are configurable. The defaults keep the old $10 floor byte for byte. | always on |
+| Fix | The v7 native route codec sent V4 swaps with price limit 0, which a real PoolManager rejects. It now sends directional limits. | — |
+
+**Use it** (read-only; never signs):
+
+```sh
+npm run build && forge build
+# One scan on Base with every v8 behavior on:
+node --env-file=.env dist/evm/cli.js cycle-watch --chain 8453 --inventory <mcp-inventory.json> \
+  --out .nim/v8/base.jsonl --minutes 0 --max-hops 3 --v8 all
+# Optional: resolve provider-opaque V4 pool keys from Initialize logs (needs an RPC that serves eth_getLogs):
+#   --v4-scan-from <block>
+# Optional: measured gas through the Base portable executor (owner address, Morpho lender kind 1):
+#   --executor 0x0cd3a077aec94f51d32e8d55120cf90d5db7841c --operator <owner> --lender 1:0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb
+```
+
+Every v8 row adds the following, and none of these fields is permission to send:
+- `skipReasons`
+- `quoteFailures`
+- `tokenBehavior`
+- per result, `allocation` (`allocation-plan/1`), `gas.source` and `live.reasons`
+
+To enable v8 permanently, set the flags in `config/flashloan-integration-versions.json` → `features.v8`. An unknown flag fails closed.
+
+**Newly deployed (owner-approved, 2026-11-04).** Agents bind these by ABI from `contracts/deployments/*.json`, which `node dist/agent-cli.js install` now copies into the skill:
+- `NativeV4FlashExecutor` (`evm-native-v4/1`) on Base `0xfeba729feb4b090f56b8ec8f9ca7f8478eb58157` and Robinhood `0xc3e836ff1b18dd11048ac5ada9d43a5f5c16b73e`. Morpho and the V4 PoolManager are pinned on both.
+- The Base fork proof (`test/NativeV4ForkProof.t.sol`) backran a synthetic 400 ETH swap for +0.0757 WETH on a 1 WETH flash loan, with the lender repaid exactly.
+- The Base `PortableMultiSplitFlashExecutor` now also pins the PancakeSwap V3 factory (tx `0x4f30…f5ea`) and the Hydrex Algebra factory (tx `0x5f59…0118`).
+
+**Verify:**
+- `npm test` and `npm run evm:test`.
+- `node --test --test-name-pattern=FLV8 dist/test/cycle-engine.test.js dist/test/flashloan-v8.test.js`.
+- Live V4 parity: `FLV8_EDGE02_BASE_RPC=<rpc> node --test --test-name-pattern=FLV8_EDGE_02 dist/test/flashloan-v8.test.js`.
+- Fork proof: `EVM_FORK_REQUIRED=true forge test --match-contract NativeV4ForkProof --fork-url <base rpc>`.
+
+**Not done yet:**
+- Hooked-pool quote parity. RPC log limits blocked discovering hooked pools.
+- A Robinhood fork backrun proof.
+- The trigger lane, shadow ledger and live sends (PRD PR4/PR5).
+
+Live sending still needs a positive shadow verdict and explicit owner approval.
+
 ### 2026-10-29: v7 integration (v4 pool identity, single policy, native-v4 executor)
 
 This release fixes the Robinhood MCP → local-skill blockers. Before it, all 23 discovered
@@ -36,7 +89,7 @@ are byte-identical until you enable it.
 | Pool identity | v4 pools resolve to `PoolManager + poolId + PoolKey` from canonical `Initialize` logs. Each target gets exactly one disposition (resolved, unresolved key, reorg, uninitialized, hook/dynamic-fee unsupported, budget-deferred). |
 | Policy | `compilePolicy` remains the only policy owner. Caller limits in `flash-intent/1` can only tighten the approved profile. A missing profile gives `INPUT_BLOCKED`, while research continues. |
 | Costs | Route fee evidence is the cost; the gas budget only bounds the reservation. Native→repayment conversion rounds up. Net must be strictly greater than the floor. |
-| Executor | New `NativeV4FlashExecutor` (`evm-native-v4/1`): unwrap → native v4 swaps → rewrap; flash debt stays ERC20. Settlement uses `sync(address(0))`, and forced ETH is reported, never profit. **Built and tested; not deployed.** |
+| Executor | New `NativeV4FlashExecutor` (`evm-native-v4/1`): unwrap → native v4 swaps → rewrap; flash debt stays ERC20. Settlement uses `sync(address(0))`, and forced ETH is reported, never profit. **Deployed 2026-11-04 on Base and Robinhood** (see the v8 section above). |
 | Codecs | The calldata codec follows the deployed capability (MultiVenue / portable split / native). An unsupported split or native route is refused, never downgraded. |
 | Admission | Proofs are re-hashed from their bytes and bound to manifest, capability, payload, policy and state. Producers come from a hash-pinned list, and fixtures never admit. |
 | Provenance | Executor artifacts are stored by content hash. `deployment-status --executor-manifest` verifies the live code against the stored artifact; a rebuilt `out/` file is only a diagnostic. |
@@ -76,12 +129,11 @@ The result lists every target and the exact next dependency for each blocked one
 
 **Still required before any native trade:**
 - A no-broadcast fork test on a pinned Robinhood block.
-- A separately authorized deployment of `NativeV4FlashExecutor`.
+- A separately authorized deployment of `NativeV4FlashExecutor` (done 2026-11-04: Base and Robinhood).
 - An owner-added trusted producer in `config/admission-producers.json`, which ships empty.
 - A fresh unsigned simulation on that deployment.
 
-None of these has happened. The latest **deployed** contract is unchanged: the
-Arbitrum `PortableMultiSplitFlashExecutor` below.
+As of 2026-11-04 only the deployment is done. The Base fork proof passed, and the Robinhood fork test, the producer and the simulation are still open.
 
 ### 2026-10-28: price-gap engine v5.2 for agents
 
@@ -607,8 +659,7 @@ package or pool identifiers.
 Select an address by ABI, not by deployment recency. These records do not
 authorize sending or establish liquidity-pattern production admission.
 
-`NativeV4FlashExecutor` (v7, capability `evm-native-v4/1`) has no recorded address:
-it is implemented and tested locally but not deployed on any chain.
+`NativeV4FlashExecutor` (v7, capability `evm-native-v4/1`) was deployed on Base and Robinhood on 2026-11-04 (rows below).
 
 | Network / contract | Recorded address | Scope |
 | --- | --- | --- |
@@ -621,7 +672,9 @@ it is implemented and tested locally but not deployed on any chain.
 | Arbitrum One / historical multi-venue | `0xd130b45b7e7d08fb7dbb1c79fa5d9b95ea8e27b2` | V4 revoked; V2/V3 require their existing gates |
 | Arbitrum One / historical V4-only | `0xfcd8f1257d8f37f4c51b4e6ac923137e5b6a2a16` | Execution revoked |
 | Base 8453 / MultiVenueArbitrageExecutor | `0xa27873424e74037d93dcf05d3a40556d07c2cfa8` | Finalized; Morpho, V4 manager, and Aave provider configured |
-| Base 8453 / PortableMultiSplitFlashExecutor | `0x0cd3a077aec94f51d32e8d55120cf90d5db7841c` | Finalized portable split executor; Morpho, V4 manager, and Aave provider configured |
+| Base 8453 / NativeV4FlashExecutor (latest, 2026-11-04) | [`0xfeba729feb4b090f56b8ec8f9ca7f8478eb58157`](https://basescan.org/address/0xfeba729feb4b090f56b8ec8f9ca7f8478eb58157) | `executeNativeArbitrage` (native-ETH V4 routes); Morpho and V4 PoolManager pinned; fork-proven; `not-admitted`. [Record](docs/deployments/base-native-v4-20261104.json) |
+| Robinhood 4663 / NativeV4FlashExecutor (latest, 2026-11-04) | `0xc3e836ff1b18dd11048ac5ada9d43a5f5c16b73e` | `executeNativeArbitrage`; Morpho and V4 PoolManager pinned; no Robinhood fork proof yet; `not-admitted`. [Record](docs/deployments/robinhood-native-v4-20261104.json) |
+| Base 8453 / PortableMultiSplitFlashExecutor | `0x0cd3a077aec94f51d32e8d55120cf90d5db7841c` | Finalized portable split executor; Morpho, V4 manager, and Aave provider configured; PancakeSwap V3 and Hydrex Algebra factories pinned 2026-11-04 ([roots record](docs/deployments/base-portable-roots-v8.json)) |
 | Base 8453 / V4StateQuoter | `0x84f9615db5a1c6ac87acb686a3cb3fcb44ec1825` | Finalized read-only V4 state quoter |
 | Base 8453 / ImmutableArbitrageExecutor | `0x00cba652a1b4cf21063d443c5c1b0d495f477999` | Finalized immutable executor; V4 manager and Aave provider configured |
 | Base 8453 / AeroSplitFlashExecutor | [`0xdfafd892dca6a2f9dadc43a38b81c7d53473ff10`](https://basescan.org/address/0xdfafd892dca6a2f9dadc43a38b81c7d53473ff10) | Aerodrome classic/Slipstream executor; Morpho, four factories, and five pools pinned; fresh admission required |

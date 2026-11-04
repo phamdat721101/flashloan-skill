@@ -57,6 +57,25 @@ ABI pin for a new chain. Read `docs/features/evm-flashloan.md` for exact schemas
 receipt evidence, budgets, recovery and current admission status. The EVM adapter
 is `EvmLiquidityExecutionAdapter`; its old Arbitrum export remains compatible.
 
+### v8 cycle engine and executors (2026-11-04)
+
+Read-only per-block cycle search with exact quotes. It never signs:
+
+```sh
+node --env-file=.env dist/evm/cli.js cycle-watch --chain 8453 --inventory <mcp-inventory.json> --out <rows.jsonl> \
+  --minutes 0 --max-hops 3 --v8 all [--v4-scan-from <block>] \
+  [--executor 0x0cd3a077aec94f51d32e8d55120cf90d5db7841c --operator <owner> --lender 1:0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb]
+```
+
+- **Flags.** `--v8` takes `activeLiquidity,tokenBehavior,measuredGas,v4Quotes,foldSeed` or `all`. Without it, `features.v8` in `config/flashloan-integration-versions.json` decides, and every flag ships off, so the output stays the v7 shape.
+- **Row fields.** v8 rows add `skipReasons`, `quoteFailures`, `tokenBehavior`, and per result `allocation` (`allocation-plan/1`), `gas` (`executor_eth_call` or `model`, with a reason) and `live.reasons`.
+- **`live.eligible`.** A report only. It never authorizes a send; R7 live stays gated on shadow data and owner approval.
+- **Executor binding.** Bind executors by ABI from the installed `contracts/deployments/*.json` records, never by recency:
+  - `NativeV4FlashExecutor` (`evm-native-v4/1`, native-ETH V4 routes): Base `0xfeba729feb4b090f56b8ec8f9ca7f8478eb58157`, Robinhood `0xc3e836ff1b18dd11048ac5ada9d43a5f5c16b73e`. Both pin Morpho and the V4 PoolManager.
+  - Base `PortableMultiSplitFlashExecutor` `0x0cd3a077aec94f51d32e8d55120cf90d5db7841c` now also pins the PancakeSwap V3 factory and the Hydrex Algebra factory (`base-portable-roots-v8.json`).
+- **V4 swap limits.** A V4 swap action must carry a nonzero directional `sqrtPriceLimitX96`. A real PoolManager rejects 0.
+- **Hooked V4 pools.** These are quoted for research only and refused live (`HOOK_NOT_ALLOWLISTED`) unless the chain config `hookAllowlist` pins the hook address and code hash.
+
 ## Dynamic pool universe
 
 When the user asks to scan or analyse pools beyond WETH/USDC:

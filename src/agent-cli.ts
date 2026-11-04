@@ -25,4 +25,9 @@ await mkdir(contracts, { recursive: true });
 for (const file of ['schemas/flashloan-integration-v1.schema.json', 'config/flashloan-versions.json', 'config/flashloan-integration-versions.json', 'config/admission-producers.json'])
   await cp(resolve(repoRoot, file), resolve(contracts, file.split('/').pop()!), { force: true });
 await cp(resolve(repoRoot, 'schemas/examples/flashloan-integration-v1'), resolve(contracts, 'examples'), { recursive: true, force: true });
+// v8: public deployment records the agent binds executors from (addresses, runtime hashes, pinned roots); no local state or secrets.
+const deployments = resolve(contracts, 'deployments');
+await mkdir(deployments, { recursive: true });
+for (const file of ['base-native-v4-20261104.json', 'robinhood-native-v4-20261104.json', 'base-portable-roots-v8.json', 'base-executors.json', 'robinhood-executors.json', 'arbitrum-price-gap-executor-20261028.json'])
+  await cp(resolve(repoRoot, 'docs/deployments', file), resolve(deployments, file), { force: true });
 console.log(`Installed flashloan-agent skill in ${resolve(skillRoot, 'flashloan-agent')}`);
