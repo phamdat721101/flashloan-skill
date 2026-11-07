@@ -107,6 +107,27 @@
             "npm run evm:abi-check",
             "forge test --match-path test/NativeV4FlashExecutor.t.sol"
           ]
+        },
+        "prediction-local": {
+          "contract": "config/prediction/delivery-contract.json",
+          "configFiles": [
+            "config/prediction/base.example.json",
+            "config/prediction/environment.example.json"
+          ],
+          "commands": [
+            "npm run typecheck",
+            "npm run prediction:test"
+          ]
+        },
+        "prediction-public": {
+          "contract": "config/prediction/delivery-contract.json",
+          "configFiles": [
+            "config/prediction/base.example.json"
+          ],
+          "commands": [
+            "npm run prediction:public"
+          ],
+          "evidenceFile": ".nim/deliver/prediction-public-evidence.json"
         }
       }
     }

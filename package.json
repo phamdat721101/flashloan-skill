@@ -58,7 +58,11 @@
     "evidence:test": "npm run build && node --test dist/test/flashloan-evidence*.test.js",
     "evidence:local-e2e": "forge build --offline && npm run build && node scripts/flashloan-evidence-local-e2e.mjs",
     "gap:test": "npm run build && node --test dist/test/flashloan-evidence*.test.js dist/test/pool-universe.test.js",
-    "gap:local-e2e": "PRICE_GAP_E2E=1 npm run evidence:local-e2e"
+    "gap:local-e2e": "PRICE_GAP_E2E=1 npm run evidence:local-e2e",
+    "prediction": "tsx src/prediction/cli.ts",
+    "prediction:test": "npm run build && node --test dist/test/limitless-*.test.js",
+    "prediction:e2e": "npm run build && node --test dist/test/limitless-e2e.test.js",
+    "prediction:public": "npm run build && node scripts/limitless-public-proof.mjs"
   },
   "dependencies": {
     "@mysten/sui": "^2.0.0",
@@ -70,5 +74,8 @@
     "@types/node": "^22.10.2",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2"
+  },
+  "optionalDependencies": {
+    "@limitless-exchange/sdk": "1.3.0"
   }
 }

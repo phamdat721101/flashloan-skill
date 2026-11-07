@@ -1,6 +1,6 @@
 # Flashloan Agent Skill
 
-Install a prompt-driven Arbitrum, Base, Robinhood and Sui flashloan skill for Codex agents. Its Rust/Alloy live-state engine is source-built and deliberately wallet-free until a reviewed executor capability and private relay are configured.
+Install a prompt-driven Arbitrum, Base, Robinhood and Sui flashloan skill for Codex agents, with an optional Base Limitless prediction-market lane. The Rust/Alloy flashloan engine stays wallet-free until a reviewed executor capability and private relay are configured. Prediction trading uses its own account, capital, permissions and journal.
 
 ## Install
 
@@ -22,6 +22,52 @@ For a configured executor, private relay, and dedicated wallet, ask the agent to
 For the liquid-pattern workflow, start with [capture, size and prepare](#use-a-liquid-pattern-to-prepare-a-flashloan), then add [Level 2 agent context](#level-2-market-context-for-agents). Current public contracts are listed in [deployment addresses](#recorded-deployment-addresses).
 
 ## Latest upgrade and how to use it
+
+### 2026-11-07: Base Limitless prediction trading
+
+The skill now routes explicit prediction-market requests to a separate TypeScript runtime. It supports binary and NegRisk CLOB markets, FAK and GTC orders, legacy/share and collateral/USDC fees, cancellation, restart recovery, FIFO accounting and resolved-position redemption. The official `@limitless-exchange/sdk` is an optional dependency pinned to **1.3.0**; existing flashloan paths do not import it.
+
+Prediction trades require funded USDC or outcome inventory. An eventual prediction payout cannot repay an atomic flashloan. This lane does not add a forecasting strategy or guarantee profitable trades.
+
+| Mode | Authority and behavior |
+| --- | --- |
+| Paper | Public data and isolated virtual cash; hypothetical fills; no signer, authenticated requests or real orders. |
+| Assisted | An independently signed owner grant authorizes the exact prepared plan. |
+| Autonomous | An independently signed session grant limits accounts, markets, actions, spend, exposure, losses and gas. |
+
+**Update, install and check public readiness:**
+
+```sh
+git switch main
+git pull --ff-only origin main
+npm ci
+npm run build
+node dist/agent-cli.js install
+node dist/prediction/cli.js --config config/prediction/base.example.json <<'JSON'
+{"schemaVersion":"prediction-request/1","requestId":"public-doctor","command":"doctor","payload":{"mode":"paper","publicOnly":true}}
+JSON
+```
+
+The example configuration has `enabled: false`, `live: false`, empty market/contract permissions and zero execution limits. Public `doctor` works with these defaults. For paper execution, use a separate configuration with `enabled: true`, `live: false`, an isolated `stateDir` and finite virtual spend/exposure/loss/order limits. Keep live limits and credentials under owner control. Then ask:
+
+```text
+Use $flashloan-agent to discover Limitless markets on Base and prepare a paper-only prediction trade with my paper configuration. Show the exact amounts, fee reserve and plan hash, then reconcile its hypothetical result. Do not enable live trading.
+```
+
+The CLI consumes one `prediction-request/1` JSON object and emits one `prediction-result/1` object. Raw USDC/share amounts are integer strings with six decimal places implied; prices are integer millionths. REST book sizes already use raw units. The API's `minSize` is an LP-reward/adjusted-midpoint threshold, not a minimum trade size. The [prediction reference](skills/flashloan-agent/prediction.md) explains command inputs, owner grants, fees and recovery; the [JSON Schema](schemas/prediction-v1.schema.json) closes every request variant.
+
+Orders reserve capital before submission. Lost responses remain pending and reconcile by persisted identity instead of being reposted. Canonical receipt logs establish live fills; matching and HTTP acknowledgement alone do not. Partial positions survive cancellation. Binary and NegRisk redemption include losing positions with zero payout. Base transaction reserves include L1/operator charges, but variable L1 fees cannot be transaction-capped.
+
+**Verify:**
+
+```sh
+npm run prediction:test     # build and 11 real-SDK local E2E tests
+npm run prediction:public   # public Limitless/Base reads only
+```
+
+The public-data paper acceptance completed 14 lifecycle steps with zero authenticated requests or provider writes. Its hypothetical round trip lost **0.987090 USDC** after spread and fees. These checks establish integration behavior, not trading profitability. Live trading remains disabled; production venue/code pins, an eligible dedicated EOA, scoped HMAC credentials, an owner-only signer file, independent approval keys/grants, explicit budgets and separately authorized funded acceptance are still required.
+
+Details: [implementation brief](docs/features/limitless-prediction.md), [verified specification](docs/features/limitless-prediction.spec.json), [System Map](docs/features/limitless-prediction-map.md), [implementation report](reports/2026-11-06/limitless-prediction-implementation.md) and [public-data paper follow-up](reports/2026-11-07/limitless-public-paper-acceptance.md).
 
 ### 2026-11-04: v8 engine (exact cycle sizing, V4 quotes, token checks) and NativeV4 executors
 

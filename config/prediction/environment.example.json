@@ -1,0 +1,6 @@
+{
+  "description": "Secret-free host binding contract; not a runtime request or a place to store secrets.",
+  "tokenId": "${LIMITLESS_TOKEN_ID}",
+  "tokenSecret": "${LIMITLESS_TOKEN_SECRET}",
+  "signerKeyFile": "${LIMITLESS_SIGNER_KEY_FILE}"
+}

@@ -1,0 +1,45 @@
+{
+  "secrets": [
+    {
+      "key": "LIMITLESS_TOKEN_ID",
+      "required": false
+    },
+    {
+      "key": "LIMITLESS_TOKEN_SECRET",
+      "required": false
+    },
+    {
+      "key": "LIMITLESS_SIGNER_KEY_FILE",
+      "required": false
+    }
+  ],
+  "tls": [
+    {
+      "host": "api.limitless.exchange",
+      "ssl": true,
+      "verification": "provider endpoint"
+    },
+    {
+      "host": "mainnet.base.org",
+      "ssl": true,
+      "verification": "provider endpoint"
+    },
+    {
+      "host": "ws.limitless.exchange",
+      "ssl": true,
+      "verification": "provider endpoint"
+    }
+  ],
+  "collateral": [
+    {
+      "dependency": "@limitless-exchange/sdk@1.3.0",
+      "behavior": "Optional lazy SDK; legacy credentials cleared; no-op logger; writes submitted once; optional public websocket hints; fixture endpoints loopback only.",
+      "resolution": "configured"
+    },
+    {
+      "dependency": "dedicated EOA and owner approval key",
+      "behavior": "Separate signer-key file and independent Ed25519 verification; explicit grants, finite approvals, isolated durable capital ledger.",
+      "resolution": "configured"
+    }
+  ]
+}

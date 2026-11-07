@@ -1,0 +1,3054 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:prediction:1",
+  "title": "Base Limitless prediction contracts v1",
+  "$defs": {
+    "Limits": {
+      "type": "object",
+      "properties": {
+        "maxOrderSpendRaw": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "maxOpenExposureRaw": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "maxDailyLossRaw": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "maxGasPerTxRaw": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "maxGasPerDayRaw": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "maxOrdersPerDay": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "maxOpenOrders": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        }
+      },
+      "required": [
+        "maxOrderSpendRaw",
+        "maxOpenExposureRaw",
+        "maxDailyLossRaw",
+        "maxGasPerTxRaw",
+        "maxGasPerDayRaw",
+        "maxOrdersPerDay",
+        "maxOpenOrders"
+      ],
+      "additionalProperties": false
+    },
+    "Pin": {
+      "type": "object",
+      "properties": {
+        "address": {
+          "type": "string",
+          "pattern": "^0x[a-fA-F0-9]{40}$"
+        },
+        "codeHash": {
+          "type": "string",
+          "pattern": "^0x[a-fA-F0-9]{64}$"
+        },
+        "role": {
+          "enum": [
+            "exchange",
+            "adapter",
+            "feeModule",
+            "usdc",
+            "ctf"
+          ]
+        }
+      },
+      "required": [
+        "address",
+        "codeHash",
+        "role"
+      ],
+      "additionalProperties": false
+    },
+    "PredictionConfig": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": "prediction-config/1"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "live": {
+          "type": "boolean"
+        },
+        "accountId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+        },
+        "address": {
+          "type": "string",
+          "pattern": "^0x[a-fA-F0-9]{40}$"
+        },
+        "apiUrl": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "rpcUrl": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "wsUrl": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "stateDir": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "approvalPublicKey": {
+          "type": "string",
+          "maxLength": 4096
+        },
+        "tokenIdEnv": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+        },
+        "tokenSecretEnv": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+        },
+        "signerKeyFileEnv": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+        },
+        "eligible": {
+          "type": "boolean"
+        },
+        "eligibilityEvidence": {
+          "type": "string",
+          "maxLength": 4096
+        },
+        "allowedMarkets": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+          },
+          "maxItems": 100
+        },
+        "pins": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Pin"
+          },
+          "maxItems": 100
+        },
+        "limits": {
+          "$ref": "#/$defs/Limits"
+        },
+        "quoteTtlMs": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 5000
+        },
+        "reconcileIntervalMs": {
+          "type": "integer",
+          "minimum": 1000,
+          "maximum": 60000
+        },
+        "maxWatchedMarkets": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 20
+        },
+        "readConcurrency": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4
+        },
+        "grantMaxTtlMs": {
+          "type": "integer",
+          "minimum": 1000,
+          "maximum": 3600000
+        },
+        "planTtlMs": {
+          "type": "integer",
+          "minimum": 1000,
+          "maximum": 300000
+        },
+        "finality": {
+          "enum": [
+            "safe",
+            "finalized"
+          ]
+        },
+        "wsHints": {
+          "type": "boolean"
+        },
+        "transportProfile": {
+          "enum": [
+            "production",
+            "fixture"
+          ]
+        },
+        "paperCashRaw": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "enabled",
+        "live",
+        "accountId",
+        "address",
+        "apiUrl",
+        "rpcUrl",
+        "wsUrl",
+        "stateDir",
+        "approvalPublicKey",
+        "tokenIdEnv",
+        "tokenSecretEnv",
+        "signerKeyFileEnv",
+        "eligible",
+        "eligibilityEvidence",
+        "allowedMarkets",
+        "pins",
+        "limits",
+        "quoteTtlMs",
+        "reconcileIntervalMs",
+        "maxWatchedMarkets",
+        "readConcurrency",
+        "grantMaxTtlMs",
+        "planTtlMs",
+        "finality",
+        "wsHints",
+        "transportProfile",
+        "paperCashRaw"
+      ],
+      "additionalProperties": false
+    },
+    "Evidence": {
+      "type": "object",
+      "properties": {
+        "source": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "observedAt": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+        },
+        "hash": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        },
+        "fidelity": {
+          "enum": [
+            "provider",
+            "chain",
+            "fixture",
+            "paper"
+          ]
+        }
+      },
+      "required": [
+        "source",
+        "observedAt",
+        "hash",
+        "fidelity"
+      ],
+      "additionalProperties": false
+    },
+    "MarketSnapshot": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": "prediction-market/1"
+        },
+        "snapshotId": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        },
+        "marketId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+        },
+        "slug": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+        },
+        "conditionId": {
+          "type": "string",
+          "pattern": "^0x[a-fA-F0-9]{64}$"
+        },
+        "chainId": {
+          "const": 8453
+        },
+        "type": {
+          "enum": [
+            "binary",
+            "negrisk"
+          ]
+        },
+        "status": {
+          "enum": [
+            "open",
+            "closed",
+            "resolved"
+          ]
+        },
+        "tokens": {
+          "type": "object",
+          "properties": {
+            "yes": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]*)$",
+              "maxLength": 78
+            },
+            "no": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]*)$",
+              "maxLength": 78
+            }
+          },
+          "required": [
+            "yes",
+            "no"
+          ],
+          "additionalProperties": false
+        },
+        "exchange": {
+          "type": "string",
+          "pattern": "^0x[a-fA-F0-9]{40}$"
+        },
+        "adapter": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^0x[a-fA-F0-9]{40}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "feeModule": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^0x[a-fA-F0-9]{40}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "feeModel": {
+          "enum": [
+            "legacy",
+            "collateral"
+          ]
+        },
+        "feeEnabled": {
+          "type": "boolean"
+        },
+        "tickPpm": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 999999
+        },
+        "sizeStepRaw": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "feeRateBps": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "feeCapBps": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 500
+        },
+        "rulesHash": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        },
+        "observedAt": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Evidence"
+          },
+          "maxItems": 20
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "snapshotId",
+        "marketId",
+        "slug",
+        "conditionId",
+        "chainId",
+        "type",
+        "status",
+        "tokens",
+        "exchange",
+        "adapter",
+        "feeModule",
+        "feeModel",
+        "feeEnabled",
+        "tickPpm",
+        "sizeStepRaw",
+        "feeRateBps",
+        "feeCapBps",
+        "rulesHash",
+        "observedAt",
+        "evidence"
+      ],
+      "additionalProperties": false
+    },
+    "AccountSnapshot": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": "prediction-account/1"
+        },
+        "accountId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+        },
+        "address": {
+          "type": "string",
+          "pattern": "^0x[a-fA-F0-9]{40}$"
+        },
+        "profileId": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "mode": {
+          "const": "eoa"
+        },
+        "usdcRaw": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "yesRaw": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "noRaw": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "feeRateBps": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "observedAt": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+        },
+        "blockHash": {
+          "type": "string",
+          "pattern": "^0x[a-fA-F0-9]{64}$"
+        },
+        "blockNumber": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "accountId",
+        "address",
+        "profileId",
+        "mode",
+        "usdcRaw",
+        "yesRaw",
+        "noRaw",
+        "feeRateBps",
+        "observedAt",
+        "blockHash",
+        "blockNumber"
+      ],
+      "additionalProperties": false
+    },
+    "TradeIntent": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "schemaVersion": {
+              "const": "prediction-intent/1"
+            },
+            "intentId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+            },
+            "accountId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+            },
+            "marketSlug": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+            },
+            "outcome": {
+              "enum": [
+                "YES",
+                "NO"
+              ]
+            },
+            "side": {
+              "enum": [
+                "BUY",
+                "SELL"
+              ]
+            },
+            "orderType": {
+              "const": "GTC"
+            },
+            "limitPricePpm": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 999999
+            },
+            "sharesRaw": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]*)$",
+              "maxLength": 78
+            },
+            "postOnly": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "schemaVersion",
+            "intentId",
+            "accountId",
+            "marketSlug",
+            "outcome",
+            "side",
+            "orderType",
+            "limitPricePpm",
+            "sharesRaw",
+            "postOnly"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "schemaVersion": {
+              "const": "prediction-intent/1"
+            },
+            "intentId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+            },
+            "accountId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+            },
+            "marketSlug": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+            },
+            "outcome": {
+              "enum": [
+                "YES",
+                "NO"
+              ]
+            },
+            "side": {
+              "const": "BUY"
+            },
+            "orderType": {
+              "const": "FAK"
+            },
+            "limitPricePpm": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 999999
+            },
+            "spendCapRaw": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]*)$",
+              "maxLength": 78
+            }
+          },
+          "required": [
+            "schemaVersion",
+            "intentId",
+            "accountId",
+            "marketSlug",
+            "outcome",
+            "side",
+            "orderType",
+            "limitPricePpm",
+            "spendCapRaw"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "schemaVersion": {
+              "const": "prediction-intent/1"
+            },
+            "intentId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+            },
+            "accountId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+            },
+            "marketSlug": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+            },
+            "outcome": {
+              "enum": [
+                "YES",
+                "NO"
+              ]
+            },
+            "side": {
+              "const": "SELL"
+            },
+            "orderType": {
+              "const": "FAK"
+            },
+            "limitPricePpm": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 999999
+            },
+            "sharesCapRaw": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]*)$",
+              "maxLength": 78
+            }
+          },
+          "required": [
+            "schemaVersion",
+            "intentId",
+            "accountId",
+            "marketSlug",
+            "outcome",
+            "side",
+            "orderType",
+            "limitPricePpm",
+            "sharesCapRaw"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "UnsignedOrder": {
+      "type": "object",
+      "properties": {
+        "salt": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "maker": {
+          "type": "string",
+          "pattern": "^0x[a-fA-F0-9]{40}$"
+        },
+        "signer": {
+          "type": "string",
+          "pattern": "^0x[a-fA-F0-9]{40}$"
+        },
+        "taker": {
+          "type": "string",
+          "pattern": "^0x[a-fA-F0-9]{40}$"
+        },
+        "tokenId": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "makerAmount": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "takerAmount": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "expiration": {
+          "const": "0"
+        },
+        "nonce": {
+          "const": 0
+        },
+        "feeRateBps": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "side": {
+          "enum": [
+            0,
+            1
+          ]
+        },
+        "signatureType": {
+          "const": 0
+        },
+        "price": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "exclusiveMaximum": 1
+        }
+      },
+      "required": [
+        "salt",
+        "maker",
+        "signer",
+        "taker",
+        "tokenId",
+        "makerAmount",
+        "takerAmount",
+        "expiration",
+        "nonce",
+        "feeRateBps",
+        "side",
+        "signatureType"
+      ],
+      "additionalProperties": false
+    },
+    "ApprovalCall": {
+      "type": "object",
+      "properties": {
+        "to": {
+          "type": "string",
+          "pattern": "^0x[a-fA-F0-9]{40}$"
+        },
+        "data": {
+          "type": "string",
+          "pattern": "^0x(?:[a-fA-F0-9]{2})*$"
+        },
+        "value": {
+          "const": "0x0"
+        },
+        "permission": {
+          "enum": [
+            "erc20-bounded",
+            "erc1155-operator"
+          ]
+        },
+        "spender": {
+          "type": "string",
+          "pattern": "^0x[a-fA-F0-9]{40}$"
+        },
+        "amountRaw": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        }
+      },
+      "required": [
+        "to",
+        "data",
+        "value",
+        "permission",
+        "spender",
+        "amountRaw"
+      ],
+      "additionalProperties": false
+    },
+    "TradePlan": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": "prediction-plan/1"
+        },
+        "planHash": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        },
+        "mode": {
+          "enum": [
+            "paper",
+            "assisted",
+            "autonomous"
+          ]
+        },
+        "policyHash": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        },
+        "intent": {
+          "$ref": "#/$defs/TradeIntent"
+        },
+        "accountId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+        },
+        "market": {
+          "$ref": "#/$defs/MarketSnapshot"
+        },
+        "account": {
+          "$ref": "#/$defs/AccountSnapshot"
+        },
+        "order": {
+          "$ref": "#/$defs/UnsignedOrder"
+        },
+        "clientOrderId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+        },
+        "createdAt": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+        },
+        "validUntil": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+        },
+        "reserveRaw": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "feeReserveRaw": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "feeAsset": {
+          "enum": [
+            "USDC",
+            "SHARES",
+            "NONE"
+          ]
+        },
+        "approvals": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ApprovalCall"
+          },
+          "maxItems": 5
+        },
+        "estimatedGasUpperRaw": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "planHash",
+        "mode",
+        "policyHash",
+        "intent",
+        "accountId",
+        "market",
+        "account",
+        "order",
+        "clientOrderId",
+        "createdAt",
+        "validUntil",
+        "reserveRaw",
+        "feeReserveRaw",
+        "feeAsset",
+        "approvals",
+        "estimatedGasUpperRaw"
+      ],
+      "additionalProperties": false
+    },
+    "ExecutionGrant": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": "prediction-grant/1"
+        },
+        "grantId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+        },
+        "kind": {
+          "enum": [
+            "order",
+            "session"
+          ]
+        },
+        "accountId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+        },
+        "policyHash": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        },
+        "planHash": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "marketSlugs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+          },
+          "maxItems": 100
+        },
+        "actions": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "trade",
+              "cancel",
+              "approve",
+              "redeem",
+              "resume"
+            ]
+          },
+          "maxItems": 5
+        },
+        "limits": {
+          "$ref": "#/$defs/Limits"
+        },
+        "issuedAt": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+        },
+        "expiresAt": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+        },
+        "cleanupCancel": {
+          "type": "boolean"
+        },
+        "signature": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9+/]{86}==$"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "grantId",
+        "kind",
+        "accountId",
+        "policyHash",
+        "planHash",
+        "marketSlugs",
+        "actions",
+        "limits",
+        "issuedAt",
+        "expiresAt",
+        "cleanupCancel",
+        "signature"
+      ],
+      "additionalProperties": false
+    },
+    "FillRecord": {
+      "type": "object",
+      "properties": {
+        "fillId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+        },
+        "orderId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+        },
+        "clientOrderId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+        },
+        "marketSlug": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+        },
+        "tokenId": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "side": {
+          "enum": [
+            "BUY",
+            "SELL"
+          ]
+        },
+        "sharesGrossRaw": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "sharesFeeRaw": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "sharesNetRaw": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "usdGrossRaw": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "usdFeeRaw": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "txHash": {
+          "type": "string",
+          "pattern": "^0x[a-fA-F0-9]{64}$"
+        },
+        "blockHash": {
+          "type": "string",
+          "pattern": "^0x[a-fA-F0-9]{64}$"
+        },
+        "blockNumber": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "finality": {
+          "enum": [
+            "safe",
+            "finalized"
+          ]
+        },
+        "occurredAt": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+        },
+        "fidelity": {
+          "enum": [
+            "chain",
+            "paper",
+            "fixture"
+          ]
+        },
+        "transactionIndex": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "logIndex": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "fillId",
+        "orderId",
+        "clientOrderId",
+        "marketSlug",
+        "tokenId",
+        "side",
+        "sharesGrossRaw",
+        "sharesFeeRaw",
+        "sharesNetRaw",
+        "usdGrossRaw",
+        "usdFeeRaw",
+        "txHash",
+        "blockHash",
+        "blockNumber",
+        "finality",
+        "occurredAt",
+        "fidelity",
+        "transactionIndex",
+        "logIndex"
+      ],
+      "additionalProperties": false
+    },
+    "OrderObservation": {
+      "type": "object",
+      "properties": {
+        "clientOrderId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+        },
+        "orderId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "state": {
+          "enum": [
+            "open",
+            "partially-filled",
+            "filled",
+            "cancelled",
+            "rejected",
+            "unknown"
+          ]
+        },
+        "settlement": {
+          "enum": [
+            "none",
+            "delayed",
+            "matched",
+            "mined",
+            "confirmed",
+            "retrying",
+            "failed",
+            "unknown"
+          ]
+        },
+        "fills": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/FillRecord"
+          },
+          "maxItems": 10000
+        }
+      },
+      "required": [
+        "clientOrderId",
+        "orderId",
+        "state",
+        "settlement",
+        "fills"
+      ],
+      "additionalProperties": false
+    },
+    "OrderRecord": {
+      "type": "object",
+      "properties": {
+        "plan": {
+          "$ref": "#/$defs/TradePlan"
+        },
+        "grant": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ExecutionGrant"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "submission": {
+          "enum": [
+            "reserved",
+            "dispatching",
+            "acknowledged",
+            "acceptance-unknown"
+          ]
+        },
+        "orderId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "state": {
+          "enum": [
+            "open",
+            "partially-filled",
+            "filled",
+            "cancelled",
+            "rejected",
+            "unknown"
+          ]
+        },
+        "settlement": {
+          "enum": [
+            "none",
+            "delayed",
+            "matched",
+            "mined",
+            "confirmed",
+            "retrying",
+            "failed",
+            "unknown"
+          ]
+        },
+        "fills": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/FillRecord"
+          },
+          "maxItems": 10000
+        },
+        "cancelRequested": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "plan",
+        "grant",
+        "submission",
+        "orderId",
+        "state",
+        "settlement",
+        "fills",
+        "cancelRequested"
+      ],
+      "additionalProperties": false
+    },
+    "PositionSnapshot": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": "prediction-position/1"
+        },
+        "tokenId": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "marketSlug": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+        },
+        "sharesRaw": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "reservedSharesRaw": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "costBasisRaw": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "realizedPnlRaw": {
+          "type": "string",
+          "pattern": "^-?(0|[1-9][0-9]*)$"
+        },
+        "fidelity": {
+          "enum": [
+            "paper",
+            "chain",
+            "fixture"
+          ]
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "tokenId",
+        "marketSlug",
+        "sharesRaw",
+        "reservedSharesRaw",
+        "costBasisRaw",
+        "realizedPnlRaw",
+        "fidelity"
+      ],
+      "additionalProperties": false
+    },
+    "CommandRequest": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "schemaVersion": {
+              "const": "prediction-request/1"
+            },
+            "requestId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+            },
+            "command": {
+              "const": "capabilities"
+            },
+            "payload": {
+              "type": "object",
+              "properties": {
+                "mode": {
+                  "enum": [
+                    "paper",
+                    "assisted",
+                    "autonomous"
+                  ]
+                }
+              },
+              "required": [
+                "mode"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "schemaVersion",
+            "requestId",
+            "command",
+            "payload"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "schemaVersion": {
+              "const": "prediction-request/1"
+            },
+            "requestId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+            },
+            "command": {
+              "const": "doctor"
+            },
+            "payload": {
+              "type": "object",
+              "properties": {
+                "mode": {
+                  "enum": [
+                    "paper",
+                    "assisted",
+                    "autonomous"
+                  ]
+                },
+                "publicOnly": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "mode"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "schemaVersion",
+            "requestId",
+            "command",
+            "payload"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "schemaVersion": {
+              "const": "prediction-request/1"
+            },
+            "requestId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+            },
+            "command": {
+              "const": "markets"
+            },
+            "payload": {
+              "type": "object",
+              "properties": {
+                "mode": {
+                  "enum": [
+                    "paper",
+                    "assisted",
+                    "autonomous"
+                  ]
+                }
+              },
+              "required": [
+                "mode"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "schemaVersion",
+            "requestId",
+            "command",
+            "payload"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "schemaVersion": {
+              "const": "prediction-request/1"
+            },
+            "requestId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+            },
+            "command": {
+              "const": "market"
+            },
+            "payload": {
+              "type": "object",
+              "properties": {
+                "mode": {
+                  "enum": [
+                    "paper",
+                    "assisted",
+                    "autonomous"
+                  ]
+                },
+                "marketSlug": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+                }
+              },
+              "required": [
+                "mode",
+                "marketSlug"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "schemaVersion",
+            "requestId",
+            "command",
+            "payload"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "schemaVersion": {
+              "const": "prediction-request/1"
+            },
+            "requestId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+            },
+            "command": {
+              "const": "positions"
+            },
+            "payload": {
+              "type": "object",
+              "properties": {
+                "mode": {
+                  "enum": [
+                    "paper",
+                    "assisted",
+                    "autonomous"
+                  ]
+                }
+              },
+              "required": [
+                "mode"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "schemaVersion",
+            "requestId",
+            "command",
+            "payload"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "schemaVersion": {
+              "const": "prediction-request/1"
+            },
+            "requestId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+            },
+            "command": {
+              "const": "prepare"
+            },
+            "payload": {
+              "type": "object",
+              "properties": {
+                "mode": {
+                  "enum": [
+                    "paper",
+                    "assisted",
+                    "autonomous"
+                  ]
+                },
+                "intent": {
+                  "$ref": "#/$defs/TradeIntent"
+                }
+              },
+              "required": [
+                "mode",
+                "intent"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "schemaVersion",
+            "requestId",
+            "command",
+            "payload"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "schemaVersion": {
+              "const": "prediction-request/1"
+            },
+            "requestId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+            },
+            "command": {
+              "const": "execute"
+            },
+            "payload": {
+              "type": "object",
+              "properties": {
+                "mode": {
+                  "enum": [
+                    "paper",
+                    "assisted",
+                    "autonomous"
+                  ]
+                },
+                "planHash": {
+                  "type": "string",
+                  "pattern": "^sha256:[a-f0-9]{64}$"
+                },
+                "grant": {
+                  "$ref": "#/$defs/ExecutionGrant"
+                }
+              },
+              "required": [
+                "mode",
+                "planHash"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "schemaVersion",
+            "requestId",
+            "command",
+            "payload"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "schemaVersion": {
+              "const": "prediction-request/1"
+            },
+            "requestId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+            },
+            "command": {
+              "const": "reconcile"
+            },
+            "payload": {
+              "type": "object",
+              "properties": {
+                "mode": {
+                  "enum": [
+                    "paper",
+                    "assisted",
+                    "autonomous"
+                  ]
+                },
+                "clientOrderId": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+                }
+              },
+              "required": [
+                "mode"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "schemaVersion",
+            "requestId",
+            "command",
+            "payload"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "schemaVersion": {
+              "const": "prediction-request/1"
+            },
+            "requestId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+            },
+            "command": {
+              "const": "cancel"
+            },
+            "payload": {
+              "type": "object",
+              "properties": {
+                "mode": {
+                  "enum": [
+                    "paper",
+                    "assisted",
+                    "autonomous"
+                  ]
+                },
+                "clientOrderId": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+                },
+                "grant": {
+                  "$ref": "#/$defs/ExecutionGrant"
+                }
+              },
+              "required": [
+                "mode",
+                "clientOrderId"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "schemaVersion",
+            "requestId",
+            "command",
+            "payload"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "schemaVersion": {
+              "const": "prediction-request/1"
+            },
+            "requestId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+            },
+            "command": {
+              "const": "redeem"
+            },
+            "payload": {
+              "type": "object",
+              "properties": {
+                "mode": {
+                  "enum": [
+                    "paper",
+                    "assisted",
+                    "autonomous"
+                  ]
+                },
+                "marketSlug": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+                },
+                "grant": {
+                  "$ref": "#/$defs/ExecutionGrant"
+                }
+              },
+              "required": [
+                "mode",
+                "marketSlug"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "schemaVersion",
+            "requestId",
+            "command",
+            "payload"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "schemaVersion": {
+              "const": "prediction-request/1"
+            },
+            "requestId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+            },
+            "command": {
+              "const": "watch"
+            },
+            "payload": {
+              "type": "object",
+              "properties": {
+                "mode": {
+                  "enum": [
+                    "paper",
+                    "assisted",
+                    "autonomous"
+                  ]
+                },
+                "durationMs": {
+                  "type": "integer",
+                  "minimum": 1000,
+                  "maximum": 3600000
+                }
+              },
+              "required": [
+                "mode",
+                "durationMs"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "schemaVersion",
+            "requestId",
+            "command",
+            "payload"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "schemaVersion": {
+              "const": "prediction-request/1"
+            },
+            "requestId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+            },
+            "command": {
+              "const": "halt"
+            },
+            "payload": {
+              "type": "object",
+              "properties": {
+                "mode": {
+                  "enum": [
+                    "paper",
+                    "assisted",
+                    "autonomous"
+                  ]
+                },
+                "reason": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+                }
+              },
+              "required": [
+                "mode",
+                "reason"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "schemaVersion",
+            "requestId",
+            "command",
+            "payload"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "schemaVersion": {
+              "const": "prediction-request/1"
+            },
+            "requestId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+            },
+            "command": {
+              "const": "resume"
+            },
+            "payload": {
+              "type": "object",
+              "properties": {
+                "mode": {
+                  "enum": [
+                    "paper",
+                    "assisted",
+                    "autonomous"
+                  ]
+                },
+                "grant": {
+                  "$ref": "#/$defs/ExecutionGrant"
+                }
+              },
+              "required": [
+                "mode"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "schemaVersion",
+            "requestId",
+            "command",
+            "payload"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "ChainOperation": {
+      "type": "object",
+      "properties": {
+        "operationId": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        },
+        "action": {
+          "enum": [
+            "approve",
+            "redeem"
+          ]
+        },
+        "planHash": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "marketSlug": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+        },
+        "nonce": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "txHash": {
+          "type": "string",
+          "pattern": "^0x[a-fA-F0-9]{64}$"
+        },
+        "gasUpperRaw": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 78
+        },
+        "day": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+        },
+        "status": {
+          "enum": [
+            "pending",
+            "confirmed",
+            "failed"
+          ]
+        },
+        "grant": {
+          "$ref": "#/$defs/ExecutionGrant"
+        },
+        "mode": {
+          "enum": [
+            "assisted",
+            "autonomous"
+          ]
+        }
+      },
+      "required": [
+        "operationId",
+        "action",
+        "planHash",
+        "marketSlug",
+        "nonce",
+        "txHash",
+        "gasUpperRaw",
+        "day",
+        "status",
+        "grant",
+        "mode"
+      ],
+      "additionalProperties": false
+    },
+    "LedgerEvent": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "schemaVersion": {
+              "const": "prediction-event/1"
+            },
+            "sequence": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "previousHash": {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
+            },
+            "eventHash": {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
+            },
+            "occurredAt": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+            },
+            "kind": {
+              "const": "plan"
+            },
+            "data": {
+              "$ref": "#/$defs/TradePlan"
+            }
+          },
+          "required": [
+            "schemaVersion",
+            "sequence",
+            "previousHash",
+            "eventHash",
+            "occurredAt",
+            "kind",
+            "data"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "schemaVersion": {
+              "const": "prediction-event/1"
+            },
+            "sequence": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "previousHash": {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
+            },
+            "eventHash": {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
+            },
+            "occurredAt": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+            },
+            "kind": {
+              "const": "reserve"
+            },
+            "data": {
+              "$ref": "#/$defs/OrderRecord"
+            }
+          },
+          "required": [
+            "schemaVersion",
+            "sequence",
+            "previousHash",
+            "eventHash",
+            "occurredAt",
+            "kind",
+            "data"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "schemaVersion": {
+              "const": "prediction-event/1"
+            },
+            "sequence": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "previousHash": {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
+            },
+            "eventHash": {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
+            },
+            "occurredAt": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+            },
+            "kind": {
+              "const": "dispatch"
+            },
+            "data": {
+              "type": "object",
+              "properties": {
+                "clientOrderId": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+                }
+              },
+              "required": [
+                "clientOrderId"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "schemaVersion",
+            "sequence",
+            "previousHash",
+            "eventHash",
+            "occurredAt",
+            "kind",
+            "data"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "schemaVersion": {
+              "const": "prediction-event/1"
+            },
+            "sequence": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "previousHash": {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
+            },
+            "eventHash": {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
+            },
+            "occurredAt": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+            },
+            "kind": {
+              "const": "unknown"
+            },
+            "data": {
+              "type": "object",
+              "properties": {
+                "clientOrderId": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+                }
+              },
+              "required": [
+                "clientOrderId"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "schemaVersion",
+            "sequence",
+            "previousHash",
+            "eventHash",
+            "occurredAt",
+            "kind",
+            "data"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "schemaVersion": {
+              "const": "prediction-event/1"
+            },
+            "sequence": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "previousHash": {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
+            },
+            "eventHash": {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
+            },
+            "occurredAt": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+            },
+            "kind": {
+              "const": "observation"
+            },
+            "data": {
+              "$ref": "#/$defs/OrderObservation"
+            }
+          },
+          "required": [
+            "schemaVersion",
+            "sequence",
+            "previousHash",
+            "eventHash",
+            "occurredAt",
+            "kind",
+            "data"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "schemaVersion": {
+              "const": "prediction-event/1"
+            },
+            "sequence": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "previousHash": {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
+            },
+            "eventHash": {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
+            },
+            "occurredAt": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+            },
+            "kind": {
+              "const": "cancel-request"
+            },
+            "data": {
+              "type": "object",
+              "properties": {
+                "clientOrderId": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+                }
+              },
+              "required": [
+                "clientOrderId"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "schemaVersion",
+            "sequence",
+            "previousHash",
+            "eventHash",
+            "occurredAt",
+            "kind",
+            "data"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "schemaVersion": {
+              "const": "prediction-event/1"
+            },
+            "sequence": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "previousHash": {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
+            },
+            "eventHash": {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
+            },
+            "occurredAt": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+            },
+            "kind": {
+              "const": "halt"
+            },
+            "data": {
+              "type": "object",
+              "properties": {
+                "reason": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+                }
+              },
+              "required": [
+                "reason"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "schemaVersion",
+            "sequence",
+            "previousHash",
+            "eventHash",
+            "occurredAt",
+            "kind",
+            "data"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "schemaVersion": {
+              "const": "prediction-event/1"
+            },
+            "sequence": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "previousHash": {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
+            },
+            "eventHash": {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
+            },
+            "occurredAt": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+            },
+            "kind": {
+              "const": "resume"
+            },
+            "data": {
+              "type": "object",
+              "properties": {
+                "grantId": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+                }
+              },
+              "required": [
+                "grantId"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "schemaVersion",
+            "sequence",
+            "previousHash",
+            "eventHash",
+            "occurredAt",
+            "kind",
+            "data"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "schemaVersion": {
+              "const": "prediction-event/1"
+            },
+            "sequence": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "previousHash": {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
+            },
+            "eventHash": {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
+            },
+            "occurredAt": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+            },
+            "kind": {
+              "const": "chain-pending"
+            },
+            "data": {
+              "$ref": "#/$defs/ChainOperation"
+            }
+          },
+          "required": [
+            "schemaVersion",
+            "sequence",
+            "previousHash",
+            "eventHash",
+            "occurredAt",
+            "kind",
+            "data"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "schemaVersion": {
+              "const": "prediction-event/1"
+            },
+            "sequence": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "previousHash": {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
+            },
+            "eventHash": {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
+            },
+            "occurredAt": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+            },
+            "kind": {
+              "const": "chain-confirmed"
+            },
+            "data": {
+              "type": "object",
+              "properties": {
+                "operationId": {
+                  "type": "string",
+                  "pattern": "^sha256:[a-f0-9]{64}$"
+                },
+                "gasUsedRaw": {
+                  "type": "string",
+                  "pattern": "^(0|[1-9][0-9]*)$",
+                  "maxLength": 78
+                },
+                "blockHash": {
+                  "type": "string",
+                  "pattern": "^0x[a-fA-F0-9]{64}$"
+                },
+                "success": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "operationId",
+                "gasUsedRaw",
+                "blockHash",
+                "success"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "schemaVersion",
+            "sequence",
+            "previousHash",
+            "eventHash",
+            "occurredAt",
+            "kind",
+            "data"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "schemaVersion": {
+              "const": "prediction-event/1"
+            },
+            "sequence": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "previousHash": {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
+            },
+            "eventHash": {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
+            },
+            "occurredAt": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+            },
+            "kind": {
+              "const": "redeemed"
+            },
+            "data": {
+              "type": "object",
+              "properties": {
+                "marketSlug": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+                },
+                "tokenIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^(0|[1-9][0-9]*)$",
+                    "maxLength": 78
+                  },
+                  "maxItems": 2
+                },
+                "payoutRaw": {
+                  "type": "string",
+                  "pattern": "^(0|[1-9][0-9]*)$",
+                  "maxLength": 78
+                },
+                "operationId": {
+                  "type": "string",
+                  "pattern": "^sha256:[a-f0-9]{64}$"
+                },
+                "payouts": {
+                  "type": "array",
+                  "maxItems": 2,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "tokenId": {
+                        "type": "string",
+                        "pattern": "^(0|[1-9][0-9]*)$",
+                        "maxLength": 78
+                      },
+                      "payoutRaw": {
+                        "type": "string",
+                        "pattern": "^(0|[1-9][0-9]*)$",
+                        "maxLength": 78
+                      }
+                    },
+                    "required": [
+                      "tokenId",
+                      "payoutRaw"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "marketSlug",
+                "tokenIds",
+                "payoutRaw",
+                "operationId",
+                "payouts"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "schemaVersion",
+            "sequence",
+            "previousHash",
+            "eventHash",
+            "occurredAt",
+            "kind",
+            "data"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "schemaVersion": {
+              "const": "prediction-event/1"
+            },
+            "sequence": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "previousHash": {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
+            },
+            "eventHash": {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
+            },
+            "occurredAt": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+            },
+            "kind": {
+              "const": "paper-redeemed"
+            },
+            "data": {
+              "type": "object",
+              "properties": {
+                "marketSlug": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+                },
+                "tokenIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^(0|[1-9][0-9]*)$",
+                    "maxLength": 78
+                  },
+                  "maxItems": 2
+                },
+                "payoutRaw": {
+                  "type": "string",
+                  "pattern": "^(0|[1-9][0-9]*)$",
+                  "maxLength": 78
+                },
+                "payouts": {
+                  "type": "array",
+                  "maxItems": 2,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "tokenId": {
+                        "type": "string",
+                        "pattern": "^(0|[1-9][0-9]*)$",
+                        "maxLength": 78
+                      },
+                      "payoutRaw": {
+                        "type": "string",
+                        "pattern": "^(0|[1-9][0-9]*)$",
+                        "maxLength": 78
+                      }
+                    },
+                    "required": [
+                      "tokenId",
+                      "payoutRaw"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "marketSlug",
+                "tokenIds",
+                "payoutRaw",
+                "payouts"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "schemaVersion",
+            "sequence",
+            "previousHash",
+            "eventHash",
+            "occurredAt",
+            "kind",
+            "data"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "PublicOrder": {
+      "type": "object",
+      "properties": {
+        "planHash": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        },
+        "clientOrderId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+        },
+        "orderId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "submission": {
+          "enum": [
+            "reserved",
+            "dispatching",
+            "acknowledged",
+            "acceptance-unknown"
+          ]
+        },
+        "state": {
+          "enum": [
+            "open",
+            "partially-filled",
+            "filled",
+            "cancelled",
+            "rejected",
+            "unknown"
+          ]
+        },
+        "settlement": {
+          "enum": [
+            "none",
+            "delayed",
+            "matched",
+            "mined",
+            "confirmed",
+            "retrying",
+            "failed",
+            "unknown"
+          ]
+        },
+        "fills": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/FillRecord"
+          },
+          "maxItems": 10000
+        },
+        "mode": {
+          "enum": [
+            "paper",
+            "assisted",
+            "autonomous"
+          ]
+        },
+        "cancelRequested": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "planHash",
+        "clientOrderId",
+        "orderId",
+        "submission",
+        "state",
+        "settlement",
+        "fills",
+        "mode",
+        "cancelRequested"
+      ],
+      "additionalProperties": false
+    },
+    "ResultData": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "capabilities"
+            },
+            "enabled": {
+              "type": "boolean"
+            },
+            "live": {
+              "type": "boolean"
+            },
+            "chainId": {
+              "const": 8453
+            },
+            "venue": {
+              "const": "limitless"
+            },
+            "sdkVersion": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4096
+            },
+            "orderTypes": {
+              "type": "array",
+              "items": {
+                "enum": [
+                  "FAK",
+                  "GTC"
+                ]
+              },
+              "maxItems": 2
+            },
+            "modes": {
+              "type": "array",
+              "items": {
+                "enum": [
+                  "paper",
+                  "assisted",
+                  "autonomous"
+                ]
+              },
+              "maxItems": 3
+            }
+          },
+          "required": [
+            "kind",
+            "enabled",
+            "live",
+            "chainId",
+            "venue",
+            "sdkVersion",
+            "orderTypes",
+            "modes"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "doctor"
+            },
+            "ready": {
+              "type": "boolean"
+            },
+            "publicOnly": {
+              "type": "boolean"
+            },
+            "checks": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+                  },
+                  "pass": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "code",
+                  "pass"
+                ],
+                "additionalProperties": false
+              },
+              "maxItems": 100
+            }
+          },
+          "required": [
+            "kind",
+            "ready",
+            "publicOnly",
+            "checks"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "markets"
+            },
+            "markets": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/MarketSnapshot"
+              },
+              "maxItems": 100
+            }
+          },
+          "required": [
+            "kind",
+            "markets"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "market"
+            },
+            "market": {
+              "$ref": "#/$defs/MarketSnapshot"
+            }
+          },
+          "required": [
+            "kind",
+            "market"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "positions"
+            },
+            "positions": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/PositionSnapshot"
+              },
+              "maxItems": 1000
+            }
+          },
+          "required": [
+            "kind",
+            "positions"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "plan"
+            },
+            "plan": {
+              "$ref": "#/$defs/TradePlan"
+            }
+          },
+          "required": [
+            "kind",
+            "plan"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "order"
+            },
+            "order": {
+              "$ref": "#/$defs/PublicOrder"
+            }
+          },
+          "required": [
+            "kind",
+            "order"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "orders"
+            },
+            "orders": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/PublicOrder"
+              },
+              "maxItems": 1000
+            }
+          },
+          "required": [
+            "kind",
+            "orders"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "control"
+            },
+            "halted": {
+              "type": "boolean"
+            },
+            "reason": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+            }
+          },
+          "required": [
+            "kind",
+            "halted",
+            "reason"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "chain"
+            },
+            "operationId": {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
+            },
+            "txHash": {
+              "type": "string",
+              "pattern": "^0x[a-fA-F0-9]{64}$"
+            },
+            "status": {
+              "enum": [
+                "pending",
+                "confirmed"
+              ]
+            },
+            "action": {
+              "enum": [
+                "approve",
+                "redeem"
+              ]
+            }
+          },
+          "required": [
+            "kind",
+            "operationId",
+            "txHash",
+            "status",
+            "action"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "ResultEnvelope": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": "prediction-result/1"
+        },
+        "requestId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+        },
+        "command": {
+          "enum": [
+            "capabilities",
+            "doctor",
+            "markets",
+            "market",
+            "positions",
+            "prepare",
+            "execute",
+            "reconcile",
+            "cancel",
+            "redeem",
+            "watch",
+            "halt",
+            "resume"
+          ]
+        },
+        "mode": {
+          "enum": [
+            "paper",
+            "assisted",
+            "autonomous"
+          ]
+        },
+        "outcome": {
+          "enum": [
+            "ok",
+            "blocked",
+            "pending",
+            "failed"
+          ]
+        },
+        "data": {
+          "$ref": "#/$defs/ResultData"
+        },
+        "errors": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+              },
+              "retryable": {
+                "type": "boolean"
+              },
+              "recovery": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 4096
+              }
+            },
+            "required": [
+              "code",
+              "retryable",
+              "recovery"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 20
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Evidence"
+          },
+          "maxItems": 100
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "requestId",
+        "command",
+        "mode",
+        "outcome",
+        "data",
+        "errors",
+        "evidence"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

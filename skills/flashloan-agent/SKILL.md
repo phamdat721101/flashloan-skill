@@ -1,9 +1,11 @@
 ---
 name: flashloan-agent
-description: "Operate the installed Arbitrum & Sui flashloan runtime and liquidity-pattern pipeline from a user prompt: validate configuration, inspect opportunities, ingest pool snapshots, simulate exact executor calldata, and report or execute risk-approved trades. Use only when the user explicitly requests flashloan analysis or execution."
+description: "Operate the installed flashloan runtime and optional Base Limitless prediction lane: validate configuration, inspect opportunities, simulate exact executor calldata, or manage explicitly requested prediction intents with independent owner authority. Use only for explicit flashloan or prediction-market requests."
 ---
 
 # Flashloan Agent
+
+For an explicit Base prediction-market request, load [prediction.md](prediction.md) and use the independent prediction CLI/JSON contract. Do not send prediction intents through the flashloan prompt or executor. Prediction modes require their own account, capital and owner authority.
 
 Use the installed `flashloan-agent` package. It is self-contained: never read, import, or run code from `bd-team/scripts`. Build the Rust workspace with the pinned toolchain before using the live route engine.
 

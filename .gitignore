@@ -6,6 +6,7 @@ target/
 !.env.example
 .nim/
 .flashloan-agent/
+.prediction/
 .gstack/
 coverage/
 /out/
@@ -24,6 +25,9 @@ docs/features/*
 !docs/features/level-2.md
 !docs/features/level-2.spec.json
 !docs/features/level-2-map.md
+!docs/features/limitless-prediction.md
+!docs/features/limitless-prediction.spec.json
+!docs/features/limitless-prediction-map.md
 !docs/features/flashloan-v7-integration.md
 !docs/features/flashloan-v7-integration-map.md
 !docs/features/flashloan-v7-integration.spec.json

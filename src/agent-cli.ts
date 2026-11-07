@@ -25,6 +25,9 @@ await mkdir(contracts, { recursive: true });
 for (const file of ['schemas/flashloan-integration-v1.schema.json', 'config/flashloan-versions.json', 'config/flashloan-integration-versions.json', 'config/admission-producers.json'])
   await cp(resolve(repoRoot, file), resolve(contracts, file.split('/').pop()!), { force: true });
 await cp(resolve(repoRoot, 'schemas/examples/flashloan-integration-v1'), resolve(contracts, 'examples'), { recursive: true, force: true });
+// Optional prediction contracts travel with the skill; no credentials or local ledger state.
+await cp(resolve(repoRoot, 'schemas/prediction-v1.schema.json'), resolve(contracts, 'prediction-v1.schema.json'));
+await cp(resolve(repoRoot, 'config/prediction/schema-version.json'), resolve(contracts, 'prediction-schema-version.json'));
 // v8: public deployment records the agent binds executors from (addresses, runtime hashes, pinned roots); no local state or secrets.
 const deployments = resolve(contracts, 'deployments');
 await mkdir(deployments, { recursive: true });

@@ -1,0 +1,156 @@
+{
+  "spec_id": "SPEC-2026-110701",
+  "feature_name": "Limitless Base prediction execution lane",
+  "source_evidence": [
+    {
+      "source_uri": "src/prediction/runtime.ts",
+      "entity_id": "PredictionRuntime",
+      "hash": "sha256:aeb6b4226f0898b908233ee94597836f5c07e8564a866eada1bbed479c733fdc"
+    },
+    {
+      "source_uri": "src/prediction/ledger.ts",
+      "entity_id": "PredictionLedger",
+      "hash": "sha256:d024c777971f78471abdd47f27e3e746dc98ccac02b8cf760086501765ab17d7"
+    },
+    {
+      "source_uri": "src/prediction/provider.ts",
+      "entity_id": "LimitlessProvider",
+      "hash": "sha256:00371b67238d88b3b80bffda3cec3c8163c67c29aa3084edac778c1464d46a70"
+    },
+    {
+      "source_uri": "src/prediction/config.ts",
+      "entity_id": "verifyGrant",
+      "hash": "sha256:6857a4d0bc69df4a3b590373e21f9d4d76225aeaf256daf63a5096913e0db081"
+    },
+    {
+      "source_uri": "src/prediction/contracts.ts",
+      "entity_id": "validate",
+      "hash": "sha256:172e8b2f2892b161144f86de8b0fec18b5577a13f65ebd06b29ab106888850b8"
+    },
+    {
+      "source_uri": "src/execution-lock.ts",
+      "entity_id": "ExecutionLock",
+      "hash": "sha256:52293adefd337500119be2acf8dff9c992d1887e0d7a9caa434983cfd5ab32a8"
+    },
+    {
+      "source_uri": "src/evidence/integration.ts",
+      "entity_id": "canonicalBytes",
+      "hash": "sha256:9d7cdcfa3661f2046622215cecd7ec9739261a8a58f2a85dda475dccba2aed90"
+    }
+  ],
+  "dependencies": [
+    {
+      "symbol": "PredictionRuntime",
+      "file_location": "src/prediction/runtime.ts",
+      "package_or_module": "src/prediction/runtime.ts"
+    },
+    {
+      "symbol": "PredictionLedger",
+      "file_location": "src/prediction/ledger.ts",
+      "package_or_module": "src/prediction/ledger.ts"
+    },
+    {
+      "symbol": "LimitlessProvider",
+      "file_location": "src/prediction/provider.ts",
+      "package_or_module": "src/prediction/provider.ts"
+    },
+    {
+      "symbol": "verifyGrant",
+      "file_location": "src/prediction/config.ts",
+      "package_or_module": "src/prediction/config.ts"
+    },
+    {
+      "symbol": "validate",
+      "file_location": "src/prediction/contracts.ts",
+      "package_or_module": "src/prediction/contracts.ts"
+    },
+    {
+      "symbol": "ExecutionLock",
+      "file_location": "src/execution-lock.ts",
+      "package_or_module": "src/execution-lock.ts"
+    },
+    {
+      "symbol": "canonicalBytes",
+      "file_location": "src/evidence/integration.ts",
+      "package_or_module": "src/evidence/integration.ts"
+    }
+  ],
+  "architecture": {
+    "pattern": "Strict JSON CLI with explicit Limitless SDK and Base RPC adapters",
+    "isolation_boundaries": "Prediction journal, capital and permissions isolated from flashloan execution; separate paper/live and fixture/production state; live disabled by default",
+    "execution_flow": [
+      "Validate closed schema and config pin",
+      "Normalize public market and account identity",
+      "Build exact SDK unsigned order and bounded approval plan",
+      "Verify independent Ed25519 owner grant",
+      "Reserve cash and inventory under account lock",
+      "Persist signed transaction identity or dispatch intent before effects",
+      "Submit once; recover unknown acceptance by clientOrderId",
+      "Confirm receipt-backed fills and canonical finality",
+      "Apply FIFO, fee bounds and redemption; retain cleanup when placement is disabled"
+    ]
+  },
+  "data_contracts": {
+    "inputs": {
+      "schema": "schemas/prediction-v1.schema.json",
+      "request": "prediction-request/1",
+      "intent": "prediction-intent/1",
+      "authority": "prediction-grant/1",
+      "units": "USDC and shares: unsigned six-decimal raw strings; prices: integer ppm",
+      "credentials": "host env references and owner-only signer key file; no secrets in input"
+    },
+    "outputs": {
+      "result": "prediction-result/1",
+      "plan": "prediction-plan/1",
+      "events": "prediction-event/1",
+      "fidelity": [
+        "paper",
+        "fixture",
+        "chain"
+      ],
+      "bookUnits": "REST sizes and reward threshold already raw6-decimal quantities; only prices converted",
+      "rewardMinimum": "LP rewards and adjustedMidpoint only; not trade admission",
+      "commands": [
+        "capabilities",
+        "doctor",
+        "markets",
+        "market",
+        "positions",
+        "prepare",
+        "execute",
+        "reconcile",
+        "cancel",
+        "redeem",
+        "watch",
+        "halt",
+        "resume"
+      ],
+      "gas": "Base L2 execution plus reserved L1/operator fees; variable L1 charges are not transaction-capped",
+      "liveReadiness": "funded acceptance NOT_RUN"
+    },
+    "error_states": [
+      "SCHEMA_INVALID",
+      "RESERVATION_AUTHORITY_CHANGED",
+      "RECOVERY_REQUIRED",
+      "FEE_BOUND_EXCEEDED",
+      "DEPLOYMENT_CODE_DRIFT",
+      "POSITION_BALANCE_DRIFT",
+      "SETTLEMENT_EVIDENCE_INCOMPLETE",
+      "REORG_DETECTED",
+      "GAS_BUDGET_EXHAUSTED"
+    ]
+  },
+  "test_criteria": [
+    "EDGE-01 schema, provider identity and paper isolation",
+    "EDGE-02 real SDK amount/signature/HMAC parity and finite approvals",
+    "EDGE-03 signed exact-plan/session authority before signing",
+    "EDGE-04 subprocess restart, lost acceptance, partial fills and cancel race",
+    "EDGE-05 canonical fills, FIFO, redemption, corruption and conflicts",
+    "Dead lock recovery refuses living PID; reservation cannot change grant",
+    "Installed schema matches digest pin and prediction routing",
+    "Public health is independent of funded acceptance",
+    "REST raw-size parsing rejects unsafe numbers and preserves large integer strings; reward threshold never gates smaller trades",
+    "Public-data paper lifecycle performs no authenticated requests or provider writes",
+    "Repository regression suite and recorded limitations"
+  ]
+}
