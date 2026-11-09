@@ -28,6 +28,10 @@ await cp(resolve(repoRoot, 'schemas/examples/flashloan-integration-v1'), resolve
 // Optional prediction contracts travel with the skill; no credentials or local ledger state.
 await cp(resolve(repoRoot, 'schemas/prediction-v1.schema.json'), resolve(contracts, 'prediction-v1.schema.json'));
 await cp(resolve(repoRoot, 'config/prediction/schema-version.json'), resolve(contracts, 'prediction-schema-version.json'));
+// Optional Finance wire contract (urn:openx:finance-wire:1), its pin and public vectors; default-off, no profile/state/keys.
+await cp(resolve(repoRoot, 'schemas/finance-v1.schema.json'), resolve(contracts, 'finance-v1.schema.json'));
+await cp(resolve(repoRoot, 'config/finance/schema-version.json'), resolve(contracts, 'finance-schema-version.json'));
+await cp(resolve(repoRoot, 'schemas/examples/finance-v1.vectors.json'), resolve(contracts, 'finance-v1.vectors.json'));
 // v8: public deployment records the agent binds executors from (addresses, runtime hashes, pinned roots); no local state or secrets.
 const deployments = resolve(contracts, 'deployments');
 await mkdir(deployments, { recursive: true });

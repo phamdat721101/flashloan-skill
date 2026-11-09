@@ -1,0 +1,3616 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:openx:finance-wire:1",
+  "$defs": {
+    "Network": {
+      "enum": [
+        "arbitrum",
+        "base",
+        "robinhood",
+        "xrpl"
+      ]
+    },
+    "Digest": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "Uint": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 78,
+      "pattern": "^(0|[1-9][0-9]{0,77})$"
+    },
+    "Decimal": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 120,
+      "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+    },
+    "Timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$"
+    },
+    "EvmAddress": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 42,
+      "pattern": "^0x[a-fA-F0-9]{40}$"
+    },
+    "XrplAddress": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 35,
+      "pattern": "^r[1-9A-HJ-NP-Za-km-z]{24,34}$"
+    },
+    "Account": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "family": {
+              "const": "evm"
+            },
+            "address": {
+              "$ref": "#/$defs/EvmAddress"
+            },
+            "chainId": {
+              "enum": [
+                42161,
+                8453,
+                4663
+              ]
+            },
+            "model": {
+              "enum": [
+                "eoa",
+                "smart-account"
+              ]
+            }
+          },
+          "required": [
+            "family",
+            "address",
+            "chainId",
+            "model"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "family": {
+              "const": "xrpl"
+            },
+            "address": {
+              "$ref": "#/$defs/XrplAddress"
+            },
+            "model": {
+              "const": "native"
+            }
+          },
+          "required": [
+            "family",
+            "address",
+            "model"
+          ]
+        }
+      ]
+    },
+    "Asset": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "evm-native"
+            },
+            "network": {
+              "enum": [
+                "arbitrum",
+                "base",
+                "robinhood"
+              ]
+            },
+            "decimals": {
+              "const": 18
+            }
+          },
+          "required": [
+            "kind",
+            "network",
+            "decimals"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "erc20"
+            },
+            "network": {
+              "enum": [
+                "arbitrum",
+                "base",
+                "robinhood"
+              ]
+            },
+            "address": {
+              "$ref": "#/$defs/EvmAddress"
+            },
+            "decimals": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 36
+            }
+          },
+          "required": [
+            "kind",
+            "network",
+            "address",
+            "decimals"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "xrp"
+            },
+            "network": {
+              "const": "xrpl"
+            },
+            "decimals": {
+              "const": 6
+            }
+          },
+          "required": [
+            "kind",
+            "network",
+            "decimals"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "xrpl-issued"
+            },
+            "network": {
+              "const": "xrpl"
+            },
+            "currency": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 40,
+              "pattern": "^(?!XRP$)([!-~]{3}|[A-Fa-f0-9]{40})$"
+            },
+            "issuer": {
+              "$ref": "#/$defs/XrplAddress"
+            }
+          },
+          "required": [
+            "kind",
+            "network",
+            "currency",
+            "issuer"
+          ]
+        }
+      ]
+    },
+    "Quantity": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "atomic"
+            },
+            "value": {
+              "$ref": "#/$defs/Uint"
+            }
+          },
+          "required": [
+            "kind",
+            "value"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "issued-decimal"
+            },
+            "coefficient": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 17,
+              "pattern": "^-?(0|[1-9][0-9]{0,15})$"
+            },
+            "exponent": {
+              "type": "integer",
+              "minimum": -96,
+              "maximum": 80
+            }
+          },
+          "required": [
+            "kind",
+            "coefficient",
+            "exponent"
+          ]
+        }
+      ]
+    },
+    "Amount": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "asset": {
+          "$ref": "#/$defs/Asset"
+        },
+        "quantity": {
+          "$ref": "#/$defs/Quantity"
+        }
+      },
+      "required": [
+        "asset",
+        "quantity"
+      ]
+    },
+    "EvidenceRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Digest"
+        },
+        "contentHash": {
+          "$ref": "#/$defs/Digest"
+        },
+        "expiresAt": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Timestamp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "contentHash",
+        "expiresAt"
+      ]
+    },
+    "Observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "network": {
+          "$ref": "#/$defs/Network"
+        },
+        "networkIdentityHash": {
+          "$ref": "#/$defs/Digest"
+        },
+        "point": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "evm-block"
+                },
+                "number": {
+                  "$ref": "#/$defs/Uint"
+                },
+                "hash": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 66,
+                  "pattern": "^0x[a-fA-F0-9]{64}$"
+                },
+                "finality": {
+                  "enum": [
+                    "included",
+                    "safe",
+                    "finalized"
+                  ]
+                }
+              },
+              "required": [
+                "kind",
+                "number",
+                "hash",
+                "finality"
+              ]
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "xrpl-ledger"
+                },
+                "index": {
+                  "$ref": "#/$defs/Uint"
+                },
+                "hash": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[A-Fa-f0-9]{64}$"
+                },
+                "validated": {
+                  "const": true
+                }
+              },
+              "required": [
+                "kind",
+                "index",
+                "hash",
+                "validated"
+              ]
+            }
+          ]
+        },
+        "observedAt": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "expiresAt": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "consistency": {
+          "enum": [
+            "pinned",
+            "best-effort"
+          ]
+        },
+        "fidelity": {
+          "enum": [
+            "fixture",
+            "chain-read",
+            "native-simulation"
+          ]
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "maxItems": 20
+        }
+      },
+      "required": [
+        "network",
+        "networkIdentityHash",
+        "point",
+        "observedAt",
+        "expiresAt",
+        "consistency",
+        "fidelity",
+        "sources"
+      ]
+    },
+    "Coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "complete": {
+          "type": "boolean"
+        },
+        "missing": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "capability": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "reasonCode": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              }
+            },
+            "required": [
+              "capability",
+              "reasonCode"
+            ]
+          },
+          "maxItems": 100
+        },
+        "cursor": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "complete",
+        "missing",
+        "cursor"
+      ]
+    },
+    "Capability": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "network": {
+          "$ref": "#/$defs/Network"
+        },
+        "operation": {
+          "enum": [
+            "portfolio",
+            "positions",
+            "earn",
+            "withdraw",
+            "borrow",
+            "repay",
+            "protect",
+            "flash",
+            "prediction-research",
+            "prediction-prepare"
+          ]
+        },
+        "protocol": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "stage": {
+          "enum": [
+            "UNKNOWN",
+            "UNSUPPORTED",
+            "DOCUMENTED",
+            "READ_VERIFIED",
+            "PREPARE_VERIFIED",
+            "LOCAL_EXECUTION_ADMITTED"
+          ]
+        },
+        "authority": {
+          "enum": [
+            "service",
+            "local-profile"
+          ]
+        },
+        "reasonCode": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "observedAt": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "expiresAt": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "maxItems": 20
+        }
+      },
+      "required": [
+        "network",
+        "operation",
+        "protocol",
+        "stage",
+        "authority",
+        "reasonCode",
+        "observedAt",
+        "expiresAt",
+        "evidence"
+      ]
+    },
+    "EvmPosition": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "evm-collateralized"
+        },
+        "positionId": {
+          "$ref": "#/$defs/Digest"
+        },
+        "account": {
+          "$ref": "#/$defs/Account"
+        },
+        "protocol": {
+          "enum": [
+            "aave-v3",
+            "morpho-blue"
+          ]
+        },
+        "deploymentRef": {
+          "$ref": "#/$defs/Digest"
+        },
+        "marketId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "supplied": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Amount"
+          },
+          "maxItems": 20
+        },
+        "shareEvidence": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "role": {
+                "enum": [
+                  "supply",
+                  "borrow"
+                ]
+              },
+              "asset": {
+                "$ref": "#/$defs/Asset"
+              },
+              "raw": {
+                "$ref": "#/$defs/Uint"
+              },
+              "shareModelRef": {
+                "$ref": "#/$defs/Digest"
+              }
+            },
+            "required": [
+              "role",
+              "asset",
+              "raw",
+              "shareModelRef"
+            ]
+          },
+          "maxItems": 20
+        },
+        "collateral": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Amount"
+          },
+          "maxItems": 20
+        },
+        "debt": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Amount"
+          },
+          "maxItems": 20
+        },
+        "noDebt": {
+          "type": "boolean"
+        },
+        "healthFactor": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Decimal"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "ltv": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Decimal"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "liquidationThreshold": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Decimal"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "observation": {
+          "$ref": "#/$defs/Observation"
+        }
+      },
+      "required": [
+        "kind",
+        "positionId",
+        "account",
+        "protocol",
+        "deploymentRef",
+        "marketId",
+        "supplied",
+        "shareEvidence",
+        "collateral",
+        "debt",
+        "noDebt",
+        "healthFactor",
+        "ltv",
+        "liquidationThreshold",
+        "observation"
+      ]
+    },
+    "XrplLoan": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "xrpl-loan"
+        },
+        "positionId": {
+          "$ref": "#/$defs/Digest"
+        },
+        "account": {
+          "$ref": "#/$defs/Account"
+        },
+        "loanId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[A-Fa-f0-9]{64}$"
+        },
+        "loanBrokerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[A-Fa-f0-9]{64}$"
+        },
+        "assetResolutionRef": {
+          "$ref": "#/$defs/Digest"
+        },
+        "principalOutstanding": {
+          "$ref": "#/$defs/Amount"
+        },
+        "totalValueOutstanding": {
+          "$ref": "#/$defs/Amount"
+        },
+        "managementFeeOutstanding": {
+          "$ref": "#/$defs/Amount"
+        },
+        "periodicPayment": {
+          "$ref": "#/$defs/Amount"
+        },
+        "interestRateTenthsBps": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "paymentRemaining": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "nextDueAt": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Timestamp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "gracePeriodSeconds": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "loanScale": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": -2147483648,
+              "maximum": 2147483647
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "flags": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "defaulted",
+              "impaired",
+              "overpayment-allowed"
+            ]
+          },
+          "maxItems": 3
+        },
+        "observation": {
+          "$ref": "#/$defs/Observation"
+        }
+      },
+      "required": [
+        "kind",
+        "positionId",
+        "account",
+        "loanId",
+        "loanBrokerId",
+        "assetResolutionRef",
+        "principalOutstanding",
+        "totalValueOutstanding",
+        "managementFeeOutstanding",
+        "periodicPayment",
+        "interestRateTenthsBps",
+        "paymentRemaining",
+        "nextDueAt",
+        "gracePeriodSeconds",
+        "loanScale",
+        "flags",
+        "observation"
+      ]
+    },
+    "PositionReport": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "account": {
+          "$ref": "#/$defs/Account"
+        },
+        "observation": {
+          "$ref": "#/$defs/Observation"
+        },
+        "balances": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Amount"
+          },
+          "maxItems": 100
+        },
+        "reservedXrp": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Amount"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "positions": {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "$ref": "#/$defs/EvmPosition"
+              },
+              {
+                "$ref": "#/$defs/XrplLoan"
+              }
+            ]
+          },
+          "maxItems": 100
+        },
+        "coverage": {
+          "$ref": "#/$defs/Coverage"
+        }
+      },
+      "required": [
+        "account",
+        "observation",
+        "balances",
+        "reservedXrp",
+        "positions",
+        "coverage"
+      ]
+    },
+    "Constraints": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "maxSpend": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Amount"
+          },
+          "maxItems": 20
+        },
+        "maxCosts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Amount"
+          },
+          "maxItems": 20
+        },
+        "minReceive": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Amount"
+          },
+          "maxItems": 20
+        },
+        "maxDebtAfter": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Amount"
+          },
+          "maxItems": 20
+        },
+        "minCollateralAfter": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Amount"
+          },
+          "maxItems": 20
+        },
+        "minSupplyAfter": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Amount"
+          },
+          "maxItems": 20
+        },
+        "maxSlippageBps": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 5000
+        },
+        "maxStateAgeSeconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3600
+        }
+      },
+      "required": [
+        "maxSpend",
+        "maxCosts",
+        "minReceive",
+        "maxDebtAfter",
+        "minCollateralAfter",
+        "minSupplyAfter",
+        "maxSlippageBps",
+        "maxStateAgeSeconds"
+      ]
+    },
+    "Cost": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "execution-gas",
+            "l1-data",
+            "operator",
+            "lender",
+            "swap",
+            "product",
+            "xrpl-fee"
+          ]
+        },
+        "payer": {
+          "enum": [
+            "user",
+            "sponsor"
+          ]
+        },
+        "maximum": {
+          "$ref": "#/$defs/Amount"
+        },
+        "sourceRef": {
+          "$ref": "#/$defs/EvidenceRef"
+        }
+      },
+      "required": [
+        "kind",
+        "payer",
+        "maximum",
+        "sourceRef"
+      ]
+    },
+    "Comparison": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "positionRef": {
+          "$ref": "#/$defs/Digest"
+        },
+        "observation": {
+          "$ref": "#/$defs/Observation"
+        },
+        "actions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "actionId": {
+                "$ref": "#/$defs/Digest"
+              },
+              "intent": {
+                "enum": [
+                  "hold",
+                  "earn",
+                  "withdraw",
+                  "borrow",
+                  "repay",
+                  "protect"
+                ]
+              },
+              "admissible": {
+                "type": "boolean"
+              },
+              "blockedReasons": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "maxItems": 20
+              },
+              "spend": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/Amount"
+                },
+                "maxItems": 20
+              },
+              "receive": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/Amount"
+                },
+                "maxItems": 20
+              },
+              "costs": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/Cost"
+                },
+                "maxItems": 20
+              },
+              "maxDebtAfter": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/Amount"
+                },
+                "maxItems": 20
+              },
+              "minCollateralAfter": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/Amount"
+                },
+                "maxItems": 20
+              },
+              "minSupplyAfter": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/Amount"
+                },
+                "maxItems": 20
+              },
+              "assumptions": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1000
+                },
+                "maxItems": 20
+              }
+            },
+            "required": [
+              "actionId",
+              "intent",
+              "admissible",
+              "blockedReasons",
+              "spend",
+              "receive",
+              "costs",
+              "maxDebtAfter",
+              "minCollateralAfter",
+              "minSupplyAfter",
+              "assumptions"
+            ]
+          },
+          "maxItems": 16
+        },
+        "coverage": {
+          "$ref": "#/$defs/Coverage"
+        }
+      },
+      "required": [
+        "positionRef",
+        "observation",
+        "actions",
+        "coverage"
+      ]
+    },
+    "EvmPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "evm"
+        },
+        "chainId": {
+          "enum": [
+            42161,
+            8453,
+            4663
+          ]
+        },
+        "from": {
+          "$ref": "#/$defs/EvmAddress"
+        },
+        "to": {
+          "$ref": "#/$defs/EvmAddress"
+        },
+        "data": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 262146,
+          "pattern": "^0x([a-fA-F0-9]{2})*$"
+        },
+        "value": {
+          "$ref": "#/$defs/Uint"
+        },
+        "nonce": {
+          "$ref": "#/$defs/Uint"
+        },
+        "gasLimit": {
+          "$ref": "#/$defs/Uint"
+        },
+        "maxFeePerGas": {
+          "$ref": "#/$defs/Uint"
+        },
+        "maxPriorityFeePerGas": {
+          "$ref": "#/$defs/Uint"
+        }
+      },
+      "required": [
+        "kind",
+        "chainId",
+        "from",
+        "to",
+        "data",
+        "value",
+        "nonce",
+        "gasLimit",
+        "maxFeePerGas",
+        "maxPriorityFeePerGas"
+      ]
+    },
+    "XrplPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "xrpl-payment"
+        },
+        "networkIdentityHash": {
+          "$ref": "#/$defs/Digest"
+        },
+        "tx": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "TransactionType": {
+              "const": "Payment"
+            },
+            "Account": {
+              "$ref": "#/$defs/XrplAddress"
+            },
+            "Destination": {
+              "$ref": "#/$defs/XrplAddress"
+            },
+            "Amount": {
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/Uint"
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "currency": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 40,
+                      "pattern": "^(?!XRP$)([!-~]{3}|[A-Fa-f0-9]{40})$"
+                    },
+                    "issuer": {
+                      "$ref": "#/$defs/XrplAddress"
+                    },
+                    "value": {
+                      "$ref": "#/$defs/Decimal"
+                    }
+                  },
+                  "required": [
+                    "currency",
+                    "issuer",
+                    "value"
+                  ]
+                }
+              ]
+            },
+            "Fee": {
+              "$ref": "#/$defs/Uint"
+            },
+            "Sequence": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4294967295
+            },
+            "TicketSequence": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 4294967295
+            },
+            "LastLedgerSequence": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 4294967295
+            },
+            "DestinationTag": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4294967295
+            },
+            "Flags": {
+              "const": 0
+            }
+          },
+          "required": [
+            "TransactionType",
+            "Account",
+            "Destination",
+            "Amount",
+            "Fee",
+            "Sequence",
+            "LastLedgerSequence",
+            "Flags"
+          ],
+          "oneOf": [
+            {
+              "properties": {
+                "Sequence": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "TicketSequence": false
+              }
+            },
+            {
+              "properties": {
+                "Sequence": {
+                  "const": 0
+                },
+                "TicketSequence": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 4294967295
+                }
+              },
+              "required": [
+                "TicketSequence"
+              ]
+            }
+          ]
+        }
+      },
+      "required": [
+        "kind",
+        "networkIdentityHash",
+        "tx"
+      ]
+    },
+    "Plan": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schemaVersion": {
+          "const": "finance.plan/1"
+        },
+        "planHash": {
+          "$ref": "#/$defs/Digest"
+        },
+        "requestDigest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "contractDigest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "network": {
+          "$ref": "#/$defs/Network"
+        },
+        "account": {
+          "$ref": "#/$defs/Account"
+        },
+        "positionRef": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Digest"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "comparisonRef": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Digest"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "intent": {
+          "enum": [
+            "earn",
+            "withdraw",
+            "borrow",
+            "repay",
+            "protect",
+            "payment"
+          ]
+        },
+        "adapterRef": {
+          "$ref": "#/$defs/Digest"
+        },
+        "observation": {
+          "$ref": "#/$defs/Observation"
+        },
+        "requestedConstraints": {
+          "$ref": "#/$defs/Constraints"
+        },
+        "effectiveConstraints": {
+          "$ref": "#/$defs/Constraints"
+        },
+        "permissions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "enum": [
+                  "erc20-allowance",
+                  "account-module",
+                  "native-signature"
+                ]
+              },
+              "target": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "asset": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/Asset"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "maximum": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/Quantity"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "kind",
+              "target",
+              "asset",
+              "maximum"
+            ]
+          },
+          "maxItems": 20
+        },
+        "costs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Cost"
+          },
+          "maxItems": 20
+        },
+        "nativePayload": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/EvmPayload"
+            },
+            {
+              "$ref": "#/$defs/XrplPayload"
+            }
+          ]
+        },
+        "expiresAt": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "maxItems": 20
+        },
+        "execution": {
+          "const": false
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "planHash",
+        "requestDigest",
+        "contractDigest",
+        "network",
+        "account",
+        "positionRef",
+        "comparisonRef",
+        "intent",
+        "adapterRef",
+        "observation",
+        "requestedConstraints",
+        "effectiveConstraints",
+        "permissions",
+        "costs",
+        "nativePayload",
+        "expiresAt",
+        "evidence",
+        "execution"
+      ]
+    },
+    "Simulation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "planHash": {
+          "$ref": "#/$defs/Digest"
+        },
+        "localPlanHash": {
+          "$ref": "#/$defs/Digest"
+        },
+        "fidelity": {
+          "enum": [
+            "fixture",
+            "model",
+            "native"
+          ]
+        },
+        "pass": {
+          "type": "boolean"
+        },
+        "expectedSpend": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Amount"
+          },
+          "maxItems": 20
+        },
+        "expectedReceive": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Amount"
+          },
+          "maxItems": 20
+        },
+        "nativeStateRef": {
+          "$ref": "#/$defs/EvidenceRef"
+        },
+        "postconditionsPass": {
+          "type": "boolean"
+        },
+        "errors": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "maxItems": 20
+        }
+      },
+      "required": [
+        "planHash",
+        "localPlanHash",
+        "fidelity",
+        "pass",
+        "expectedSpend",
+        "expectedReceive",
+        "nativeStateRef",
+        "postconditionsPass",
+        "errors"
+      ]
+    },
+    "ResearchSimulation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "planHash": {
+          "$ref": "#/$defs/Digest"
+        },
+        "fidelity": {
+          "enum": [
+            "fixture",
+            "model",
+            "reference-native-read"
+          ]
+        },
+        "pass": {
+          "type": "boolean"
+        },
+        "assumptions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000
+          },
+          "maxItems": 20
+        },
+        "stateRef": {
+          "$ref": "#/$defs/EvidenceRef"
+        },
+        "errors": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "maxItems": 20
+        },
+        "execution": {
+          "const": false
+        }
+      },
+      "required": [
+        "planHash",
+        "fidelity",
+        "pass",
+        "assumptions",
+        "stateRef",
+        "errors",
+        "execution"
+      ]
+    },
+    "LocalPlan": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schemaVersion": {
+          "const": "finance.local-plan/1"
+        },
+        "localPlanHash": {
+          "$ref": "#/$defs/Digest"
+        },
+        "researchPlanHash": {
+          "$ref": "#/$defs/Digest"
+        },
+        "policyHash": {
+          "$ref": "#/$defs/Digest"
+        },
+        "contractDigest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "network": {
+          "$ref": "#/$defs/Network"
+        },
+        "account": {
+          "$ref": "#/$defs/Account"
+        },
+        "adapterRef": {
+          "$ref": "#/$defs/Digest"
+        },
+        "observation": {
+          "$ref": "#/$defs/Observation"
+        },
+        "effectiveConstraints": {
+          "$ref": "#/$defs/Constraints"
+        },
+        "costs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Cost"
+          },
+          "maxItems": 20
+        },
+        "nativePayload": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/EvmPayload"
+            },
+            {
+              "$ref": "#/$defs/XrplPayload"
+            }
+          ]
+        },
+        "pins": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "enum": [
+                  "bytecode",
+                  "abi",
+                  "protocol-market",
+                  "owner-model",
+                  "network",
+                  "approval-key"
+                ]
+              },
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "hash": {
+                "$ref": "#/$defs/Digest"
+              }
+            },
+            "required": [
+              "kind",
+              "id",
+              "hash"
+            ]
+          },
+          "maxItems": 50
+        },
+        "requiredFinality": {
+          "enum": [
+            "safe",
+            "finalized",
+            "validated"
+          ]
+        },
+        "expiresAt": {
+          "$ref": "#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "localPlanHash",
+        "researchPlanHash",
+        "policyHash",
+        "contractDigest",
+        "network",
+        "account",
+        "adapterRef",
+        "observation",
+        "effectiveConstraints",
+        "costs",
+        "nativePayload",
+        "pins",
+        "requiredFinality",
+        "expiresAt"
+      ]
+    },
+    "Receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "actionId": {
+          "$ref": "#/$defs/Digest"
+        },
+        "planHash": {
+          "$ref": "#/$defs/Digest"
+        },
+        "localPlanHash": {
+          "$ref": "#/$defs/Digest"
+        },
+        "network": {
+          "$ref": "#/$defs/Network"
+        },
+        "transactionId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "state": {
+          "enum": [
+            "PREPARED",
+            "SIMULATED",
+            "AWAITING_APPROVAL",
+            "SUBMITTING",
+            "SUBMITTED",
+            "INCLUDED",
+            "CONFIRMED",
+            "FINALIZED",
+            "FAILED",
+            "EXPIRED",
+            "UNKNOWN",
+            "HALTED"
+          ]
+        },
+        "verification": {
+          "enum": [
+            "local-reported",
+            "chain-verified",
+            "unverified"
+          ]
+        },
+        "effects": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Amount"
+          },
+          "maxItems": 100
+        },
+        "reconciliation": {
+          "enum": [
+            "PENDING",
+            "MATCH",
+            "MISMATCH",
+            "UNKNOWN"
+          ]
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "maxItems": 20
+        }
+      },
+      "required": [
+        "actionId",
+        "planHash",
+        "localPlanHash",
+        "network",
+        "transactionId",
+        "state",
+        "verification",
+        "effects",
+        "reconciliation",
+        "evidence"
+      ]
+    },
+    "Error": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "retryable": {
+          "type": "boolean"
+        },
+        "recovery": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1200
+        }
+      },
+      "required": [
+        "code",
+        "retryable",
+        "recovery"
+      ]
+    },
+    "Watch": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "watchId": {
+          "$ref": "#/$defs/Digest"
+        },
+        "positionRef": {
+          "$ref": "#/$defs/Digest"
+        },
+        "expiresAt": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "state": {
+          "enum": [
+            "ACTIVE",
+            "STOPPED",
+            "EXPIRED",
+            "FAILED"
+          ]
+        },
+        "execution": {
+          "const": false
+        }
+      },
+      "required": [
+        "watchId",
+        "positionRef",
+        "expiresAt",
+        "state",
+        "execution"
+      ]
+    },
+    "PredictionContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "venue": {
+          "const": "limitless"
+        },
+        "network": {
+          "const": "base"
+        },
+        "marketRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "eligible": {
+          "enum": [
+            "YES",
+            "NO",
+            "UNKNOWN"
+          ]
+        },
+        "operatingState": {
+          "enum": [
+            "ACTIVE",
+            "PAUSED",
+            "UNKNOWN"
+          ]
+        },
+        "resolutionRuleRef": {
+          "$ref": "#/$defs/EvidenceRef"
+        },
+        "bookRef": {
+          "$ref": "#/$defs/EvidenceRef"
+        },
+        "handoffRef": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Digest"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "execution": {
+          "const": false
+        }
+      },
+      "required": [
+        "venue",
+        "network",
+        "marketRef",
+        "eligible",
+        "operatingState",
+        "resolutionRuleRef",
+        "bookRef",
+        "handoffRef",
+        "execution"
+      ]
+    },
+    "Request": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "schemaVersion": {
+              "const": "finance.request/1"
+            },
+            "requestId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            "idempotency_key": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "network": {
+              "$ref": "#/$defs/Network"
+            },
+            "operation": {
+              "const": "capabilities"
+            }
+          },
+          "required": [
+            "schemaVersion",
+            "requestId",
+            "idempotency_key",
+            "network",
+            "operation"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "schemaVersion": {
+              "const": "finance.request/1"
+            },
+            "requestId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            "idempotency_key": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "network": {
+              "$ref": "#/$defs/Network"
+            },
+            "operation": {
+              "const": "positions"
+            },
+            "account": {
+              "$ref": "#/$defs/Account"
+            },
+            "scope": {
+              "enum": [
+                "portfolio",
+                "lending",
+                "both"
+              ]
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            },
+            "cursor": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 512
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "contractDigest": {
+              "$ref": "#/$defs/Digest"
+            }
+          },
+          "required": [
+            "schemaVersion",
+            "requestId",
+            "idempotency_key",
+            "network",
+            "operation",
+            "account",
+            "scope",
+            "limit",
+            "cursor",
+            "contractDigest"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "schemaVersion": {
+              "const": "finance.request/1"
+            },
+            "requestId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            "idempotency_key": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "network": {
+              "$ref": "#/$defs/Network"
+            },
+            "operation": {
+              "const": "compare"
+            },
+            "positionRef": {
+              "$ref": "#/$defs/Digest"
+            },
+            "intent": {
+              "enum": [
+                "hold",
+                "earn",
+                "withdraw",
+                "borrow",
+                "repay",
+                "protect"
+              ]
+            },
+            "requestedConstraints": {
+              "$ref": "#/$defs/Constraints"
+            },
+            "contractDigest": {
+              "$ref": "#/$defs/Digest"
+            }
+          },
+          "required": [
+            "schemaVersion",
+            "requestId",
+            "idempotency_key",
+            "network",
+            "operation",
+            "positionRef",
+            "intent",
+            "requestedConstraints",
+            "contractDigest"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "schemaVersion": {
+              "const": "finance.request/1"
+            },
+            "requestId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            "idempotency_key": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "network": {
+              "$ref": "#/$defs/Network"
+            },
+            "operation": {
+              "const": "prepare"
+            },
+            "comparisonRef": {
+              "$ref": "#/$defs/Digest"
+            },
+            "actionId": {
+              "$ref": "#/$defs/Digest"
+            },
+            "requestedConstraints": {
+              "$ref": "#/$defs/Constraints"
+            },
+            "contractDigest": {
+              "$ref": "#/$defs/Digest"
+            }
+          },
+          "required": [
+            "schemaVersion",
+            "requestId",
+            "idempotency_key",
+            "network",
+            "operation",
+            "comparisonRef",
+            "actionId",
+            "requestedConstraints",
+            "contractDigest"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "schemaVersion": {
+              "const": "finance.request/1"
+            },
+            "requestId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            "idempotency_key": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "network": {
+              "$ref": "#/$defs/Network"
+            },
+            "operation": {
+              "const": "status"
+            },
+            "artifactRef": {
+              "$ref": "#/$defs/Digest"
+            },
+            "contractDigest": {
+              "$ref": "#/$defs/Digest"
+            }
+          },
+          "required": [
+            "schemaVersion",
+            "requestId",
+            "idempotency_key",
+            "network",
+            "operation",
+            "artifactRef",
+            "contractDigest"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "schemaVersion": {
+              "const": "finance.request/1"
+            },
+            "requestId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            "idempotency_key": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "network": {
+              "$ref": "#/$defs/Network"
+            },
+            "operation": {
+              "const": "simulate"
+            },
+            "planRef": {
+              "$ref": "#/$defs/Digest"
+            },
+            "contractDigest": {
+              "$ref": "#/$defs/Digest"
+            }
+          },
+          "required": [
+            "schemaVersion",
+            "requestId",
+            "idempotency_key",
+            "network",
+            "operation",
+            "planRef",
+            "contractDigest"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "schemaVersion": {
+              "const": "finance.request/1"
+            },
+            "requestId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            "idempotency_key": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "network": {
+              "$ref": "#/$defs/Network"
+            },
+            "operation": {
+              "const": "watch"
+            },
+            "positionRef": {
+              "$ref": "#/$defs/Digest"
+            },
+            "intervalSeconds": {
+              "type": "integer",
+              "minimum": 15,
+              "maximum": 3600
+            },
+            "durationSeconds": {
+              "type": "integer",
+              "minimum": 15,
+              "maximum": 86400
+            },
+            "contractDigest": {
+              "$ref": "#/$defs/Digest"
+            }
+          },
+          "required": [
+            "schemaVersion",
+            "requestId",
+            "idempotency_key",
+            "network",
+            "operation",
+            "positionRef",
+            "intervalSeconds",
+            "durationSeconds",
+            "contractDigest"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "schemaVersion": {
+              "const": "finance.request/1"
+            },
+            "requestId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            "idempotency_key": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "network": {
+              "$ref": "#/$defs/Network"
+            },
+            "operation": {
+              "const": "stop-watch"
+            },
+            "watchId": {
+              "$ref": "#/$defs/Digest"
+            },
+            "contractDigest": {
+              "$ref": "#/$defs/Digest"
+            }
+          },
+          "required": [
+            "schemaVersion",
+            "requestId",
+            "idempotency_key",
+            "network",
+            "operation",
+            "watchId",
+            "contractDigest"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "schemaVersion": {
+              "const": "finance.request/1"
+            },
+            "requestId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            "idempotency_key": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "network": {
+              "const": "base"
+            },
+            "operation": {
+              "const": "prediction-context"
+            },
+            "venue": {
+              "const": "limitless"
+            },
+            "marketSlug": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "pattern": "^[a-z0-9][a-z0-9-]{0,199}$"
+            },
+            "contractDigest": {
+              "$ref": "#/$defs/Digest"
+            }
+          },
+          "required": [
+            "schemaVersion",
+            "requestId",
+            "idempotency_key",
+            "network",
+            "operation",
+            "venue",
+            "marketSlug",
+            "contractDigest"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "schemaVersion": {
+              "const": "finance.request/1"
+            },
+            "requestId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            "idempotency_key": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "network": {
+              "const": "xrpl"
+            },
+            "operation": {
+              "const": "prepare-payment"
+            },
+            "account": {
+              "$ref": "#/$defs/Account"
+            },
+            "destination": {
+              "$ref": "#/$defs/XrplAddress"
+            },
+            "amount": {
+              "$ref": "#/$defs/Amount"
+            },
+            "destinationTag": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 4294967295
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "requestedConstraints": {
+              "$ref": "#/$defs/Constraints"
+            },
+            "contractDigest": {
+              "$ref": "#/$defs/Digest"
+            }
+          },
+          "required": [
+            "schemaVersion",
+            "requestId",
+            "idempotency_key",
+            "network",
+            "operation",
+            "account",
+            "destination",
+            "amount",
+            "destinationTag",
+            "requestedConstraints",
+            "contractDigest"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "schemaVersion": {
+              "const": "finance.request/1"
+            },
+            "requestId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            "idempotency_key": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "network": {
+              "$ref": "#/$defs/Network"
+            },
+            "operation": {
+              "const": "job"
+            },
+            "jobId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "mode": {
+              "enum": [
+                "get",
+                "cancel"
+              ]
+            },
+            "contractDigest": {
+              "$ref": "#/$defs/Digest"
+            }
+          },
+          "required": [
+            "schemaVersion",
+            "requestId",
+            "idempotency_key",
+            "network",
+            "operation",
+            "jobId",
+            "mode",
+            "contractDigest"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "schemaVersion": {
+              "const": "finance.request/1"
+            },
+            "requestId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            "idempotency_key": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "network": {
+              "$ref": "#/$defs/Network"
+            },
+            "operation": {
+              "const": "report-execution"
+            },
+            "receipt": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "actionId": {
+                  "$ref": "#/$defs/Digest"
+                },
+                "planHash": {
+                  "$ref": "#/$defs/Digest"
+                },
+                "localPlanHash": {
+                  "$ref": "#/$defs/Digest"
+                },
+                "network": {
+                  "$ref": "#/$defs/Network"
+                },
+                "transactionId": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "state": {
+                  "enum": [
+                    "PREPARED",
+                    "SIMULATED",
+                    "AWAITING_APPROVAL",
+                    "SUBMITTING",
+                    "SUBMITTED",
+                    "INCLUDED",
+                    "CONFIRMED",
+                    "FINALIZED",
+                    "FAILED",
+                    "EXPIRED",
+                    "UNKNOWN",
+                    "HALTED"
+                  ]
+                },
+                "verification": {
+                  "const": "local-reported"
+                },
+                "effects": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/Amount"
+                  },
+                  "maxItems": 100
+                },
+                "reconciliation": {
+                  "enum": [
+                    "PENDING",
+                    "MATCH",
+                    "MISMATCH",
+                    "UNKNOWN"
+                  ]
+                },
+                "evidence": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/EvidenceRef"
+                  },
+                  "maxItems": 20
+                }
+              },
+              "required": [
+                "actionId",
+                "planHash",
+                "localPlanHash",
+                "network",
+                "transactionId",
+                "state",
+                "verification",
+                "effects",
+                "reconciliation",
+                "evidence"
+              ]
+            },
+            "contractDigest": {
+              "$ref": "#/$defs/Digest"
+            }
+          },
+          "required": [
+            "schemaVersion",
+            "requestId",
+            "idempotency_key",
+            "network",
+            "operation",
+            "receipt",
+            "contractDigest"
+          ]
+        }
+      ]
+    },
+    "LocalRequest": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "schemaVersion": {
+              "const": "finance.local-request/1"
+            },
+            "requestId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "contractDigest": {
+              "$ref": "#/$defs/Digest"
+            },
+            "command": {
+              "const": "import-plan"
+            },
+            "plan": {
+              "$ref": "#/$defs/Plan"
+            }
+          },
+          "required": [
+            "schemaVersion",
+            "requestId",
+            "contractDigest",
+            "command",
+            "plan"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "schemaVersion": {
+              "const": "finance.local-request/1"
+            },
+            "requestId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "contractDigest": {
+              "$ref": "#/$defs/Digest"
+            },
+            "command": {
+              "const": "simulate"
+            },
+            "planRef": {
+              "$ref": "#/$defs/Digest"
+            },
+            "policyRef": {
+              "$ref": "#/$defs/Digest"
+            }
+          },
+          "required": [
+            "schemaVersion",
+            "requestId",
+            "contractDigest",
+            "command",
+            "planRef",
+            "policyRef"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "schemaVersion": {
+              "const": "finance.local-request/1"
+            },
+            "requestId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "contractDigest": {
+              "$ref": "#/$defs/Digest"
+            },
+            "command": {
+              "const": "execute"
+            },
+            "localPlanRef": {
+              "$ref": "#/$defs/Digest"
+            },
+            "policyRef": {
+              "$ref": "#/$defs/Digest"
+            },
+            "approvalRef": {
+              "$ref": "#/$defs/Digest"
+            }
+          },
+          "required": [
+            "schemaVersion",
+            "requestId",
+            "contractDigest",
+            "command",
+            "localPlanRef",
+            "policyRef",
+            "approvalRef"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "schemaVersion": {
+              "const": "finance.local-request/1"
+            },
+            "requestId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "contractDigest": {
+              "$ref": "#/$defs/Digest"
+            },
+            "command": {
+              "const": "reconcile"
+            },
+            "actionId": {
+              "$ref": "#/$defs/Digest"
+            },
+            "policyRef": {
+              "$ref": "#/$defs/Digest"
+            }
+          },
+          "required": [
+            "schemaVersion",
+            "requestId",
+            "contractDigest",
+            "command",
+            "actionId",
+            "policyRef"
+          ]
+        }
+      ]
+    },
+    "Job": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "jobId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "state": {
+          "enum": [
+            "QUEUED",
+            "RUNNING",
+            "SUCCEEDED",
+            "FAILED",
+            "CANCELLED"
+          ]
+        },
+        "operation": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "createdAt": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "resultRef": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Digest"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "error": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Error"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "jobId",
+        "state",
+        "operation",
+        "createdAt",
+        "resultRef",
+        "error"
+      ]
+    },
+    "Response": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "schemaVersion": {
+              "const": "finance.response/1"
+            },
+            "contractDigest": {
+              "$ref": "#/$defs/Digest"
+            },
+            "requestId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "network": {
+              "$ref": "#/$defs/Network"
+            },
+            "warnings": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1200
+              },
+              "maxItems": 20
+            },
+            "execution": {
+              "const": false
+            },
+            "status": {
+              "enum": [
+                "success",
+                "partial"
+              ]
+            },
+            "kind": {
+              "const": "capabilities"
+            },
+            "data": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Capability"
+              },
+              "maxItems": 100
+            },
+            "errors": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Error"
+              },
+              "maxItems": 20
+            }
+          },
+          "required": [
+            "schemaVersion",
+            "contractDigest",
+            "requestId",
+            "network",
+            "warnings",
+            "execution",
+            "status",
+            "kind",
+            "data",
+            "errors"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "schemaVersion": {
+              "const": "finance.response/1"
+            },
+            "contractDigest": {
+              "$ref": "#/$defs/Digest"
+            },
+            "requestId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "network": {
+              "$ref": "#/$defs/Network"
+            },
+            "warnings": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1200
+              },
+              "maxItems": 20
+            },
+            "execution": {
+              "const": false
+            },
+            "status": {
+              "enum": [
+                "success",
+                "partial"
+              ]
+            },
+            "kind": {
+              "const": "positions"
+            },
+            "data": {
+              "$ref": "#/$defs/PositionReport"
+            },
+            "errors": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Error"
+              },
+              "maxItems": 20
+            }
+          },
+          "required": [
+            "schemaVersion",
+            "contractDigest",
+            "requestId",
+            "network",
+            "warnings",
+            "execution",
+            "status",
+            "kind",
+            "data",
+            "errors"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "schemaVersion": {
+              "const": "finance.response/1"
+            },
+            "contractDigest": {
+              "$ref": "#/$defs/Digest"
+            },
+            "requestId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "network": {
+              "$ref": "#/$defs/Network"
+            },
+            "warnings": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1200
+              },
+              "maxItems": 20
+            },
+            "execution": {
+              "const": false
+            },
+            "status": {
+              "enum": [
+                "success",
+                "partial"
+              ]
+            },
+            "kind": {
+              "const": "comparison"
+            },
+            "data": {
+              "$ref": "#/$defs/Comparison"
+            },
+            "errors": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Error"
+              },
+              "maxItems": 20
+            }
+          },
+          "required": [
+            "schemaVersion",
+            "contractDigest",
+            "requestId",
+            "network",
+            "warnings",
+            "execution",
+            "status",
+            "kind",
+            "data",
+            "errors"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "schemaVersion": {
+              "const": "finance.response/1"
+            },
+            "contractDigest": {
+              "$ref": "#/$defs/Digest"
+            },
+            "requestId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "network": {
+              "$ref": "#/$defs/Network"
+            },
+            "warnings": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1200
+              },
+              "maxItems": 20
+            },
+            "execution": {
+              "const": false
+            },
+            "status": {
+              "enum": [
+                "success",
+                "partial"
+              ]
+            },
+            "kind": {
+              "const": "plan"
+            },
+            "data": {
+              "$ref": "#/$defs/Plan"
+            },
+            "errors": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Error"
+              },
+              "maxItems": 20
+            }
+          },
+          "required": [
+            "schemaVersion",
+            "contractDigest",
+            "requestId",
+            "network",
+            "warnings",
+            "execution",
+            "status",
+            "kind",
+            "data",
+            "errors"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "schemaVersion": {
+              "const": "finance.response/1"
+            },
+            "contractDigest": {
+              "$ref": "#/$defs/Digest"
+            },
+            "requestId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "network": {
+              "$ref": "#/$defs/Network"
+            },
+            "warnings": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1200
+              },
+              "maxItems": 20
+            },
+            "execution": {
+              "const": false
+            },
+            "status": {
+              "enum": [
+                "success",
+                "partial"
+              ]
+            },
+            "kind": {
+              "const": "simulation"
+            },
+            "data": {
+              "$ref": "#/$defs/ResearchSimulation"
+            },
+            "errors": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Error"
+              },
+              "maxItems": 20
+            }
+          },
+          "required": [
+            "schemaVersion",
+            "contractDigest",
+            "requestId",
+            "network",
+            "warnings",
+            "execution",
+            "status",
+            "kind",
+            "data",
+            "errors"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "schemaVersion": {
+              "const": "finance.response/1"
+            },
+            "contractDigest": {
+              "$ref": "#/$defs/Digest"
+            },
+            "requestId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "network": {
+              "$ref": "#/$defs/Network"
+            },
+            "warnings": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1200
+              },
+              "maxItems": 20
+            },
+            "execution": {
+              "const": false
+            },
+            "status": {
+              "enum": [
+                "success",
+                "partial"
+              ]
+            },
+            "kind": {
+              "const": "receipt"
+            },
+            "data": {
+              "$ref": "#/$defs/Receipt"
+            },
+            "errors": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Error"
+              },
+              "maxItems": 20
+            }
+          },
+          "required": [
+            "schemaVersion",
+            "contractDigest",
+            "requestId",
+            "network",
+            "warnings",
+            "execution",
+            "status",
+            "kind",
+            "data",
+            "errors"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "schemaVersion": {
+              "const": "finance.response/1"
+            },
+            "contractDigest": {
+              "$ref": "#/$defs/Digest"
+            },
+            "requestId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "network": {
+              "$ref": "#/$defs/Network"
+            },
+            "warnings": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1200
+              },
+              "maxItems": 20
+            },
+            "execution": {
+              "const": false
+            },
+            "status": {
+              "enum": [
+                "success",
+                "partial"
+              ]
+            },
+            "kind": {
+              "const": "watch"
+            },
+            "data": {
+              "$ref": "#/$defs/Watch"
+            },
+            "errors": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Error"
+              },
+              "maxItems": 20
+            }
+          },
+          "required": [
+            "schemaVersion",
+            "contractDigest",
+            "requestId",
+            "network",
+            "warnings",
+            "execution",
+            "status",
+            "kind",
+            "data",
+            "errors"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "schemaVersion": {
+              "const": "finance.response/1"
+            },
+            "contractDigest": {
+              "$ref": "#/$defs/Digest"
+            },
+            "requestId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "network": {
+              "$ref": "#/$defs/Network"
+            },
+            "warnings": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1200
+              },
+              "maxItems": 20
+            },
+            "execution": {
+              "const": false
+            },
+            "status": {
+              "enum": [
+                "success",
+                "partial"
+              ]
+            },
+            "kind": {
+              "const": "prediction-context"
+            },
+            "data": {
+              "$ref": "#/$defs/PredictionContext"
+            },
+            "errors": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Error"
+              },
+              "maxItems": 20
+            }
+          },
+          "required": [
+            "schemaVersion",
+            "contractDigest",
+            "requestId",
+            "network",
+            "warnings",
+            "execution",
+            "status",
+            "kind",
+            "data",
+            "errors"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "schemaVersion": {
+              "const": "finance.response/1"
+            },
+            "contractDigest": {
+              "$ref": "#/$defs/Digest"
+            },
+            "requestId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "network": {
+              "$ref": "#/$defs/Network"
+            },
+            "warnings": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1200
+              },
+              "maxItems": 20
+            },
+            "execution": {
+              "const": false
+            },
+            "status": {
+              "enum": [
+                "success",
+                "partial"
+              ]
+            },
+            "kind": {
+              "const": "job"
+            },
+            "data": {
+              "$ref": "#/$defs/Job"
+            },
+            "errors": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Error"
+              },
+              "maxItems": 20
+            }
+          },
+          "required": [
+            "schemaVersion",
+            "contractDigest",
+            "requestId",
+            "network",
+            "warnings",
+            "execution",
+            "status",
+            "kind",
+            "data",
+            "errors"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "schemaVersion": {
+              "const": "finance.response/1"
+            },
+            "contractDigest": {
+              "$ref": "#/$defs/Digest"
+            },
+            "requestId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "network": {
+              "$ref": "#/$defs/Network"
+            },
+            "warnings": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1200
+              },
+              "maxItems": 20
+            },
+            "execution": {
+              "const": false
+            },
+            "status": {
+              "enum": [
+                "blocked",
+                "unknown",
+                "failed"
+              ]
+            },
+            "kind": {
+              "const": "error"
+            },
+            "data": {
+              "type": "null"
+            },
+            "errors": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Error"
+              },
+              "minItems": 1,
+              "maxItems": 20
+            }
+          },
+          "required": [
+            "schemaVersion",
+            "contractDigest",
+            "requestId",
+            "network",
+            "warnings",
+            "execution",
+            "status",
+            "kind",
+            "data",
+            "errors"
+          ]
+        }
+      ]
+    },
+    "LocalResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schemaVersion": {
+          "const": "finance.local-result/1"
+        },
+        "contractDigest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "requestId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "outcome": {
+          "enum": [
+            "ok",
+            "blocked",
+            "failed",
+            "unknown"
+          ]
+        },
+        "planRef": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Digest"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "localPlanRef": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Digest"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "simulation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Simulation"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "receipt": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Receipt"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "errors": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Error"
+          },
+          "maxItems": 20
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "contractDigest",
+        "requestId",
+        "outcome",
+        "planRef",
+        "localPlanRef",
+        "simulation",
+        "receipt",
+        "errors"
+      ]
+    },
+    "Profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schemaVersion": {
+          "const": "finance.profile/1"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "live": {
+          "type": "boolean"
+        },
+        "networks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Network"
+          },
+          "uniqueItems": true,
+          "maxItems": 4
+        },
+        "intents": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "earn",
+              "withdraw",
+              "borrow",
+              "repay",
+              "protect",
+              "payment"
+            ]
+          },
+          "uniqueItems": true,
+          "maxItems": 6
+        },
+        "accounts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Account"
+          },
+          "maxItems": 20
+        },
+        "policyHash": {
+          "$ref": "#/$defs/Digest"
+        },
+        "contractDigest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "mcpUrl": {
+          "type": "string",
+          "format": "uri"
+        },
+        "mcpAuthTokenEnv": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Z][A-Z0-9_]*$"
+        },
+        "stateDirectory": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "signer": {
+          "enum": [
+            "none",
+            "existing-evm-host",
+            "external-xrpl-host"
+          ]
+        },
+        "approvalPublicKeyRef": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "constraints": {
+          "$ref": "#/$defs/Constraints"
+        },
+        "maxDailyNativeCost": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Amount"
+          },
+          "maxItems": 20
+        },
+        "maxConcurrentWrites": {
+          "const": 1
+        },
+        "reconcileRequired": {
+          "const": true
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "enabled",
+        "live",
+        "networks",
+        "intents",
+        "accounts",
+        "policyHash",
+        "contractDigest",
+        "mcpUrl",
+        "mcpAuthTokenEnv",
+        "stateDirectory",
+        "signer",
+        "approvalPublicKeyRef",
+        "constraints",
+        "maxDailyNativeCost",
+        "maxConcurrentWrites",
+        "reconcileRequired"
+      ]
+    },
+    "ApprovalGrant": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schemaVersion": {
+          "const": "finance.approval/1"
+        },
+        "grantId": {
+          "$ref": "#/$defs/Digest"
+        },
+        "contractDigest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "localPlanHash": {
+          "$ref": "#/$defs/Digest"
+        },
+        "policyHash": {
+          "$ref": "#/$defs/Digest"
+        },
+        "account": {
+          "$ref": "#/$defs/Account"
+        },
+        "nonce": {
+          "$ref": "#/$defs/Digest"
+        },
+        "issuedAt": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "expiresAt": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "signature": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 88,
+          "pattern": "^[A-Za-z0-9+/]{86}==$"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "grantId",
+        "contractDigest",
+        "localPlanHash",
+        "policyHash",
+        "account",
+        "nonce",
+        "issuedAt",
+        "expiresAt",
+        "signature"
+      ]
+    }
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/Request"
+    },
+    {
+      "$ref": "#/$defs/Response"
+    },
+    {
+      "$ref": "#/$defs/LocalRequest"
+    },
+    {
+      "$ref": "#/$defs/LocalResult"
+    }
+  ]
+}

@@ -1,0 +1,714 @@
+[
+  {
+    "name": "capabilities request",
+    "definition": "Request",
+    "valid": true,
+    "value": {
+      "schemaVersion": "finance.request/1",
+      "requestId": "fixture-cap",
+      "idempotency_key": "finance:cap:1",
+      "network": "arbitrum",
+      "operation": "capabilities"
+    }
+  },
+  {
+    "name": "watch-only position request",
+    "definition": "Request",
+    "valid": true,
+    "value": {
+      "schemaVersion": "finance.request/1",
+      "requestId": "fixture-cap",
+      "idempotency_key": "finance:positions:1",
+      "network": "arbitrum",
+      "operation": "positions",
+      "contractDigest": "8046b6f9d4ef51f9419481ccee4e49c567681df9fb3f48867b9194cff3de4edb",
+      "account": {
+        "family": "evm",
+        "address": "0x1111111111111111111111111111111111111111",
+        "chainId": 42161,
+        "model": "eoa"
+      },
+      "scope": "both",
+      "limit": 10,
+      "cursor": null
+    }
+  },
+  {
+    "name": "repay comparison request",
+    "definition": "Request",
+    "valid": true,
+    "value": {
+      "schemaVersion": "finance.request/1",
+      "requestId": "fixture-cap",
+      "idempotency_key": "finance:cap:1",
+      "network": "arbitrum",
+      "operation": "compare",
+      "contractDigest": "8046b6f9d4ef51f9419481ccee4e49c567681df9fb3f48867b9194cff3de4edb",
+      "positionRef": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "intent": "repay",
+      "requestedConstraints": {
+        "maxSpend": [],
+        "maxCosts": [],
+        "minReceive": [],
+        "maxDebtAfter": [],
+        "minCollateralAfter": [],
+        "minSupplyAfter": [],
+        "maxSlippageBps": 50,
+        "maxStateAgeSeconds": 30
+      }
+    }
+  },
+  {
+    "name": "local execute is a request, not authority",
+    "definition": "LocalRequest",
+    "valid": true,
+    "value": {
+      "schemaVersion": "finance.local-request/1",
+      "contractDigest": "8046b6f9d4ef51f9419481ccee4e49c567681df9fb3f48867b9194cff3de4edb",
+      "requestId": "fixture-execute",
+      "command": "execute",
+      "localPlanRef": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "policyRef": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "approvalRef": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    }
+  },
+  {
+    "name": "unknown quantity stays explicit",
+    "definition": "Quantity",
+    "valid": true,
+    "value": {
+      "kind": "issued-decimal",
+      "coefficient": "125",
+      "exponent": -2
+    }
+  },
+  {
+    "name": "blocked response",
+    "definition": "Response",
+    "valid": true,
+    "value": {
+      "schemaVersion": "finance.response/1",
+      "contractDigest": "8046b6f9d4ef51f9419481ccee4e49c567681df9fb3f48867b9194cff3de4edb",
+      "requestId": "fixture-rh",
+      "network": "robinhood",
+      "status": "blocked",
+      "kind": "error",
+      "data": null,
+      "errors": [
+        {
+          "code": "CAPABILITY_UNAVAILABLE",
+          "retryable": false,
+          "recovery": "Admit the operation before preparing a transaction."
+        }
+      ],
+      "warnings": [],
+      "execution": false
+    }
+  },
+  {
+    "name": "owner spoof is rejected",
+    "definition": "Request",
+    "valid": false,
+    "value": {
+      "schemaVersion": "finance.request/1",
+      "requestId": "fixture-cap",
+      "idempotency_key": "finance:positions:1",
+      "network": "arbitrum",
+      "operation": "positions",
+      "contractDigest": "8046b6f9d4ef51f9419481ccee4e49c567681df9fb3f48867b9194cff3de4edb",
+      "account": {
+        "family": "evm",
+        "address": "0x1111111111111111111111111111111111111111",
+        "chainId": 42161,
+        "model": "eoa"
+      },
+      "scope": "both",
+      "limit": 10,
+      "cursor": null,
+      "owner": "another-user"
+    }
+  },
+  {
+    "name": "unknown operation rejected",
+    "definition": "Request",
+    "valid": false,
+    "value": {
+      "schemaVersion": "finance.request/1",
+      "requestId": "fixture-cap",
+      "idempotency_key": "finance:cap:1",
+      "network": "arbitrum",
+      "operation": "execute"
+    }
+  },
+  {
+    "name": "numeric raw amounts rejected",
+    "definition": "Quantity",
+    "valid": false,
+    "value": {
+      "kind": "atomic",
+      "value": 1000000
+    }
+  },
+  {
+    "name": "unknown network rejected",
+    "definition": "Request",
+    "valid": false,
+    "value": {
+      "schemaVersion": "finance.request/1",
+      "requestId": "fixture-cap",
+      "idempotency_key": "finance:cap:1",
+      "network": "solana",
+      "operation": "capabilities"
+    }
+  },
+  {
+    "name": "MCP execution escalation rejected",
+    "definition": "Response",
+    "valid": false,
+    "value": {
+      "schemaVersion": "finance.response/1",
+      "contractDigest": "8046b6f9d4ef51f9419481ccee4e49c567681df9fb3f48867b9194cff3de4edb",
+      "requestId": "fixture-rh",
+      "network": "robinhood",
+      "status": "blocked",
+      "kind": "error",
+      "data": null,
+      "errors": [
+        {
+          "code": "CAPABILITY_UNAVAILABLE",
+          "retryable": false,
+          "recovery": "Wait."
+        }
+      ],
+      "warnings": [],
+      "execution": true
+    }
+  },
+  {
+    "name": "native issued asset requires issuer",
+    "definition": "Asset",
+    "valid": false,
+    "value": {
+      "kind": "xrpl-issued",
+      "network": "xrpl",
+      "currency": "USD"
+    }
+  },
+  {
+    "name": "complete research plan - fixture only, empty calldata is not an admitted repay",
+    "definition": "Plan",
+    "valid": true,
+    "value": {
+      "schemaVersion": "finance.plan/1",
+      "requestDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "contractDigest": "8046b6f9d4ef51f9419481ccee4e49c567681df9fb3f48867b9194cff3de4edb",
+      "network": "arbitrum",
+      "account": {
+        "family": "evm",
+        "address": "0x1111111111111111111111111111111111111111",
+        "chainId": 42161,
+        "model": "eoa"
+      },
+      "positionRef": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "comparisonRef": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "intent": "repay",
+      "adapterRef": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "observation": {
+        "network": "arbitrum",
+        "networkIdentityHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "point": {
+          "kind": "evm-block",
+          "number": "1",
+          "hash": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "finality": "finalized"
+        },
+        "observedAt": "2026-11-09T08:00:00.000Z",
+        "expiresAt": "2026-11-09T08:00:30.000Z",
+        "consistency": "pinned",
+        "fidelity": "fixture",
+        "sources": [
+          {
+            "id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "contentHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "expiresAt": "2026-11-09T08:00:30.000Z"
+          }
+        ]
+      },
+      "requestedConstraints": {
+        "maxSpend": [
+          {
+            "asset": {
+              "kind": "erc20",
+              "network": "arbitrum",
+              "address": "0x2222222222222222222222222222222222222222",
+              "decimals": 6
+            },
+            "quantity": {
+              "kind": "atomic",
+              "value": "1000000"
+            }
+          }
+        ],
+        "maxCosts": [
+          {
+            "asset": {
+              "kind": "evm-native",
+              "network": "arbitrum",
+              "decimals": 18
+            },
+            "quantity": {
+              "kind": "atomic",
+              "value": "2000000000000000"
+            }
+          }
+        ],
+        "minReceive": [],
+        "maxDebtAfter": [
+          {
+            "asset": {
+              "kind": "erc20",
+              "network": "arbitrum",
+              "address": "0x2222222222222222222222222222222222222222",
+              "decimals": 6
+            },
+            "quantity": {
+              "kind": "atomic",
+              "value": "9000000"
+            }
+          }
+        ],
+        "minCollateralAfter": [],
+        "minSupplyAfter": [],
+        "maxSlippageBps": 50,
+        "maxStateAgeSeconds": 30
+      },
+      "effectiveConstraints": {
+        "maxSpend": [
+          {
+            "asset": {
+              "kind": "erc20",
+              "network": "arbitrum",
+              "address": "0x2222222222222222222222222222222222222222",
+              "decimals": 6
+            },
+            "quantity": {
+              "kind": "atomic",
+              "value": "1000000"
+            }
+          }
+        ],
+        "maxCosts": [
+          {
+            "asset": {
+              "kind": "evm-native",
+              "network": "arbitrum",
+              "decimals": 18
+            },
+            "quantity": {
+              "kind": "atomic",
+              "value": "2000000000000000"
+            }
+          }
+        ],
+        "minReceive": [],
+        "maxDebtAfter": [
+          {
+            "asset": {
+              "kind": "erc20",
+              "network": "arbitrum",
+              "address": "0x2222222222222222222222222222222222222222",
+              "decimals": 6
+            },
+            "quantity": {
+              "kind": "atomic",
+              "value": "9000000"
+            }
+          }
+        ],
+        "minCollateralAfter": [],
+        "minSupplyAfter": [],
+        "maxSlippageBps": 50,
+        "maxStateAgeSeconds": 30
+      },
+      "permissions": [],
+      "costs": [
+        {
+          "kind": "execution-gas",
+          "payer": "user",
+          "maximum": {
+            "asset": {
+              "kind": "evm-native",
+              "network": "arbitrum",
+              "decimals": 18
+            },
+            "quantity": {
+              "kind": "atomic",
+              "value": "2000000000000000"
+            }
+          },
+          "sourceRef": {
+            "id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "contentHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "expiresAt": "2026-11-09T08:00:30.000Z"
+          }
+        }
+      ],
+      "nativePayload": {
+        "kind": "evm",
+        "chainId": 42161,
+        "from": "0x1111111111111111111111111111111111111111",
+        "to": "0x3333333333333333333333333333333333333333",
+        "data": "0x",
+        "value": "0",
+        "nonce": "0",
+        "gasLimit": "100000",
+        "maxFeePerGas": "20000000000",
+        "maxPriorityFeePerGas": "100000000"
+      },
+      "expiresAt": "2026-11-09T08:00:30.000Z",
+      "evidence": [
+        {
+          "id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "contentHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "expiresAt": "2026-11-09T08:00:30.000Z"
+        }
+      ],
+      "execution": false,
+      "planHash": "9ca32f442b6dc336edec0f33c1902bbbb9744bd5e40d576c4940311b5e38af48"
+    }
+  },
+  {
+    "name": "complete local plan - fixture only, never native evidence",
+    "definition": "LocalPlan",
+    "valid": true,
+    "value": {
+      "schemaVersion": "finance.local-plan/1",
+      "researchPlanHash": "9ca32f442b6dc336edec0f33c1902bbbb9744bd5e40d576c4940311b5e38af48",
+      "policyHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "contractDigest": "8046b6f9d4ef51f9419481ccee4e49c567681df9fb3f48867b9194cff3de4edb",
+      "network": "arbitrum",
+      "account": {
+        "family": "evm",
+        "address": "0x1111111111111111111111111111111111111111",
+        "chainId": 42161,
+        "model": "eoa"
+      },
+      "adapterRef": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "observation": {
+        "network": "arbitrum",
+        "networkIdentityHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "point": {
+          "kind": "evm-block",
+          "number": "1",
+          "hash": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "finality": "finalized"
+        },
+        "observedAt": "2026-11-09T08:00:00.000Z",
+        "expiresAt": "2026-11-09T08:00:30.000Z",
+        "consistency": "pinned",
+        "fidelity": "fixture",
+        "sources": [
+          {
+            "id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "contentHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "expiresAt": "2026-11-09T08:00:30.000Z"
+          }
+        ]
+      },
+      "effectiveConstraints": {
+        "maxSpend": [
+          {
+            "asset": {
+              "kind": "erc20",
+              "network": "arbitrum",
+              "address": "0x2222222222222222222222222222222222222222",
+              "decimals": 6
+            },
+            "quantity": {
+              "kind": "atomic",
+              "value": "1000000"
+            }
+          }
+        ],
+        "maxCosts": [
+          {
+            "asset": {
+              "kind": "evm-native",
+              "network": "arbitrum",
+              "decimals": 18
+            },
+            "quantity": {
+              "kind": "atomic",
+              "value": "2000000000000000"
+            }
+          }
+        ],
+        "minReceive": [],
+        "maxDebtAfter": [
+          {
+            "asset": {
+              "kind": "erc20",
+              "network": "arbitrum",
+              "address": "0x2222222222222222222222222222222222222222",
+              "decimals": 6
+            },
+            "quantity": {
+              "kind": "atomic",
+              "value": "9000000"
+            }
+          }
+        ],
+        "minCollateralAfter": [],
+        "minSupplyAfter": [],
+        "maxSlippageBps": 50,
+        "maxStateAgeSeconds": 30
+      },
+      "costs": [
+        {
+          "kind": "execution-gas",
+          "payer": "user",
+          "maximum": {
+            "asset": {
+              "kind": "evm-native",
+              "network": "arbitrum",
+              "decimals": 18
+            },
+            "quantity": {
+              "kind": "atomic",
+              "value": "2000000000000000"
+            }
+          },
+          "sourceRef": {
+            "id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "contentHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "expiresAt": "2026-11-09T08:00:30.000Z"
+          }
+        }
+      ],
+      "nativePayload": {
+        "kind": "evm",
+        "chainId": 42161,
+        "from": "0x1111111111111111111111111111111111111111",
+        "to": "0x3333333333333333333333333333333333333333",
+        "data": "0x",
+        "value": "0",
+        "nonce": "0",
+        "gasLimit": "100000",
+        "maxFeePerGas": "20000000000",
+        "maxPriorityFeePerGas": "100000000"
+      },
+      "pins": [
+        {
+          "kind": "owner-model",
+          "id": "fixture-eoa",
+          "hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "requiredFinality": "finalized",
+      "expiresAt": "2026-11-09T08:00:30.000Z",
+      "localPlanHash": "0315b63f1bf068a01be72545a2f94b58ac20454065c3a95aedab44aeb52aecff"
+    }
+  },
+  {
+    "name": "complete position response - injected state fixture",
+    "definition": "Response",
+    "valid": true,
+    "value": {
+      "schemaVersion": "finance.response/1",
+      "contractDigest": "8046b6f9d4ef51f9419481ccee4e49c567681df9fb3f48867b9194cff3de4edb",
+      "requestId": "fixture-position-response",
+      "network": "arbitrum",
+      "status": "success",
+      "kind": "positions",
+      "data": {
+        "account": {
+          "family": "evm",
+          "address": "0x1111111111111111111111111111111111111111",
+          "chainId": 42161,
+          "model": "eoa"
+        },
+        "observation": {
+          "network": "arbitrum",
+          "networkIdentityHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "point": {
+            "kind": "evm-block",
+            "number": "1",
+            "hash": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "finality": "finalized"
+          },
+          "observedAt": "2026-11-09T08:00:00.000Z",
+          "expiresAt": "2026-11-09T08:00:30.000Z",
+          "consistency": "pinned",
+          "fidelity": "fixture",
+          "sources": [
+            {
+              "id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "contentHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "expiresAt": "2026-11-09T08:00:30.000Z"
+            }
+          ]
+        },
+        "balances": [
+          {
+            "asset": {
+              "kind": "evm-native",
+              "network": "arbitrum",
+              "decimals": 18
+            },
+            "quantity": {
+              "kind": "atomic",
+              "value": "10000000000000000"
+            }
+          }
+        ],
+        "reservedXrp": null,
+        "positions": [
+          {
+            "kind": "evm-collateralized",
+            "positionId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "account": {
+              "family": "evm",
+              "address": "0x1111111111111111111111111111111111111111",
+              "chainId": 42161,
+              "model": "eoa"
+            },
+            "protocol": "aave-v3",
+            "deploymentRef": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "marketId": "fixture-only",
+            "supplied": [
+              {
+                "asset": {
+                  "kind": "erc20",
+                  "network": "arbitrum",
+                  "address": "0x2222222222222222222222222222222222222222",
+                  "decimals": 6
+                },
+                "quantity": {
+                  "kind": "atomic",
+                  "value": "20000000"
+                }
+              }
+            ],
+            "shareEvidence": [],
+            "collateral": [
+              {
+                "asset": {
+                  "kind": "erc20",
+                  "network": "arbitrum",
+                  "address": "0x2222222222222222222222222222222222222222",
+                  "decimals": 6
+                },
+                "quantity": {
+                  "kind": "atomic",
+                  "value": "20000000"
+                }
+              }
+            ],
+            "debt": [
+              {
+                "asset": {
+                  "kind": "erc20",
+                  "network": "arbitrum",
+                  "address": "0x2222222222222222222222222222222222222222",
+                  "decimals": 6
+                },
+                "quantity": {
+                  "kind": "atomic",
+                  "value": "10000000"
+                }
+              }
+            ],
+            "noDebt": false,
+            "healthFactor": "1.60",
+            "ltv": "0.50",
+            "liquidationThreshold": "0.80",
+            "observation": {
+              "network": "arbitrum",
+              "networkIdentityHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "point": {
+                "kind": "evm-block",
+                "number": "1",
+                "hash": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "finality": "finalized"
+              },
+              "observedAt": "2026-11-09T08:00:00.000Z",
+              "expiresAt": "2026-11-09T08:00:30.000Z",
+              "consistency": "pinned",
+              "fidelity": "fixture",
+              "sources": [
+                {
+                  "id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                  "contentHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                  "expiresAt": "2026-11-09T08:00:30.000Z"
+                }
+              ]
+            }
+          }
+        ],
+        "coverage": {
+          "complete": true,
+          "missing": [],
+          "cursor": null
+        }
+      },
+      "errors": [],
+      "warnings": [
+        "Fixture state; no current chain or price claim."
+      ],
+      "execution": false
+    }
+  },
+  {
+    "name": "local simulation references separate plan hashes",
+    "definition": "Simulation",
+    "valid": true,
+    "value": {
+      "planHash": "9ca32f442b6dc336edec0f33c1902bbbb9744bd5e40d576c4940311b5e38af48",
+      "localPlanHash": "0315b63f1bf068a01be72545a2f94b58ac20454065c3a95aedab44aeb52aecff",
+      "fidelity": "fixture",
+      "pass": true,
+      "expectedSpend": [
+        {
+          "asset": {
+            "kind": "erc20",
+            "network": "arbitrum",
+            "address": "0x2222222222222222222222222222222222222222",
+            "decimals": 6
+          },
+          "quantity": {
+            "kind": "atomic",
+            "value": "1000000"
+          }
+        }
+      ],
+      "expectedReceive": [],
+      "nativeStateRef": {
+        "id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "contentHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "expiresAt": "2026-11-09T08:00:30.000Z"
+      },
+      "postconditionsPass": true,
+      "errors": []
+    }
+  },
+  {
+    "name": "XRPL sequence and ticket cannot coexist",
+    "definition": "XrplPayload",
+    "valid": false,
+    "value": {
+      "kind": "xrpl-payment",
+      "networkIdentityHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "tx": {
+        "TransactionType": "Payment",
+        "Account": "rHb9CJAWyB4rj91VRWn96DkukG4bwdtyTh",
+        "Destination": "rHb9CJAWyB4rj91VRWn96DkukG4bwdtyTh",
+        "Amount": "1",
+        "Fee": "12",
+        "Sequence": 1,
+        "TicketSequence": 2,
+        "LastLedgerSequence": 10,
+        "Flags": 0
+      }
+    }
+  }
+]

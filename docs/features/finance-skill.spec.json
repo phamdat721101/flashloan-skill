@@ -1,0 +1,146 @@
+{
+  "spec_id": "SPEC-2026-110901",
+  "feature_name": "AI Finance lane (finance-skill-v1)",
+  "source_evidence": [
+    {
+      "source_uri": "src/finance/contracts.ts",
+      "entity_id": "validate",
+      "hash": "sha256:159ff7ea7d79fe8e55a4da37a6806069eaa18b9af3973cc83b62c91f6742f8d9"
+    },
+    {
+      "source_uri": "src/finance/config.ts",
+      "entity_id": "verifyGrant",
+      "hash": "sha256:11f22c0d915ccc5340a55cb036af47ae280c170db66a1e8e5deb69ce5da7267b"
+    },
+    {
+      "source_uri": "src/finance/journal.ts",
+      "entity_id": "FinanceJournal",
+      "hash": "sha256:7e8d35790c61b987044c548b6c5c98486b7318096a685d909821dad73f843fb1"
+    },
+    {
+      "source_uri": "src/finance/runtime.ts",
+      "entity_id": "FinanceRuntime",
+      "hash": "sha256:4f4c8c487dc4c63e802929086340962fd2ad641409639d595e8f156d59577466"
+    },
+    {
+      "source_uri": "src/finance/evm.ts",
+      "entity_id": "EvmFinanceAdapter",
+      "hash": "sha256:e746c863a4a485c3c87503ceaa8ca175c7508627e87740d138a67e132863ad02"
+    },
+    {
+      "source_uri": "src/finance/xrpl.ts",
+      "entity_id": "XrplFinanceAdapter",
+      "hash": "sha256:71edea8d2383bbc1a2e27efe246e8655abf640fe7f12ed86e5aa24bfc816a099"
+    },
+    {
+      "source_uri": "src/finance/client.ts",
+      "entity_id": "FinanceClient",
+      "hash": "sha256:73dbb3c1803eed86c0e5ba066e883865a6450891fe649a734d0193ecfc4ed607"
+    },
+    {
+      "source_uri": "src/finance/planner.ts",
+      "entity_id": "compare",
+      "hash": "sha256:8d4d779febfef5ad17228a0e991da453904f019c8126a2933add95ccb71ec53b"
+    },
+    {
+      "source_uri": "src/finance/cli.ts",
+      "entity_id": "financeCli",
+      "hash": "sha256:78fa1ecfd4b9b8f5da96d44c65c68770014a89df6eb84d0fec6d3bdd65786369"
+    },
+    {
+      "source_uri": "contracts/FinanceProtectionAccount.sol",
+      "entity_id": "FinanceProtectionAccount",
+      "hash": "sha256:273856952b2e61787eaf8acba7154775d14e3943b5b70aa85055d2d1697c8626"
+    },
+    {
+      "source_uri": "schemas/finance-v1.schema.json",
+      "entity_id": "urn:openx:finance-wire:1",
+      "hash": "sha256:f480729d66da2990f8038493708fe4ee3b653d3bfd09826c5d9f7457c6d21a3b"
+    },
+    {
+      "source_uri": "contracts/core/FlashCallbackCore.sol",
+      "entity_id": "FlashCallbackCore",
+      "hash": "sha256:d8e459f882c4073b7718de8f1429a0d1e022c639b7baa2d12f8f37c8eb6e543f"
+    },
+    {
+      "source_uri": "src/evidence/integration.ts",
+      "entity_id": "canonicalBytes",
+      "hash": "sha256:9d7cdcfa3661f2046622215cecd7ec9739261a8a58f2a85dda475dccba2aed90"
+    },
+    {
+      "source_uri": "src/execution-lock.ts",
+      "entity_id": "ExecutionLock",
+      "hash": "sha256:52293adefd337500119be2acf8dff9c992d1887e0d7a9caa434983cfd5ab32a8"
+    },
+    {
+      "source_uri": "src/evm-fees.ts",
+      "entity_id": "estimateEvmFees",
+      "hash": "sha256:adae397f7af21b45681647c9aaa6d6b0a776d5ec3a7feee47c71a6980f533ea1"
+    }
+  ],
+  "dependencies": [
+    {
+      "symbol": "FlashCallbackCore",
+      "file_location": "contracts/core/FlashCallbackCore.sol",
+      "package_or_module": "contracts/core/FlashCallbackCore.sol"
+    },
+    {
+      "symbol": "canonicalBytes",
+      "file_location": "src/evidence/integration.ts",
+      "package_or_module": "src/evidence/integration.ts"
+    },
+    {
+      "symbol": "ExecutionLock",
+      "file_location": "src/execution-lock.ts",
+      "package_or_module": "src/execution-lock.ts"
+    },
+    {
+      "symbol": "estimateEvmFees",
+      "file_location": "src/evm-fees.ts",
+      "package_or_module": "src/evm-fees.ts"
+    },
+    {
+      "symbol": "Ajv2020",
+      "file_location": "node_modules/ajv",
+      "package_or_module": "ajv@8.20.0"
+    },
+    {
+      "symbol": "viem",
+      "file_location": "node_modules/viem",
+      "package_or_module": "viem"
+    }
+  ],
+  "architecture": {
+    "pattern": "Strict JSON CLI; MCP research client; per-network native adapters; owner journal",
+    "isolation_boundaries": "Finance journal, grants (openx/finance/approval/1) and budget isolated from flashloan and prediction; enabled/live default false; MCP never signs",
+    "execution_flow": [
+      "strictParse + Ajv + semantic rules",
+      "import research Plan (planHash)",
+      "simulate: admit payload, fresh fee/nonce, LocalPlan hash, exact native simulation",
+      "owner Ed25519 grant recorded, nonce reserved",
+      "execute: lease, admitNewAction, re-simulate, sign-only, validate artifact, durable SUBMITTING, submit",
+      "reconcile by known hash; MISMATCH halts"
+    ]
+  },
+  "data_contracts": {
+    "inputs": {
+      "schema": "schemas/finance-v1.schema.json",
+      "request": "finance.request/1",
+      "local": "finance.local-request/1",
+      "authority": "finance.approval/1",
+      "units": "atomic base-unit strings; XRPL issued coefficient/exponent; XRP drops"
+    },
+    "outputs": {
+      "response": "finance.response/1",
+      "local": "finance.local-result/1"
+    }
+  },
+  "test_criteria": [
+    "EDGE-01 boundary: disabled path, raw input faults, MCP auth/escalation, R4 handoff",
+    "EDGE-02 state: pinned reads, reorg/mixed ledger, code drift, XLS-66 units",
+    "EDGE-03 authority: grant binding, replay, lease, live gate",
+    "EDGE-04 native: approve+repay, tamper rejection, R3 protect, XRPL Payment sign-only",
+    "EDGE-05 recovery: UNKNOWN by known hash, restart, mismatch halt, torn journal",
+    "Forge FinanceProtectionAccountTest 8 cases"
+  ]
+}

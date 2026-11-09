@@ -7,6 +7,8 @@ description: "Operate the installed flashloan runtime and optional Base Limitles
 
 For an explicit Base prediction-market request, load [prediction.md](prediction.md) and use the independent prediction CLI/JSON contract. Do not send prediction intents through the flashloan prompt or executor. Prediction modes require their own account, capital and owner authority.
 
+For an explicit request about a user's own lending position, repayment, risk reduction or an XRPL Payment, load [finance.md](finance.md) and use the separate Finance CLI/JSON contract (`finance-v1.schema.json`). Finance is default-off, never changes arbitrage floors or prompts, and its grants never authorize flashloan or prediction actions.
+
 Use the installed `flashloan-agent` package. It is self-contained: never read, import, or run code from `bd-team/scripts`. Build the Rust workspace with the pinned toolchain before using the live route engine.
 
 ## Evidence-driven workflow (prompt version 6)

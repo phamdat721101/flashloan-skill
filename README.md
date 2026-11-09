@@ -23,6 +23,61 @@ For the liquid-pattern workflow, start with [capture, size and prepare](#use-a-l
 
 ## Latest upgrade and how to use it
 
+### 2026-11-09: AI Finance lane (lending positions, repayment, risk reduction)
+
+The skill can now help a borrower with their **own** lending position:
+
+- It reads Aave V3 and Morpho Blue positions on Arbitrum and Base, plus XRPL accounts and XLS-66 loans.
+- It compares doing nothing ("hold") with repaying or reducing risk.
+- It prepares one exact action, test-runs it on the chain, and sends it only after the owner's one-time approval.
+- It confirms the real result on-chain.
+
+The lane is **off by default**. It never changes arbitrage floors, prompts or prediction authority. It never promises savings, returns, or that liquidation will be prevented.
+
+| Step | What happens | Who holds authority |
+| --- | --- | --- |
+| Read | Pinned-block or validated-ledger reads. Missing coverage is reported, never shown as zero. | None (read-only, no key) |
+| Compare | `hold` is always the baseline. A candidate needs complete state, fresh cost and explicit bounds. | None |
+| Prepare | Unsigned research `Plan` (`execution:false`). The model never writes calldata. | None |
+| Simulate | Local `LocalPlan` is bound to fresh fee, nonce, code, owner and policy pins, then run through exact `eth_call` / rippled simulation. | Owner profile |
+| Approve | One-use Ed25519 grant over the exact `localPlanHash`, valid for at most 15 minutes. | Owner approval key |
+| Execute | Lease, crash-safe `SUBMITTING` journal, sign-only wallet, send. | Owner wallet |
+| Reconcile | Receipt and position re-read. A lost send becomes `UNKNOWN` and is never resent. | — |
+
+Supported writes: Aave/Morpho supply, withdraw, borrow, repay and bounded approvals. There is also a **flash protection** recipe that runs repay → withdraw → swap → repay flash in one transaction. It works only through a position-owning smart account (`contracts/FinanceProtectionAccount.sol`, Morpho flash, 0 fee), never on someone else's collateral. XRPL writes are plain `Payment` only. XLS-66 `LoanPay` and XLS-33 MPT are planned as [V2 native credit](docs/features/finance-native-credit.md).
+
+**Update, install and check:**
+
+```sh
+git switch main && git pull --ff-only origin main
+npm ci && npm run build
+node dist/agent-cli.js install          # packages finance-v1.schema.json, its digest pin and vectors
+npm run finance:test                    # 16 Node tests (EDGE-01..05 on anvil) + 8 Forge tests
+```
+
+**Use (one JSON in, one JSON out; exit 0 ok, 2 blocked, 1 failure):**
+
+```sh
+node dist/finance/cli.js --config <owner-profile.json> --adapters <adapters.json> < request.json
+node dist/finance/cli.js --config <owner-profile.json> --adapters <adapters.json> --record-grant < grant.json
+```
+
+Then ask the agent, for example:
+
+```text
+Use $flashloan-agent finance mode to read my Aave position on Arbitrum, compare hold with repaying 100 USDC, and simulate the repayment. Do not send it.
+```
+
+Start read-only with `enabled:true, live:false` in the profile, then admit one market with `live:true`. To roll back, set `enabled:false`. The `config/finance/adapters.example.json` manifest admits no market until real Aave/Morpho deployments are pinned. Environment keys are `FINANCE_MCP_AUTH_TOKEN`, `FINANCE_EVM_SIGNER_KEY_FILE` (mode 600, read only at execute time) and `FINANCE_{ARBITRUM,BASE,XRPL}_RPC_URL` (see `.env.example`).
+
+**Status.** The contract is `urn:openx:finance-wire:1` (digest `8046b6f9…de4edb`, 17 shared vectors). Golden hashes match the PRD. These tests pass locally at unit, loopback-MCP, anvil and Forge fidelity.
+
+Not yet working:
+- **Remote research is blocked.** The connected flashloan MCP does not yet serve the `finance_*` tools (HyperMove MC-* producer), so remote research calls return a typed error.
+- **Not run:** the live read matrix and a funded pilot. Both need separate owner authorization.
+
+Details: [brief](docs/features/finance-skill.md), [System Map](docs/features/finance-skill-map.md) (Draft), [specification](docs/features/finance-skill.spec.json), [agent reference](skills/flashloan-agent/finance.md) and [PRD](AI-FINANCE-UPGRADE-PRD.md).
+
 ### 2026-11-07: Base Limitless prediction trading
 
 The skill now routes explicit prediction-market requests to a separate TypeScript runtime. It supports binary and NegRisk CLOB markets, FAK and GTC orders, legacy/share and collateral/USDC fees, cancellation, restart recovery, FIFO accounting and resolved-position redemption. The official `@limitless-exchange/sdk` is an optional dependency pinned to **1.3.0**; existing flashloan paths do not import it.

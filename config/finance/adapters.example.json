@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "finance.adapters/1",
+  "evm": {
+    "arbitrum": { "rpcUrlEnv": "FINANCE_ARBITRUM_RPC_URL", "finality": "finalized", "markets": [], "protection": [] },
+    "base": { "rpcUrlEnv": "FINANCE_BASE_RPC_URL", "finality": "finalized", "markets": [], "protection": [] }
+  },
+  "xrpl": { "rpcUrlEnv": "FINANCE_XRPL_RPC_URL", "networkId": 0, "codecVersion": null, "signHostModule": null }
+}
